@@ -1,1 +1,2 @@
-export { bigFloat, BigFloat, BigFloatConfig, type BigFloatOptions } from "./bigFloat";
+export { bigFloat, BigFloat, BigFloatConfig } from "./bigFloat";
+export { PiAlgorithm, RoundingMode, type BigFloatOptions } from "./types";

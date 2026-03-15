@@ -1,53 +1,28 @@
-/**
- * BigFloat configuration options
- */
-export interface BigFloatOptions {
-	allowPrecisionMismatch?: boolean;
-	mutateResult?: boolean;
-	roundingMode?: number;
-	extraPrecision?: bigint;
-	piAlgorithm?: number;
-	trigFuncsMaxSteps?: bigint;
-	lnMaxSteps?: bigint;
-}
+import { PiAlgorithm, RoundingMode, type BigFloatOptions } from "./types";
 
 /**
  * BigFloat settings
  */
 export class BigFloatConfig {
-	/** 0に近い方向に切り捨て */
-	static readonly ROUND_TRUNCATE = 0;
-	/** 絶対値が小さい方向に切り捨て（ROUND_TRUNCATEと同じ） */
-	static readonly ROUND_DOWN = 0;
-	/** 絶対値が大きい方向に切り上げ */
-	static readonly ROUND_UP = 1;
-	/** 正の無限大方向に切り上げ */
-	static readonly ROUND_CEIL = 2;
-	/** 負の無限大方向に切り捨て */
-	static readonly ROUND_FLOOR = 3;
-	/** 四捨五入 */
-	static readonly ROUND_HALF_UP = 4;
-	/** 五捨六入（5未満切り捨て） */
-	static readonly ROUND_HALF_DOWN = 5;
-
-	/** 円周率の計算アルゴリズム: デフォルト */
-	static readonly PI_MATH_DEFAULT = 0;
-	/** 円周率[Gregory-Leibniz法] (超高速・超低収束) */
-	static readonly PI_LEIBNIZ = 1;
-	/** 円周率[ニュートン法] (高速・低収束) */
-	static readonly PI_NEWTON = 2;
-	/** 円周率[Chudnovsky法] (低速・高収束) */
-	static readonly PI_CHUDNOVSKY = 3;
-
+	/** 精度の不一致を許容するかどうか */
 	public allowPrecisionMismatch: boolean;
+	/** 破壊的な計算(自身の上書き)をするかどうか */
 	public mutateResult: boolean;
-	public roundingMode: number;
+	/** 丸めモード */
+	public roundingMode: RoundingMode;
+	/** 計算時に追加する精度 */
 	public extraPrecision: bigint;
-	public piAlgorithm: number;
+	/** 円周率の計算アルゴリズム */
+	public piAlgorithm: PiAlgorithm;
+	/** 三角関数の最大ステップ数 */
 	public trigFuncsMaxSteps: bigint;
+	/** 対数計算の最大ステップ数 */
 	public lnMaxSteps: bigint;
 
-	constructor({ allowPrecisionMismatch = false, mutateResult = false, roundingMode = BigFloatConfig.ROUND_TRUNCATE, extraPrecision = 2n, piAlgorithm = BigFloatConfig.PI_CHUDNOVSKY, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n }: BigFloatOptions = {}) {
+	/**
+	 * @param options - 設定オプション
+	 */
+	constructor({ allowPrecisionMismatch = false, mutateResult = false, roundingMode = RoundingMode.TRUNCATE, extraPrecision = 2n, piAlgorithm = PiAlgorithm.CHUDNOVSKY, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n }: BigFloatOptions = {}) {
 		this.allowPrecisionMismatch = allowPrecisionMismatch;
 		this.mutateResult = mutateResult;
 		this.roundingMode = roundingMode;
@@ -59,8 +34,9 @@ export class BigFloatConfig {
 
 	/**
 	 * 設定オブジェクトを複製する
+	 * @returns 複製された設定オブジェクト
 	 */
-	clone(): BigFloatConfig {
+	public clone(): BigFloatConfig {
 		return new BigFloatConfig({
 			allowPrecisionMismatch: this.allowPrecisionMismatch,
 			mutateResult: this.mutateResult,
@@ -75,14 +51,14 @@ export class BigFloatConfig {
 	/**
 	 * 精度の不一致を許容するかどうかを切り替える
 	 */
-	toggleMismatch(): void {
+	public toggleMismatch(): void {
 		this.allowPrecisionMismatch = !this.allowPrecisionMismatch;
 	}
 
 	/**
 	 * 破壊的な計算(自身の上書き)をするかどうかを切り替える
 	 */
-	toggleMutation(): void {
+	public toggleMutation(): void {
 		this.mutateResult = !this.mutateResult;
 	}
 }
@@ -92,20 +68,23 @@ export class BigFloatConfig {
  */
 export class BigFloat {
 	/** 最大精度 (Stringの限界) */
-	static MAX_PRECISION = 200000000n;
+	public static MAX_PRECISION = 200000000n;
 
 	/** 設定 */
-	static config = new BigFloatConfig();
+	public static config = new BigFloatConfig();
 
 	/** キャッシュ */
 	private static _cached: Record<string, { value: bigint; precision: bigint; priority: number }> = {};
 
+	/** 内部的な値 (整数値として保持) */
 	public value: bigint = 0n;
+	/** 精度 (小数点以下の桁数) */
 	public _precision: bigint = 20n;
 
 	/**
 	 * @param value - 初期値
 	 * @param precision - 精度
+	 * @throws {RangeError} 精度が不正な場合
 	 */
 	constructor(value?: string | number | bigint | BigFloat, precision: number | bigint = 20n) {
 		if (value instanceof BigFloat) {
@@ -136,19 +115,21 @@ export class BigFloat {
 
 	/**
 	 * クラスを複製する (設定複製用)
+	 * @returns 複製されたクラス
 	 */
-	static clone(): typeof BigFloat {
+	public static clone(): typeof BigFloat {
 		const Parent = this;
 		return class extends Parent {
-			static override config = Parent.config.clone();
-			static override MAX_PRECISION = Parent.MAX_PRECISION;
+			public static override config = Parent.config.clone();
+			public static override MAX_PRECISION = Parent.MAX_PRECISION;
 		};
 	}
 
 	/**
 	 * インスタンスを複製する
+	 * @returns 複製されたインスタンス
 	 */
-	clone(): BigFloat {
+	public clone(): BigFloat {
 		const instance = new (this.constructor as any)();
 		instance._precision = this._precision;
 		instance.value = this.value;
@@ -160,8 +141,11 @@ export class BigFloat {
 	 * @param str - 変換する文字列
 	 * @param precision - 小数点以下の桁数
 	 * @param base - 基数
+	 * @returns 変換されたBigFloatインスタンス
+	 * @throws {RangeError} 基数が2から36の範囲外の場合
+	 * @throws {Error} 不正な文字が含まれている場合
 	 */
-	static parseFloat(str: string | number | bigint | BigFloat, precision: number | bigint = 20n, base = 10): BigFloat {
+	public static parseFloat(str: string | number | bigint | BigFloat, precision: number | bigint = 20n, base = 10): BigFloat {
 		if (str instanceof BigFloat) return str.clone();
 		if (typeof str !== "string") str = String(str);
 		if (base < 2 || base > 36) throw new RangeError("Base must be between 2 and 36");
@@ -211,6 +195,8 @@ export class BigFloat {
 
 	/**
 	 * 文字列を解析して数値を取得
+	 * @param str - 解析する文字列
+	 * @returns 整数部、小数部、符号
 	 */
 	private _parse(str: string): { intPart: string; fracPart: string; sign: number } {
 		str = str.toString().trim();
@@ -243,6 +229,8 @@ export class BigFloat {
 
 	/**
 	 * 数値を正規化
+	 * @param val - 正規化する値
+	 * @returns 正規化された文字列
 	 */
 	private _normalize(val: bigint): string {
 		const sign = val < 0n ? "-" : "";
@@ -259,6 +247,8 @@ export class BigFloat {
 
 	/**
 	 * 引数を正規化する
+	 * @param args - 引数リスト
+	 * @returns 正規化された引数リスト
 	 */
 	protected static _normalizeArgs(args: any[]): any[] {
 		if (args.length === 1 && Array.isArray(args[0])) {
@@ -269,6 +259,10 @@ export class BigFloat {
 
 	/**
 	 * 精度を合わせる
+	 * @param other - 合わせる対象
+	 * @param useExPrecision - 拡張精度を使用するかどうか
+	 * @returns [値A, 値B, 内部精度, 外部精度]
+	 * @throws {Error} 精度の不一致が許容されていない場合
 	 */
 	protected _bothRescale(other: BigFloat | number | string | bigint, useExPrecision = false): [bigint, bigint, bigint, bigint] {
 		const precisionA = this._precision;
@@ -300,6 +294,10 @@ export class BigFloat {
 
 	/**
 	 * 複数の精度を合わせる
+	 * @param arr - 精度を合わせるインスタンスのリスト
+	 * @param useExPrecision - 拡張精度を使用するかどうか
+	 * @returns [値のリスト, 内部精度, 外部精度]
+	 * @throws {Error} 精度の不一致が許容されていない場合
 	 */
 	protected static _batchRescale(arr: any[], useExPrecision = false): [bigint[], bigint, bigint] {
 		const config = this.config;
@@ -334,7 +332,11 @@ export class BigFloat {
 	}
 
 	/**
-	 * 結果を作成する
+	 * 結果を作成する (静的メソッド)
+	 * @param val - 値
+	 * @param precision - 精度
+	 * @param exPrecision - 拡張精度
+	 * @returns 作成されたBigFloatインスタンス
 	 */
 	protected static _makeResult(val: bigint, precision: bigint, exPrecision = precision): BigFloat {
 		const rounded = this._round(val, exPrecision, precision);
@@ -345,7 +347,12 @@ export class BigFloat {
 	}
 
 	/**
-	 * 結果を作成する
+	 * 結果を作成する (インスタンスメソッド)
+	 * @param val - 値
+	 * @param precision - 精度
+	 * @param exPrecision - 拡張精度
+	 * @param okMutate - 破壊的な変更を許可するかどうか
+	 * @returns 作成または更新されたBigFloatインスタンス
 	 */
 	protected _makeResult(val: bigint, precision: bigint, exPrecision = precision, okMutate = true): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
@@ -360,6 +367,8 @@ export class BigFloat {
 
 	/**
 	 * 精度をチェックする
+	 * @param precision - チェックする精度
+	 * @throws {RangeError} 精度が範囲外の場合
 	 */
 	protected static _checkPrecision(precision: bigint): void {
 		if (precision < 0n) {
@@ -372,8 +381,10 @@ export class BigFloat {
 
 	/**
 	 * 精度を変更する
+	 * @param precision - 新しい精度
+	 * @returns 精度が変更されたインスタンス
 	 */
-	changePrecision(precision: number | bigint): this {
+	public changePrecision(precision: number | bigint): this {
 		const precisionBig = BigInt(precision);
 		this.value = (this.constructor as typeof BigFloat)._round(this.value, this._precision, precisionBig);
 		this._precision = precisionBig;
@@ -382,8 +393,10 @@ export class BigFloat {
 
 	/**
 	 * どこまで精度が一致しているかを判定する
+	 * @param other - 比較対象
+	 * @returns 一致している桁数
 	 */
-	matchingPrecision(other: BigFloat | number | string | bigint): bigint {
+	public matchingPrecision(other: BigFloat | number | string | bigint): bigint {
 		const [valA, valB, prec] = this._bothRescale(other);
 		let diff = valA - valB;
 		if (diff === 0n) return prec;
@@ -409,58 +422,109 @@ export class BigFloat {
 
 	/**
 	 * 比較演算
+	 * @param other - 比較対象
+	 * @returns 比較結果 (-1, 0, 1)
 	 */
-	compare(other: BigFloat | number | string | bigint): number {
+	public compare(other: BigFloat | number | string | bigint): number {
 		const [valA, valB] = this._bothRescale(other);
 		if (valA < valB) return -1;
 		if (valA > valB) return 1;
 		return 0;
 	}
 
-	eq(other: BigFloat | number | string | bigint): boolean {
+	/**
+	 * 等しいかどうかを判定する (==)
+	 * @param other - 比較対象
+	 * @returns 等しい場合はtrue
+	 */
+	public eq(other: BigFloat | number | string | bigint): boolean {
 		return this.compare(other) === 0;
 	}
 
-	equals(other: BigFloat | number | string | bigint): boolean {
+	/**
+	 * 等しいかどうかを判定する (==)
+	 * @param other - 比較対象
+	 * @returns 等しい場合はtrue
+	 */
+	public equals(other: BigFloat | number | string | bigint): boolean {
 		return this.compare(other) === 0;
 	}
 
-	ne(other: BigFloat | number | string | bigint): boolean {
+	/**
+	 * 等しくないかどうかを判定する (!=)
+	 * @param other - 比較対象
+	 * @returns 等しくない場合はtrue
+	 */
+	public ne(other: BigFloat | number | string | bigint): boolean {
 		return this.compare(other) !== 0;
 	}
 
-	lt(other: BigFloat | number | string | bigint): boolean {
+	/**
+	 * より小さいかどうかを判定する (<)
+	 * @param other - 比較対象
+	 * @returns より小さい場合はtrue
+	 */
+	public lt(other: BigFloat | number | string | bigint): boolean {
 		return this.compare(other) === -1;
 	}
 
-	lte(other: BigFloat | number | string | bigint): boolean {
+	/**
+	 * 以下かどうかを判定する (<=)
+	 * @param other - 比較対象
+	 * @returns 以下の場合はtrue
+	 */
+	public lte(other: BigFloat | number | string | bigint): boolean {
 		return this.compare(other) <= 0;
 	}
 
-	gt(other: BigFloat | number | string | bigint): boolean {
+	/**
+	 * より大きいかどうかを判定する (>)
+	 * @param other - 比較対象
+	 * @returns より大きい場合はtrue
+	 */
+	public gt(other: BigFloat | number | string | bigint): boolean {
 		return this.compare(other) === 1;
 	}
 
-	gte(other: BigFloat | number | string | bigint): boolean {
+	/**
+	 * 以上かどうかを判定する (>=)
+	 * @param other - 比較対象
+	 * @returns 以上の場合はtrue
+	 */
+	public gte(other: BigFloat | number | string | bigint): boolean {
 		return this.compare(other) >= 0;
 	}
 
-	isZero(): boolean {
+	/**
+	 * ゼロかどうかを判定する
+	 * @returns ゼロの場合はtrue
+	 */
+	public isZero(): boolean {
 		return this.value === 0n;
 	}
 
-	isPositive(): boolean {
+	/**
+	 * 正の数かどうかを判定する
+	 * @returns 正の数の場合はtrue
+	 */
+	public isPositive(): boolean {
 		return this.value > 0n;
 	}
 
-	isNegative(): boolean {
+	/**
+	 * 負の数かどうかを判定する
+	 * @returns 負の数の場合はtrue
+	 */
+	public isNegative(): boolean {
 		return this.value < 0n;
 	}
 
 	/**
 	 * 相対差を計算する
+	 * @param other - 比較対象
+	 * @returns 相対差
 	 */
-	relativeDiff(other: BigFloat | number | string | bigint): BigFloat {
+	public relativeDiff(other: BigFloat | number | string | bigint): BigFloat {
 		const [valA, valB, prec] = this._bothRescale(other);
 
 		const absA = valA < 0n ? -valA : valA;
@@ -476,16 +540,20 @@ export class BigFloat {
 
 	/**
 	 * 絶対差を計算する
+	 * @param other - 比較対象
+	 * @returns 絶対差
 	 */
-	absoluteDiff(other: BigFloat | number | string | bigint): BigFloat {
+	public absoluteDiff(other: BigFloat | number | string | bigint): BigFloat {
 		const [valA, valB, prec] = this._bothRescale(other);
 		return (this.constructor as typeof BigFloat)._makeResult(valA > valB ? valA - valB : valB - valA, prec);
 	}
 
 	/**
-	 * 差分の非一致度を計算する
+	 * 差分の非一致度を計算する (百分率)
+	 * @param other - 比較対象
+	 * @returns 非一致度 (%)
 	 */
-	percentDiff(other: BigFloat | number | string | bigint): BigFloat {
+	public percentDiff(other: BigFloat | number | string | bigint): BigFloat {
 		const [valA, valB, prec] = this._bothRescale(other);
 
 		const absB = valB < 0n ? -valB : valB;
@@ -501,7 +569,14 @@ export class BigFloat {
 	// * 数値変換・出力系
 	// ====================================================================================================
 
-	toString(base = 10, precision: number | bigint = this._precision): string {
+	/**
+	 * 文字列に変換する
+	 * @param base - 基数 (2-36)
+	 * @param precision - 出力時の精度
+	 * @returns 変換された文字列
+	 * @throws {RangeError} 基数が2から36の範囲外の場合
+	 */
+	public toString(base = 10, precision: number | bigint = this._precision): string {
 		if (base < 2 || base > 36) throw new RangeError("Base must be between 2 and 36");
 		if (base === 10) {
 			const precisionBig = BigInt(precision);
@@ -553,18 +628,31 @@ export class BigFloat {
 		return fracStr.length > 0 ? `${sign}${intStr}.${fracStr}` : `${sign}${intStr}`;
 	}
 
-	toJSON(): string {
+	/**
+	 * JSON用の文字列表現を取得する
+	 * @returns JSON文字列
+	 */
+	public toJSON(): string {
 		const config = (this.constructor as typeof BigFloat).config;
 		let bf: BigFloat = this;
 		if (config.mutateResult) bf = bf.clone();
 		return bf.scale().toString();
 	}
 
-	toNumber(): number {
+	/**
+	 * Number型に変換する
+	 * @returns 変換された数値
+	 */
+	public toNumber(): number {
 		return Number(this.toString());
 	}
 
-	toFixed(digits: number | bigint): string {
+	/**
+	 * 指定した桁数で固定した文字列を取得する
+	 * @param digits - 小数点以下の桁数
+	 * @returns 固定小数点形式の文字列
+	 */
+	public toFixed(digits: number | bigint): string {
 		const str = this._normalize(this.value);
 		const [intPart, fracPart = ""] = str.split(".");
 		const d = Math.max(0, Number(digits));
@@ -573,7 +661,13 @@ export class BigFloat {
 		return `${intPart}.${fracFixed}`;
 	}
 
-	toExponential(digits = Number(this._precision)): string {
+	/**
+	 * 指数形式の文字列を取得する
+	 * @param digits - 有効桁数
+	 * @returns 指数形式の文字列
+	 * @throws {RangeError} digitsが不正な場合
+	 */
+	public toExponential(digits = Number(this._precision)): string {
 		const prec = Number(this._precision);
 		if (digits <= 0 || digits > prec) throw new RangeError("Invalid digits (must be between 1 and precision)");
 		const isNeg = this.value < 0n;
@@ -605,24 +699,45 @@ export class BigFloat {
 	// * 四則演算・基本関数
 	// ====================================================================================================
 
-	add(other: BigFloat | number | string | bigint): BigFloat {
+	/**
+	 * 加算する (+)
+	 * @param other - 加算する値
+	 * @returns 加算結果
+	 */
+	public add(other: BigFloat | number | string | bigint): BigFloat {
 		const [valA, valB, prec] = this._bothRescale(other);
 		return this._makeResult(valA + valB, prec);
 	}
 
-	sub(other: BigFloat | number | string | bigint): BigFloat {
+	/**
+	 * 減算する (-)
+	 * @param other - 減算する値
+	 * @returns 減算結果
+	 */
+	public sub(other: BigFloat | number | string | bigint): BigFloat {
 		const [valA, valB, prec] = this._bothRescale(other);
 		return this._makeResult(valA - valB, prec);
 	}
 
-	mul(other: BigFloat | number | string | bigint): BigFloat {
+	/**
+	 * 乗算する (*)
+	 * @param other - 乗算する値
+	 * @returns 乗算結果
+	 */
+	public mul(other: BigFloat | number | string | bigint): BigFloat {
 		const [valA, valB, exPrec, prec] = this._bothRescale(other, true);
 		const scale = 10n ** exPrec;
 		const result = (valA * valB) / scale;
 		return this._makeResult(result, prec, exPrec);
 	}
 
-	div(other: BigFloat | number | string | bigint): BigFloat {
+	/**
+	 * 除算する (/)
+	 * @param other - 除算する値
+	 * @returns 除算結果
+	 * @throws {Error} ゼロ除算の場合
+	 */
+	public div(other: BigFloat | number | string | bigint): BigFloat {
 		const [valA, valB, exPrec, prec] = this._bothRescale(other, true);
 		const scale = 10n ** exPrec;
 		if (valB === 0n) throw new Error("Division by zero");
@@ -630,30 +745,59 @@ export class BigFloat {
 		return this._makeResult(result, prec, exPrec);
 	}
 
+	/**
+	 * 剰余を計算する (内部用)
+	 * @param x - 被除数
+	 * @param m - 法
+	 * @returns 剰余
+	 */
 	protected static _mod(x: bigint, m: bigint): bigint {
 		const r = x % m;
 		return r < 0n ? r + m : r;
 	}
 
-	mod(other: BigFloat | number | string | bigint): BigFloat {
+	/**
+	 * 剰余を計算する (%)
+	 * @param other - 法
+	 * @returns 剰余
+	 */
+	public mod(other: BigFloat | number | string | bigint): BigFloat {
 		const [valA, valB, prec] = this._bothRescale(other);
 		const result = (this.constructor as typeof BigFloat)._mod(valA, valB);
 		return this._makeResult(result, prec);
 	}
 
-	neg(): BigFloat {
+	/**
+	 * 符号を反転させる
+	 * @returns 符号が反転した結果
+	 */
+	public neg(): BigFloat {
 		return this._makeResult(-this.value, this._precision);
 	}
 
+	/**
+	 * 絶対値を取得する (内部用)
+	 * @param val - 値
+	 * @returns 絶対値
+	 */
 	protected static _abs(val: bigint): bigint {
 		return val < 0n ? -val : val;
 	}
 
-	abs(): BigFloat {
+	/**
+	 * 絶対値を取得する
+	 * @returns 絶対値
+	 */
+	public abs(): BigFloat {
 		return this._makeResult((this.constructor as typeof BigFloat)._abs(this.value), this._precision);
 	}
 
-	reciprocal(): BigFloat {
+	/**
+	 * 逆数を取得する
+	 * @returns 逆数
+	 * @throws {Error} ゼロの場合
+	 */
+	public reciprocal(): BigFloat {
 		if (this.value === 0n) throw new Error("Division by zero");
 		const construct = this.constructor as typeof BigFloat;
 		const exPr = construct.config.extraPrecision;
@@ -665,20 +809,35 @@ export class BigFloat {
 		return this._makeResult(result, this._precision, totalPr);
 	}
 
-	floor(): BigFloat {
+	/**
+	 * 床関数 (負の無限大方向への丸め)
+	 * @returns 丸められた結果
+	 */
+	public floor(): BigFloat {
 		const scale = 10n ** this._precision;
 		const scaled = this.value / scale;
 		const floored = this.value < 0n && this.value % scale !== 0n ? scaled - 1n : scaled;
 		return this._makeResult(floored * scale, this._precision);
 	}
 
-	ceil(): BigFloat {
+	/**
+	 * 天井関数 (正の無限大方向への丸め)
+	 * @returns 丸められた結果
+	 */
+	public ceil(): BigFloat {
 		const scale = 10n ** this._precision;
 		const scaled = this.value / scale;
 		const ceiled = this.value > 0n && this.value % scale !== 0n ? scaled + 1n : scaled;
 		return this._makeResult(ceiled * scale, this._precision);
 	}
 
+	/**
+	 * 値を丸める (内部用)
+	 * @param val - 丸める値
+	 * @param currentPrec - 現在の精度
+	 * @param targetPrec - 目標の精度
+	 * @returns 丸められた値
+	 */
 	protected static _round(val: bigint, currentPrec: bigint, targetPrec: bigint): bigint {
 		const diff = currentPrec - targetPrec;
 		if (diff < 0n) {
@@ -697,23 +856,23 @@ export class BigFloat {
 
 		let offset = 0n;
 		switch (mode) {
-			case BigFloatConfig.ROUND_UP:
+			case RoundingMode.UP:
 				offset = isNeg ? -scale : scale;
 				break;
-			case BigFloatConfig.ROUND_CEIL:
+			case RoundingMode.CEIL:
 				if (!isNeg) offset = scale;
 				break;
-			case BigFloatConfig.ROUND_FLOOR:
+			case RoundingMode.FLOOR:
 				if (isNeg) offset = -scale;
 				break;
-			case BigFloatConfig.ROUND_HALF_UP:
+			case RoundingMode.HALF_UP:
 				if (absRem >= half) offset = isNeg ? -scale : scale;
 				break;
-			case BigFloatConfig.ROUND_HALF_DOWN:
+			case RoundingMode.HALF_DOWN:
 				if (absRem > half) offset = isNeg ? -scale : scale;
 				break;
-			case BigFloatConfig.ROUND_TRUNCATE:
-			case BigFloatConfig.ROUND_DOWN:
+			case RoundingMode.TRUNCATE:
+			case RoundingMode.DOWN:
 			default:
 				break;
 		}
@@ -721,7 +880,11 @@ export class BigFloat {
 		return (base + offset) / scale;
 	}
 
-	round(): BigFloat {
+	/**
+	 * 四捨五入する
+	 * @returns 四捨五入された結果
+	 */
+	public round(): BigFloat {
 		const scale = 10n ** this._precision;
 		const scaled = this.value / scale;
 		const remainder = this.value % scale;
@@ -737,7 +900,11 @@ export class BigFloat {
 		return this._makeResult(rounded * scale, this._precision);
 	}
 
-	trunc(): BigFloat {
+	/**
+	 * 0に近い方向へ切り捨てる
+	 * @returns 切り捨てられた結果
+	 */
+	public trunc(): BigFloat {
 		const scale = 10n ** this._precision;
 		const truncated = this.value / scale;
 		return this._makeResult(truncated * scale, this._precision);
@@ -747,6 +914,14 @@ export class BigFloat {
 	// * 冪乗・ルート・スケーリング
 	// ====================================================================================================
 
+	/**
+	 * 冪乗を計算する (内部用)
+	 * @param base - 底
+	 * @param exponent - 指数
+	 * @param precision - 精度
+	 * @returns 冪乗の結果
+	 * @throws {Error} ゼロ除算が発生した場合
+	 */
 	protected static _pow(base: bigint, exponent: bigint, precision: bigint): bigint {
 		const scale = 10n ** precision;
 		if (exponent === 0n) return scale;
@@ -777,13 +952,25 @@ export class BigFloat {
 		return this._exp(mul, precision);
 	}
 
-	pow(exponent: BigFloat | number | string | bigint): BigFloat {
+	/**
+	 * 冪乗を計算する
+	 * @param exponent - 指数
+	 * @returns 冪乗の結果
+	 */
+	public pow(exponent: BigFloat | number | string | bigint): BigFloat {
 		const [valA, valB, exPrec, prec] = this._bothRescale(exponent, true);
 		const construct = this.constructor as typeof BigFloat;
 		const result = construct._pow(valA, valB, exPrec);
 		return this._makeResult(result, prec, exPrec);
 	}
 
+	/**
+	 * 平方根を計算する (内部用)
+	 * @param n - 値
+	 * @param precision - 精度
+	 * @returns 平方根
+	 * @throws {Error} 負の数の平方根を計算しようとした場合
+	 */
 	protected static _sqrt(n: bigint, precision: bigint): bigint {
 		if (n < 0n) throw new Error("Cannot compute square root of negative number");
 		if (n === 0n) return 0n;
@@ -802,7 +989,11 @@ export class BigFloat {
 		return x;
 	}
 
-	sqrt(): BigFloat {
+	/**
+	 * 平方根を計算する
+	 * @returns 平方根
+	 */
+	public sqrt(): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
 		const exPr = construct.config.extraPrecision;
 		const prec = this._precision;
@@ -813,7 +1004,11 @@ export class BigFloat {
 		return this._makeResult(x, prec, totalPr);
 	}
 
-	cbrt(): BigFloat {
+	/**
+	 * 立方根を計算する
+	 * @returns 立方根
+	 */
+	public cbrt(): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
 		const exPr = construct.config.extraPrecision;
 		const prec = this._precision;
@@ -824,6 +1019,14 @@ export class BigFloat {
 		return this._makeResult(x, prec, totalPr);
 	}
 
+	/**
+	 * n乗根を計算する (内部用)
+	 * @param v - 値
+	 * @param n - 指数
+	 * @param precision - 精度
+	 * @returns n乗根
+	 * @throws {Error} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
+	 */
 	protected static _nthRoot(v: bigint, n: bigint, precision: bigint): bigint {
 		if (n <= 0n) {
 			throw new Error("n must be a positive integer");
@@ -856,7 +1059,12 @@ export class BigFloat {
 		return x;
 	}
 
-	nthRoot(n: number | bigint): BigFloat {
+	/**
+	 * n乗根を計算する
+	 * @param n - 指数
+	 * @returns n乗根
+	 */
+	public nthRoot(n: number | bigint): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
 		const exPr = construct.config.extraPrecision;
 		const prec = this._precision;
@@ -867,7 +1075,11 @@ export class BigFloat {
 		return this._makeResult(x, prec, totalPr);
 	}
 
-	scale(): BigFloat {
+	/**
+	 * 末尾のゼロを削除して精度を最適化する
+	 * @returns 最適化されたインスタンス
+	 */
+	public scale(): BigFloat {
 		let val = this.value;
 		let scale = this._precision;
 
@@ -885,6 +1097,13 @@ export class BigFloat {
 	// * 三角関数
 	// ====================================================================================================
 
+	/**
+	 * 正弦(sin)を計算する (内部用)
+	 * @param x - 角度(ラジアン)
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns 正弦
+	 */
 	protected static _sin(x: bigint, precision: bigint, maxSteps: bigint): bigint {
 		const scale = 10n ** precision;
 
@@ -919,7 +1138,11 @@ export class BigFloat {
 		return result * sign;
 	}
 
-	sin(): BigFloat {
+	/**
+	 * 正弦(sin)を計算する
+	 * @returns 正弦
+	 */
+	public sin(): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
 		const config = construct.config;
 		const maxSteps = config.trigFuncsMaxSteps;
@@ -931,6 +1154,13 @@ export class BigFloat {
 		return this._makeResult(result, this._precision, totalPr);
 	}
 
+	/**
+	 * 余弦(cos)を計算する (内部用)
+	 * @param x - 角度(ラジアン)
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns 余弦
+	 */
 	protected static _cos(x: bigint, precision: bigint, maxSteps: bigint): bigint {
 		const scale = 10n ** precision;
 
@@ -949,7 +1179,11 @@ export class BigFloat {
 		return result;
 	}
 
-	cos(): BigFloat {
+	/**
+	 * 余弦(cos)を計算する
+	 * @returns 余弦
+	 */
+	public cos(): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
 		const config = construct.config;
 		const maxSteps = config.trigFuncsMaxSteps;
@@ -961,6 +1195,14 @@ export class BigFloat {
 		return this._makeResult(result, this._precision, totalPr);
 	}
 
+	/**
+	 * 正接(tan)を計算する (内部用)
+	 * @param x - 角度(ラジアン)
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns 正接
+	 * @throws {Error} 正接が定義されない点の場合
+	 */
 	protected static _tan(x: bigint, precision: bigint, maxSteps: bigint): bigint {
 		const cosX = this._cos(x, precision, maxSteps);
 		const EPSILON = 10n ** (precision - 4n);
@@ -970,7 +1212,11 @@ export class BigFloat {
 		return (sinX * scale) / cosX;
 	}
 
-	tan(): BigFloat {
+	/**
+	 * 正接(tan)を計算する
+	 * @returns 正接
+	 */
+	public tan(): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
 		const config = construct.config;
 		const maxSteps = config.trigFuncsMaxSteps;
@@ -982,6 +1228,14 @@ export class BigFloat {
 		return this._makeResult(result, this._precision, totalPr);
 	}
 
+	/**
+	 * 逆正弦(asin)を計算する (内部用)
+	 * @param x - 値
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns 角度(ラジアン)
+	 * @throws {Error} 入力が範囲外([-1, 1])の場合
+	 */
 	protected static _asin(x: bigint, precision: bigint, maxSteps: bigint): bigint {
 		const scale = 10n ** precision;
 		if (x > scale || x < -scale) throw new Error("asin input out of range [-1,1]");
@@ -994,7 +1248,11 @@ export class BigFloat {
 		return this._trigFuncsNewton(f, df, initial, precision, Number(maxSteps));
 	}
 
-	asin(): BigFloat {
+	/**
+	 * 逆正弦(asin)を計算する
+	 * @returns 角度(ラジアン)
+	 */
+	public asin(): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
 		const config = construct.config;
 		const maxSteps = config.trigFuncsMaxSteps;
@@ -1006,13 +1264,24 @@ export class BigFloat {
 		return this._makeResult(result, this._precision, totalPr);
 	}
 
+	/**
+	 * 逆余弦(acos)を計算する (内部用)
+	 * @param x - 値
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns 角度(ラジアン)
+	 */
 	protected static _acos(x: bigint, precision: bigint, maxSteps: bigint): bigint {
 		const halfPi = this._pi(precision) / 2n;
 		const asinX = this._asin(x, precision, maxSteps);
 		return halfPi - asinX;
 	}
 
-	acos(): BigFloat {
+	/**
+	 * 逆余弦(acos)を計算する
+	 * @returns 角度(ラジアン)
+	 */
+	public acos(): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
 		const config = construct.config;
 		const maxSteps = config.trigFuncsMaxSteps;
@@ -1024,6 +1293,13 @@ export class BigFloat {
 		return this._makeResult(result, this._precision, totalPr);
 	}
 
+	/**
+	 * 逆正接(atan)を計算する (内部用)
+	 * @param x - 値
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns 角度(ラジアン)
+	 */
 	protected static _atan(x: bigint, precision: bigint, maxSteps: bigint): bigint {
 		const scale = 10n ** precision;
 		const absX = x < 0n ? -x : x;
@@ -1045,7 +1321,11 @@ export class BigFloat {
 		return sign * (halfPi - innerAtan);
 	}
 
-	atan(): BigFloat {
+	/**
+	 * 逆正接(atan)を計算する
+	 * @returns 角度(ラジアン)
+	 */
+	public atan(): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
 		const config = construct.config;
 		const maxSteps = config.trigFuncsMaxSteps;
@@ -1057,6 +1337,14 @@ export class BigFloat {
 		return this._makeResult(result, this._precision, totalPr);
 	}
 
+	/**
+	 * 2引数の逆正接(atan2)を計算する (内部用)
+	 * @param y - y座標
+	 * @param x - x座標
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns 角度(ラジアン)
+	 */
 	protected static _atan2(y: bigint, x: bigint, precision: bigint, maxSteps: bigint): bigint {
 		if (x === 0n) {
 			if (y > 0n) return this._pi(precision) / 2n;
@@ -1072,7 +1360,12 @@ export class BigFloat {
 		return angle - this._pi(precision);
 	}
 
-	atan2(x: BigFloat | number | string | bigint): BigFloat {
+	/**
+	 * 2引数の逆正接(atan2)を計算する
+	 * @param x - x座標
+	 * @returns 角度(ラジアン)
+	 */
+	public atan2(x: BigFloat | number | string | bigint): BigFloat {
 		const [valA, valB, exPrec, prec] = this._bothRescale(x, true);
 		const construct = this.constructor as typeof BigFloat;
 		const config = construct.config;
@@ -1081,6 +1374,12 @@ export class BigFloat {
 		return this._makeResult(result, prec, exPrec);
 	}
 
+	/**
+	 * マチン(Machin)の公式用のatan計算 (内部用)
+	 * @param invX - 1/xのx
+	 * @param precision - 精度
+	 * @returns atan(1/x)
+	 */
 	protected static _atanMachine(invX: bigint, precision: bigint): bigint {
 		const scale = 10n ** precision;
 		const x = scale / invX;
@@ -1099,6 +1398,16 @@ export class BigFloat {
 		return sum;
 	}
 
+	/**
+	 * 三角関数用のニュートン法 (内部用)
+	 * @param f - 関数
+	 * @param df - 導関数
+	 * @param initial - 初期値
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns 解
+	 * @throws {Error} 導関数がゼロになった場合
+	 */
 	protected static _trigFuncsNewton(f: (x: bigint) => bigint, df: (x: bigint) => bigint, initial: bigint, precision: bigint, maxSteps = 50): bigint {
 		const scale = 10n ** precision;
 		let x = initial;
@@ -1114,6 +1423,12 @@ export class BigFloat {
 		return x;
 	}
 
+	/**
+	 * sin(pi * z) を計算する (内部用)
+	 * @param z - 値
+	 * @param precision - 精度
+	 * @returns sin(pi * z)
+	 */
 	protected static _sinPi(z: bigint, precision: bigint): bigint {
 		const pi = this._pi(precision);
 		const x = (pi * z) / 10n ** precision;
@@ -1124,6 +1439,12 @@ export class BigFloat {
 	// * 対数・指数・自然定数
 	// ====================================================================================================
 
+	/**
+	 * 指数関数(e^x)を計算する (内部用)
+	 * @param x - 指数
+	 * @param precision - 精度
+	 * @returns e^x
+	 */
 	protected static _exp(x: bigint, precision: bigint): bigint {
 		const scale = 10n ** precision;
 		let sum = scale;
@@ -1138,7 +1459,11 @@ export class BigFloat {
 		return sum;
 	}
 
-	exp(): BigFloat {
+	/**
+	 * 指数関数(e^x)を計算する
+	 * @returns e^x
+	 */
+	public exp(): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
 		const exPr = construct.config.extraPrecision;
 		const totalPr = this._precision + exPr;
@@ -1147,13 +1472,24 @@ export class BigFloat {
 		return this._makeResult(expInt, this._precision, totalPr);
 	}
 
+	/**
+	 * 2の冪乗(2^x)を計算する (内部用)
+	 * @param value - 指数
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns 2^x
+	 */
 	protected static _exp2(value: bigint, precision: bigint, maxSteps: bigint): bigint {
 		const LN2 = this._ln2(precision, maxSteps);
 		const scale = 10n ** precision;
 		return this._exp((LN2 * value) / scale, precision);
 	}
 
-	exp2(): BigFloat {
+	/**
+	 * 2の冪乗(2^x)を計算する
+	 * @returns 2^x
+	 */
+	public exp2(): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
 		const config = construct.config;
 		const maxSteps = config.lnMaxSteps;
@@ -1164,6 +1500,12 @@ export class BigFloat {
 		return this._makeResult(exp2Int, this._precision, totalPr);
 	}
 
+	/**
+	 * e^x - 1 を計算する (内部用)
+	 * @param value - 指数
+	 * @param precision - 精度
+	 * @returns e^x - 1
+	 */
 	protected static _expm1(value: bigint, precision: bigint): bigint {
 		const scale = 10n ** precision;
 		const absValue = value < 0n ? -value : value;
@@ -1186,7 +1528,11 @@ export class BigFloat {
 		}
 	}
 
-	expm1(): BigFloat {
+	/**
+	 * e^x - 1 を計算する
+	 * @returns e^x - 1
+	 */
+	public expm1(): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
 		const exPr = construct.config.extraPrecision;
 		const totalPr = this._precision + exPr;
@@ -1195,6 +1541,14 @@ export class BigFloat {
 		return this._makeResult(expInt, this._precision, totalPr);
 	}
 
+	/**
+	 * 自然対数(ln)を計算する (内部用)
+	 * @param value - 値
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns ln(value)
+	 * @throws {Error} 値が0以下の場合
+	 */
 	protected static _ln(value: bigint, precision: bigint, maxSteps: bigint): bigint {
 		if (value <= 0n) throw new Error("ln(x) is undefined for x <= 0");
 		const scale = 10n ** precision;
@@ -1223,7 +1577,11 @@ export class BigFloat {
 		return 2n * result + k * LN10;
 	}
 
-	ln(): BigFloat {
+	/**
+	 * 自然対数(ln)を計算する
+	 * @returns ln(x)
+	 */
+	public ln(): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
 		const config = construct.config;
 		const maxSteps = config.lnMaxSteps;
@@ -1234,6 +1592,15 @@ export class BigFloat {
 		return this._makeResult(raw, this._precision, totalPr);
 	}
 
+	/**
+	 * 対数を計算する (内部用)
+	 * @param value - 値
+	 * @param baseValue - 底
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns log_base(value)
+	 * @throws {Error} 底が1または0の場合
+	 */
 	protected static _log(value: bigint, baseValue: bigint, precision: bigint, maxSteps: bigint): bigint {
 		if (value === 1n * 10n ** precision) return 0n;
 		const lnB = this._ln(baseValue, precision, maxSteps);
@@ -1243,7 +1610,12 @@ export class BigFloat {
 		return (lnX * SCALE) / lnB;
 	}
 
-	log(base: BigFloat | number | string | bigint): BigFloat {
+	/**
+	 * 対数を計算する
+	 * @param base - 底
+	 * @returns log_base(x)
+	 */
+	public log(base: BigFloat | number | string | bigint): BigFloat {
 		const [valA, valB, exPrec, prec] = this._bothRescale(base, true);
 		const construct = this.constructor as typeof BigFloat;
 		const maxSteps = construct.config.lnMaxSteps;
@@ -1251,13 +1623,24 @@ export class BigFloat {
 		return this._makeResult(raw, prec, exPrec);
 	}
 
+	/**
+	 * 2を底とする対数(log2)を計算する (内部用)
+	 * @param value - 値
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns log2(value)
+	 */
 	protected static _log2(value: bigint, precision: bigint, maxSteps: bigint): bigint {
 		const scale = 10n ** precision;
 		const baseValue = 2n * scale;
 		return this._log(value, baseValue, precision, maxSteps);
 	}
 
-	log2(): BigFloat {
+	/**
+	 * 2を底とする対数(log2)を計算する
+	 * @returns log2(x)
+	 */
+	public log2(): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
 		const maxSteps = construct.config.lnMaxSteps;
 		const exPrec = construct.config.extraPrecision;
@@ -1267,12 +1650,23 @@ export class BigFloat {
 		return this._makeResult(raw, this._precision, totalPr);
 	}
 
+	/**
+	 * 10を底とする対数(log10)を計算する (内部用)
+	 * @param value - 値
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns log10(value)
+	 */
 	protected static _log10(value: bigint, precision: bigint, maxSteps: bigint): bigint {
 		const baseValue = 10n * 10n ** precision;
 		return this._log(value, baseValue, precision, maxSteps);
 	}
 
-	log10(): BigFloat {
+	/**
+	 * 10を底とする対数(log10)を計算する
+	 * @returns log10(x)
+	 */
+	public log10(): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
 		const maxSteps = construct.config.lnMaxSteps;
 		const exPrec = construct.config.extraPrecision;
@@ -1282,13 +1676,24 @@ export class BigFloat {
 		return this._makeResult(raw, this._precision, totalPr);
 	}
 
+	/**
+	 * ln(1 + x) を計算する (内部用)
+	 * @param value - 値
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns ln(1 + value)
+	 */
 	protected static _log1p(value: bigint, precision: bigint, maxSteps: bigint): bigint {
 		const scale = 10n ** precision;
 		const onePlusX = scale + value;
 		return this._log(onePlusX, scale, precision, maxSteps);
 	}
 
-	log1p(): BigFloat {
+	/**
+	 * ln(1 + x) を計算する
+	 * @returns ln(1 + x)
+	 */
+	public log1p(): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
 		const maxSteps = construct.config.lnMaxSteps;
 		const exPrec = construct.config.extraPrecision;
@@ -1298,6 +1703,12 @@ export class BigFloat {
 		return this._makeResult(raw, this._precision, totalPr);
 	}
 
+	/**
+	 * ln(10) を計算する (内部用)
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns ln(10)
+	 */
 	protected static _ln10(precision: bigint, maxSteps = 10000n): bigint {
 		const scale = 10n ** precision;
 		const x = 10n * scale;
@@ -1315,11 +1726,22 @@ export class BigFloat {
 		return 2n * result;
 	}
 
+	/**
+	 * ln(2) を計算する (内部用)
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns ln(2)
+	 */
 	protected static _ln2(precision: bigint, maxSteps: bigint): bigint {
 		const scale = 10n ** precision;
 		return this._ln(2n * scale, precision, maxSteps);
 	}
 
+	/**
+	 * 自然対数の底(e)を取得する (内部用)
+	 * @param precision - 精度
+	 * @returns e
+	 */
 	protected static _e(precision: bigint): bigint {
 		if (this._getCheckCache("e", precision)) {
 			return this._getCache("e", precision);
@@ -1330,7 +1752,12 @@ export class BigFloat {
 		return eInt;
 	}
 
-	static e(precision: number | bigint = 20n): BigFloat {
+	/**
+	 * 自然対数の底(e)を取得する
+	 * @param precision - 精度
+	 * @returns e
+	 */
+	public static e(precision: number | bigint = 20n): BigFloat {
 		const precisionBig = BigInt(precision);
 		this._checkPrecision(precisionBig);
 		const exPr = this.config.extraPrecision;
@@ -1343,6 +1770,12 @@ export class BigFloat {
 	// * 定数（π, τ）
 	// ====================================================================================================
 
+	/**
+	 * ライプニッツの公式で円周率を計算する (内部用)
+	 * @param precision - 精度
+	 * @param mulPrecision - 反復回数の倍率
+	 * @returns 円周率
+	 */
 	protected static _piLeibniz(precision = 20n, mulPrecision = 100n): bigint {
 		const scale = 10n ** precision;
 		const iterations = precision * mulPrecision;
@@ -1361,6 +1794,11 @@ export class BigFloat {
 		return sum;
 	}
 
+	/**
+	 * ニュートン法(マチンの公式)で円周率を計算する (内部用)
+	 * @param precision - 精度
+	 * @returns 円周率
+	 */
 	protected static _piNewton(precision = 20n): bigint {
 		const EXTRA = 10n;
 		const prec = precision + EXTRA;
@@ -1370,6 +1808,11 @@ export class BigFloat {
 		return value / 10n ** EXTRA;
 	}
 
+	/**
+	 * チュドノフスキー法で円周率を計算する (内部用)
+	 * @param precision - 精度
+	 * @returns 円周率
+	 */
 	protected static _piChudnovsky(precision = 20n): bigint {
 		const scale = 10n ** precision;
 		const digitsPerTerm = 14n;
@@ -1393,6 +1836,11 @@ export class BigFloat {
 		return (C * scale) / sum;
 	}
 
+	/**
+	 * 設定されたアルゴリズムで円周率を計算する (内部用)
+	 * @param precision - 精度
+	 * @returns 円周率
+	 */
 	protected static _pi(precision: bigint): bigint {
 		const piAlgorithm = this.config.piAlgorithm;
 		if (this._getCheckCache("pi", precision, piAlgorithm)) {
@@ -1400,16 +1848,16 @@ export class BigFloat {
 		}
 		let piRet;
 		switch (piAlgorithm) {
-			case BigFloatConfig.PI_CHUDNOVSKY:
+			case PiAlgorithm.CHUDNOVSKY:
 				piRet = this._piChudnovsky(precision);
 				break;
-			case BigFloatConfig.PI_NEWTON:
+			case PiAlgorithm.NEWTON:
 				piRet = this._piNewton(precision);
 				break;
-			case BigFloatConfig.PI_LEIBNIZ:
+			case PiAlgorithm.LEIBNIZ:
 				piRet = this._piLeibniz(precision);
 				break;
-			case BigFloatConfig.PI_MATH_DEFAULT:
+			case PiAlgorithm.MATH_DEFAULT:
 			default:
 				this._checkPrecision(precision);
 				return new (this as any)(`${Math.PI}`, precision).value;
@@ -1418,7 +1866,12 @@ export class BigFloat {
 		return piRet;
 	}
 
-	static pi(precision: number | bigint = 20n): BigFloat {
+	/**
+	 * 円周率(pi)を取得する
+	 * @param precision - 精度
+	 * @returns pi
+	 */
+	public static pi(precision: number | bigint = 20n): BigFloat {
 		const precisionBig = BigInt(precision);
 		this._checkPrecision(precisionBig);
 		const piRet = new this();
@@ -1427,12 +1880,22 @@ export class BigFloat {
 		return piRet;
 	}
 
+	/**
+	 * タウ(tau = 2*pi)を計算する (内部用)
+	 * @param precision - 精度
+	 * @returns tau
+	 */
 	protected static _tau(precision: bigint): bigint {
 		const pi = this._pi(precision);
 		return pi * 2n;
 	}
 
-	static tau(precision: number | bigint = 20n): BigFloat {
+	/**
+	 * タウ(tau = 2*pi)を取得する
+	 * @param precision - 精度
+	 * @returns tau
+	 */
+	public static tau(precision: number | bigint = 20n): BigFloat {
 		const precisionBig = BigInt(precision);
 		this._checkPrecision(precisionBig);
 		const tauRet = new this();
@@ -1445,7 +1908,13 @@ export class BigFloat {
 	// * 統計関数
 	// ====================================================================================================
 
-	static max(...args: any[]): BigFloat {
+	/**
+	 * 引数の中で最大値を返す
+	 * @param args - 数値のリスト
+	 * @returns 最大値
+	 * @throws {Error} 引数が空の場合
+	 */
+	public static max(...args: any[]): BigFloat {
 		const arr = this._normalizeArgs(args);
 		if (arr.length === 0) throw new Error("No arguments provided");
 		const [scaled, prec] = this._batchRescale(arr);
@@ -1456,7 +1925,13 @@ export class BigFloat {
 		return this._makeResult(maxVal, prec);
 	}
 
-	static min(...args: any[]): BigFloat {
+	/**
+	 * 引数の中で最小値を返す
+	 * @param args - 数値のリスト
+	 * @returns 最小値
+	 * @throws {Error} 引数が空の場合
+	 */
+	public static min(...args: any[]): BigFloat {
 		const arr = this._normalizeArgs(args);
 		if (arr.length === 0) throw new Error("No arguments provided");
 		const [scaled, prec] = this._batchRescale(arr);
@@ -1467,7 +1942,12 @@ export class BigFloat {
 		return this._makeResult(minVal, prec);
 	}
 
-	static sum(...args: any[]): BigFloat {
+	/**
+	 * 引数の合計を返す
+	 * @param args - 数値のリスト
+	 * @returns 合計
+	 */
+	public static sum(...args: any[]): BigFloat {
 		const arr = this._normalizeArgs(args);
 		if (arr.length === 0) return new this();
 		const [scaled, prec] = this._batchRescale(arr);
@@ -1475,7 +1955,12 @@ export class BigFloat {
 		return this._makeResult(totalVal, prec);
 	}
 
-	static product(...args: any[]): BigFloat {
+	/**
+	 * 引数の積を返す
+	 * @param args - 数値のリスト
+	 * @returns 積
+	 */
+	public static product(...args: any[]): BigFloat {
 		const arr = this._normalizeArgs(args);
 		if (arr.length === 0) return new this("1");
 		const [scaled, exPrec, prec] = this._batchRescale(arr, true);
@@ -1489,14 +1974,25 @@ export class BigFloat {
 		return this._makeResult(prod.value, prec, exPrec);
 	}
 
-	static average(...args: any[]): BigFloat {
+	/**
+	 * 引数の平均を返す
+	 * @param args - 数値のリスト
+	 * @returns 平均
+	 */
+	public static average(...args: any[]): BigFloat {
 		const arr = this._normalizeArgs(args);
 		if (arr.length === 0) return new this();
 		const total = this.sum(arr);
 		return total.div(new this(arr.length));
 	}
 
-	static median(...args: any[]): BigFloat {
+	/**
+	 * 引数の中央値を返す
+	 * @param args - 数値のリスト
+	 * @returns 中央値
+	 * @throws {Error} 引数が空の場合
+	 */
+	public static median(...args: any[]): BigFloat {
 		const arr = this._normalizeArgs(args);
 		if (arr.length === 0) throw new Error("No arguments provided");
 		const [scaled, prec] = this._batchRescale(arr);
@@ -1515,7 +2011,13 @@ export class BigFloat {
 		}
 	}
 
-	static variance(...args: any[]): BigFloat {
+	/**
+	 * 引数の分散を返す
+	 * @param args - 数値のリスト
+	 * @returns 分散
+	 * @throws {Error} 引数が空の場合
+	 */
+	public static variance(...args: any[]): BigFloat {
 		const arr = this._normalizeArgs(args);
 		if (arr.length === 0) throw new Error("No arguments provided");
 		if (arr.length === 1) return new this("0");
@@ -1537,7 +2039,12 @@ export class BigFloat {
 		return this._makeResult(sumS.div(n).value, prec, exPrec);
 	}
 
-	static stddev(...args: any[]): BigFloat {
+	/**
+	 * 引数の標準偏差を返す
+	 * @param args - 数値のリスト
+	 * @returns 標準偏差
+	 */
+	public static stddev(...args: any[]): BigFloat {
 		const varianceVal = this.variance(args);
 		return varianceVal.sqrt();
 	}
@@ -1546,6 +2053,11 @@ export class BigFloat {
 	// * ランダム・乱数生成
 	// ====================================================================================================
 
+	/**
+	 * ランダムな整数値を生成する (内部用)
+	 * @param precision - 精度
+	 * @returns ランダムな値
+	 */
 	protected static _randomBigInt(precision: bigint): bigint {
 		const maxSteps = this.config.lnMaxSteps;
 		const scale = 10n ** precision;
@@ -1560,7 +2072,12 @@ export class BigFloat {
 		return result % scale;
 	}
 
-	static random(precision: number | bigint = 20n): BigFloat {
+	/**
+	 * 0以上1未満のランダムなBigFloatを生成する
+	 * @param precision - 精度
+	 * @returns ランダムなBigFloat
+	 */
+	public static random(precision: number | bigint = 20n): BigFloat {
 		const precisionBig = BigInt(precision);
 		this._checkPrecision(precisionBig);
 		let randBigInt = this._randomBigInt(precisionBig);
@@ -1571,6 +2088,15 @@ export class BigFloat {
 	// * 特殊関数・積分・ガンマ関数など
 	// ====================================================================================================
 
+	/**
+	 * 数値積分を計算する (内部用)
+	 * @param f - 関数
+	 * @param a - 開始点
+	 * @param b - 終了点
+	 * @param n - 分割数
+	 * @param precision - 精度
+	 * @returns 積分結果
+	 */
 	protected static _integral(f: (k: bigint) => bigint, a: bigint, b: bigint, n: bigint, precision: bigint): bigint {
 		const scale = 10n ** precision;
 		if (n <= 0n || a === b) return 0n;
@@ -1588,6 +2114,12 @@ export class BigFloat {
 		return (delta * sum) / denominator;
 	}
 
+	/**
+	 * ベルヌーイ数を生成する (内部用)
+	 * @param n - 最大次数
+	 * @param precision - 精度
+	 * @returns ベルヌーイ数のリスト
+	 */
 	protected static _bernoulliNumbers(n: number, precision: bigint): bigint[] {
 		const A = new Array(n + 1).fill(0n);
 		const B = new Array(n + 1).fill(0n);
@@ -1606,6 +2138,11 @@ export class BigFloat {
 		return B;
 	}
 
+	/**
+	 * Spougeの近似のためのパラメータaを決定する (内部用)
+	 * @param precision - 精度
+	 * @returns パラメータa
+	 */
 	protected static _getSpougeParamA(precision: bigint): number {
 		const config = this.config;
 		const maxSteps = config.lnMaxSteps;
@@ -1617,6 +2154,13 @@ export class BigFloat {
 		return Math.max(3, calculated_a);
 	}
 
+	/**
+	 * Lanczos-Spougeの係数を計算する (内部用)
+	 * @param numCoeffs - 係数の数
+	 * @param a - パラメータa
+	 * @param precision - 精度
+	 * @returns 係数のリスト
+	 */
 	protected static _lanczosSpougeCoefficients(numCoeffs: number, a: number, precision: bigint): bigint[] {
 		const scale = 10n ** precision;
 		const half_scale = scale / 2n;
@@ -1637,6 +2181,13 @@ export class BigFloat {
 		return coeffs;
 	}
 
+	/**
+	 * ガンマ関数をLanczos-Spouge近似で計算する (内部用)
+	 * @param z - 値
+	 * @param precision - 精度
+	 * @returns ガンマ関数
+	 * @throws {Error} 負の整数の場合
+	 */
 	protected static _gammaLanczos(z: bigint, precision: bigint): bigint {
 		const scale = 10n ** precision;
 		if (z <= 0n && z % scale === 0n) {
@@ -1674,7 +2225,11 @@ export class BigFloat {
 		return (t_pow_exp * exp_minus_t * series) / scale2;
 	}
 
-	gamma(): BigFloat {
+	/**
+	 * ガンマ関数を計算する
+	 * @returns ガンマ関数
+	 */
+	public gamma(): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
 		const exPrec = construct.config.extraPrecision;
 		const totalPr = this._precision + exPrec;
@@ -1683,18 +2238,33 @@ export class BigFloat {
 		return this._makeResult(raw, this._precision, totalPr);
 	}
 
+	/**
+	 * 階乗を計算する (内部用)
+	 * @param n - 値
+	 * @returns 階乗
+	 */
 	protected static _factorial(n: bigint): bigint {
 		let f = 1n;
 		for (let i = 2n; i <= n; i++) f *= i;
 		return f;
 	}
 
+	/**
+	 * ガンマ関数を用いた階乗を計算する (内部用)
+	 * @param n - 値
+	 * @param precision - 精度
+	 * @returns 階乗
+	 */
 	protected static _factorialGamma(n: bigint, precision: bigint): bigint {
 		const scale = 10n ** precision;
 		return this._gammaLanczos(n + scale, precision);
 	}
 
-	factorial(): BigFloat {
+	/**
+	 * 階乗を計算する
+	 * @returns 階乗
+	 */
+	public factorial(): BigFloat {
 		const construct = this.constructor as typeof BigFloat;
 		const exPrec = construct.config.extraPrecision;
 		const totalPr = this._precision + exPrec;
@@ -1709,6 +2279,12 @@ export class BigFloat {
 		return this._makeResult(raw, this._precision, totalPr);
 	}
 
+	/**
+	 * 二項係数を計算する (内部用)
+	 * @param n - 全体数
+	 * @param k - 選択数
+	 * @returns 二項係数
+	 */
 	protected static _binomial(n: bigint, k: bigint): bigint {
 		if (k > n) return 0n;
 		if (k > n - k) k = n - k;
@@ -1723,11 +2299,25 @@ export class BigFloat {
 	// * キャッシュ管理
 	// ====================================================================================================
 
+	/**
+	 * キャッシュが存在するか確認する (内部用)
+	 * @param key - キャッシュキー
+	 * @param precision - 必要精度
+	 * @param priority - アルゴリズム優先度
+	 * @returns 存在する場合はtrue
+	 */
 	protected static _getCheckCache(key: string, precision: bigint, priority = 0): boolean {
 		const cachedData = this._cached[key];
 		return !!(cachedData && cachedData.precision >= precision && cachedData.priority >= priority);
 	}
 
+	/**
+	 * キャッシュを取得する (内部用)
+	 * @param key - キャッシュキー
+	 * @param precision - 必要精度
+	 * @returns キャッシュされた値
+	 * @throws {Error} キャッシュが存在しない場合
+	 */
 	protected static _getCache(key: string, precision: bigint): bigint {
 		const cachedData = this._cached[key];
 		if (cachedData) {
@@ -1736,6 +2326,13 @@ export class BigFloat {
 		throw new Error(`use _getCheckCache first`);
 	}
 
+	/**
+	 * キャッシュを更新する (内部用)
+	 * @param key - キャッシュキー
+	 * @param value - 値
+	 * @param precision - 精度
+	 * @param priority - アルゴリズム優先度
+	 */
 	protected static _updateCache(key: string, value: bigint, precision: bigint, priority = 0): void {
 		const cachedData = this._cached[key];
 		if (cachedData && cachedData.precision >= precision && cachedData.priority >= priority) {
@@ -1748,23 +2345,39 @@ export class BigFloat {
 	// * 定数オブジェクト
 	// ====================================================================================================
 
-	static minusOne(precision: number | bigint = 20n): BigFloat {
+	/**
+	 * 定数 -1 を取得する
+	 * @param precision - 精度
+	 * @returns -1
+	 */
+	public static minusOne(precision: number | bigint = 20n): BigFloat {
 		return new this(-1n, precision);
 	}
 
-	static zero(precision: number | bigint = 20n): BigFloat {
+	/**
+	 * 定数 0 を取得する
+	 * @param precision - 精度
+	 * @returns 0
+	 */
+	public static zero(precision: number | bigint = 20n): BigFloat {
 		return new this(0n, precision);
 	}
 
-	static one(precision: number | bigint = 20n): BigFloat {
+	/**
+	 * 定数 1 を取得する
+	 * @param precision - 精度
+	 * @returns 1
+	 */
+	public static one(precision: number | bigint = 20n): BigFloat {
 		return new this(1n, precision);
 	}
 }
 
 /**
  * BigFloat を作成する
- * @param value 初期値
- * @param precision 精度
+ * @param value - 初期値
+ * @param precision - 精度
+ * @returns BigFloat インスタンス
  */
 export function bigFloat(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat {
 	return new BigFloat(value, precision);

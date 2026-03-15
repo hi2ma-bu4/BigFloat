@@ -71,6 +71,7 @@ const ESBUILD_COMMON = {
 
 	sourcemap: true,
 	minify: false,
+	treeShaking: true,
 
 	loader: {
 		".wasm": "file",
