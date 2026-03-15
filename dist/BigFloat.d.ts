@@ -828,21 +828,22 @@ export declare class BigFloat {
 	 */
 	protected static _bernoulliNumbers(n: number, precision: bigint): bigint[];
 	/**
-	 * Spougeの近似のためのパラメータaを決定する (内部用)
+	 * ln(2 * pi) を計算する (内部用)
 	 * @param precision - 精度
-	 * @returns パラメータa
+	 * @returns ln(2 * pi)
 	 */
-	protected static _getSpougeParamA(precision: bigint): number;
+	protected static _ln2pi(precision: bigint): bigint;
+	/** Bernoulli numbers cache */
+	private static _bernoulliCache;
 	/**
-	 * Lanczos-Spougeの係数を計算する (内部用)
-	 * @param numCoeffs - 係数の数
-	 * @param a - パラメータa
+	 * キャッシュ付きでベルヌーイ数を取得する
+	 * @param n - 最大次数
 	 * @param precision - 精度
-	 * @returns 係数のリスト
+	 * @returns ベルヌーイ数のリスト
 	 */
-	protected static _lanczosSpougeCoefficients(numCoeffs: number, a: number, precision: bigint): bigint[];
+	protected static _getBernoulliNumbers(n: number, precision: bigint): bigint[];
 	/**
-	 * ガンマ関数をLanczos-Spouge近似で計算する (内部用)
+	 * ガンマ関数をStirlingの近似で計算する (内部用)
 	 * @param z - 値
 	 * @param precision - 精度
 	 * @returns ガンマ関数

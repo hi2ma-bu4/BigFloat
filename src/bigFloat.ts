@@ -2139,50 +2139,43 @@ export class BigFloat {
 	}
 
 	/**
-	 * Spougeの近似のためのパラメータaを決定する (内部用)
+	 * ln(2 * pi) を計算する (内部用)
 	 * @param precision - 精度
-	 * @returns パラメータa
+	 * @returns ln(2 * pi)
 	 */
-	protected static _getSpougeParamA(precision: bigint): number {
-		const config = this.config;
-		const maxSteps = config.lnMaxSteps;
-		const log10_2pi = this._log10(2n * this._pi(precision), precision, maxSteps);
-		const b = new this();
-		b.value = precision * log10_2pi;
-		b._precision = precision;
-		const calculated_a = Math.ceil(b.toNumber() + 10);
-		return Math.max(3, calculated_a);
-	}
-
-	/**
-	 * Lanczos-Spougeの係数を計算する (内部用)
-	 * @param numCoeffs - 係数の数
-	 * @param a - パラメータa
-	 * @param precision - 精度
-	 * @returns 係数のリスト
-	 */
-	protected static _lanczosSpougeCoefficients(numCoeffs: number, a: number, precision: bigint): bigint[] {
-		const scale = 10n ** precision;
-		const half_scale = scale / 2n;
-		const aBig = BigInt(a) * scale;
-		const coeffs = [scale];
-		let sign = 1n;
-		for (let k = 1; k < numCoeffs; k++) {
-			const k_minus_1_fact = this._factorial(BigInt(k - 1));
-			const kBig = BigInt(k) * scale;
-			const term_base = aBig - kBig;
-			const term1_exp = kBig - half_scale;
-			const term1 = this._pow(term_base, term1_exp, precision);
-			const term2 = this._exp(term_base, precision);
-			let c_k = (sign * term1 * term2) / (k_minus_1_fact * scale);
-			coeffs.push(c_k);
-			sign *= -1n;
+	protected static _ln2pi(precision: bigint): bigint {
+		if (this._getCheckCache("ln2pi", precision)) {
+			return this._getCache("ln2pi", precision);
 		}
-		return coeffs;
+		const scale = 10n ** precision;
+		const pi = this._pi(precision);
+		const twoPi = 2n * pi;
+		const ln2pi = this._ln(twoPi, precision, this.config.lnMaxSteps);
+		this._updateCache("ln2pi", ln2pi, precision);
+		return ln2pi;
+	}
+
+	/** Bernoulli numbers cache */
+	private static _bernoulliCache: Record<string, bigint[]> = {};
+
+	/**
+	 * キャッシュ付きでベルヌーイ数を取得する
+	 * @param n - 最大次数
+	 * @param precision - 精度
+	 * @returns ベルヌーイ数のリスト
+	 */
+	protected static _getBernoulliNumbers(n: number, precision: bigint): bigint[] {
+		const key = precision.toString();
+		if (this._bernoulliCache[key] && this._bernoulliCache[key].length > n) {
+			return this._bernoulliCache[key];
+		}
+		const B = this._bernoulliNumbers(n, precision);
+		this._bernoulliCache[key] = B;
+		return B;
 	}
 
 	/**
-	 * ガンマ関数をLanczos-Spouge近似で計算する (内部用)
+	 * ガンマ関数をStirlingの近似で計算する (内部用)
 	 * @param z - 値
 	 * @param precision - 精度
 	 * @returns ガンマ関数
@@ -2190,11 +2183,14 @@ export class BigFloat {
 	 */
 	protected static _gammaLanczos(z: bigint, precision: bigint): bigint {
 		const scale = 10n ** precision;
-		if (z <= 0n && z % scale === 0n) {
-			throw new Error("z must not be a minus integer");
-		}
-		const scale2 = scale * scale;
 		const half_scale = scale / 2n;
+
+		// 負の整数およびゼロでの極
+		if (z <= 0n && z % scale === 0n) {
+			throw new Error("z must not be a non-positive integer (pole)");
+		}
+
+		// 反転公式: gamma(z) = pi / (sin(pi*z) * gamma(1-z))
 		if (z < half_scale) {
 			const config = this.config;
 			const maxSteps = config.trigFuncsMaxSteps;
@@ -2203,26 +2199,50 @@ export class BigFloat {
 			const gammaOneMinusZ = this._gammaLanczos(oneMinusZ, precision);
 			const pi_z = (pi * z) / scale;
 			const sin_pi_z = this._sin(pi_z, precision, maxSteps);
-			const denominator = sin_pi_z * gammaOneMinusZ;
-			if (denominator === 0n) {
-				throw new Error("division by zero");
-			}
-			return (pi * scale2) / denominator;
+			const denominator = (sin_pi_z * gammaOneMinusZ) / scale;
+			if (denominator === 0n) throw new Error("division by zero");
+			return (pi * scale) / denominator;
 		}
-		const a = this._getSpougeParamA(precision);
-		const numCoeffs = Math.trunc(a);
-		const coeffs = this._lanczosSpougeCoefficients(numCoeffs, a, precision);
-		const z_minus_1 = z - scale;
-		let series = coeffs[0];
-		for (let k = 1; k < numCoeffs; k++) {
-			const term = (coeffs[k] * scale) / (z_minus_1 + BigInt(k) * scale);
-			series += term;
+
+		// 引数シフト: gamma(z) = gamma(z+m) / (z * (z+1) * ... * (z+m-1))
+		let product = scale;
+		let currentZ = z;
+		// 精度に応じて閾値を決定
+		const threshold = precision * 2n + 50n;
+		while (currentZ < threshold * scale) {
+			product = (product * currentZ) / scale;
+			currentZ += scale;
 		}
-		const t = z_minus_1 + BigInt(a) * scale;
-		const exponent = z - half_scale;
-		const t_pow_exp = this._pow(t, exponent, precision);
-		const exp_minus_t = this._exp(-t, precision);
-		return (t_pow_exp * exp_minus_t * series) / scale2;
+
+		// Stirlingの近似 (ln(gamma(z)))
+		// ln(gamma(z)) ≈ (z-0.5)ln(z) - z + 0.5ln(2pi) + sum(B_2n / (2n(2n-1)z^(2n-1)))
+		const lnZ = this._ln(currentZ, precision, this.config.lnMaxSteps);
+		const term1 = ((currentZ - half_scale) * lnZ) / scale;
+		const term2 = currentZ;
+		const term3 = this._ln2pi(precision) / 2n;
+
+		let sum = 0n;
+		const zInv = (scale * scale) / currentZ;
+		const zInv2 = (zInv * zInv) / scale;
+		let zInvPow = zInv;
+
+		// 精度に応じて項数を決定
+		const numTerms = Math.floor(Number(precision) / 6) + 10;
+		const bNumbers = this._getBernoulliNumbers(2 * numTerms, precision);
+
+		for (let n = 1; n <= numTerms; n++) {
+			const b2n = bNumbers[2 * n];
+			const denom = BigInt(2 * n * (2 * n - 1));
+			const term = (b2n * zInvPow) / (denom * scale);
+			if (term === 0n && n > 1) break;
+			sum += term;
+			zInvPow = (zInvPow * zInv2) / scale;
+		}
+
+		const lnGamma = term1 - term2 + term3 + sum;
+		const gammaLarge = this._exp(lnGamma, precision);
+
+		return (gammaLarge * scale) / product;
 	}
 
 	/**
