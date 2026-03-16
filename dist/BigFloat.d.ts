@@ -90,6 +90,16 @@ export declare class BigFloat {
 	static config: BigFloatConfig;
 	/** キャッシュ */
 	private static _cached;
+	/** 5の累乗キャッシュ */
+	private static _pow5Cache;
+	/** 2の累乗キャッシュ */
+	private static _pow2Cache;
+	/** Bernoulli numbers cache */
+	private static _bernoulliCache;
+	/**
+	 * キャッシュをクリアする
+	 */
+	static clearCache(): void;
 	/** 内部的な値 (mantissa × 2^exp2 × 5^exp5) */
 	mantissa: bigint;
 	/** 2の指数 */
@@ -118,6 +128,12 @@ export declare class BigFloat {
 	 * @returns 複製されたインスタンス
 	 */
 	clone(): BigFloat;
+	/**
+	 * 他のインスタンスの値を自身にコピーする
+	 * @param other - コピー元
+	 * @returns 自身
+	 */
+	copyFrom(other: BigFloat): this;
 	/**
 	 * ソフト正規化 (2の累乗を外に出す。bit演算で高速)
 	 */
@@ -167,10 +183,11 @@ export declare class BigFloat {
 	/**
 	 * 精度を合わせる
 	 * @param other - 合わせる対象
-	 * @returns [BigFloatA, BigFloatB] (クローンされた、アラインメント済みのインスタンス)
+	 * @param mutateA - 自身を破壊的に変更するかどうか
+	 * @returns [BigFloatA, BigFloatB] (アラインメント済みのインスタンス)
 	 * @throws {Error} 精度の不一致が許容されていない場合
 	 */
-	protected _align(other: BigFloat | number | string | bigint): [
+	protected _align(other: BigFloat | number | string | bigint, mutateA?: boolean): [
 		BigFloat,
 		BigFloat
 	];
@@ -842,8 +859,6 @@ export declare class BigFloat {
 	 * @returns ln(2 * pi)
 	 */
 	protected static _ln2pi(precision: bigint): bigint;
-	/** Bernoulli numbers cache */
-	private static _bernoulliCache;
 	/**
 	 * キャッシュ付きでベルヌーイ数を取得する
 	 * @param n - 最大次数
@@ -913,6 +928,18 @@ export declare class BigFloat {
 	 * @param priority - アルゴリズム優先度
 	 */
 	protected static _updateCache(key: string, value: bigint, precision: bigint, priority?: number): void;
+	/**
+	 * 5の累乗を取得する (キャッシュ付き)
+	 * @param n - 指数
+	 * @returns 5^n
+	 */
+	protected static _getPow5(n: bigint): bigint;
+	/**
+	 * 2の累乗を取得する (キャッシュ付き)
+	 * @param n - 指数
+	 * @returns 2^n
+	 */
+	protected static _getPow2(n: bigint): bigint;
 	/**
 	 * 定数 -1 を取得する
 	 * @param precision - 精度
