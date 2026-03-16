@@ -90,9 +90,17 @@ export declare class BigFloat {
 	static config: BigFloatConfig;
 	/** キャッシュ */
 	private static _cached;
-	/** 内部的な値 (整数値として保持) */
-	value: bigint;
-	/** 精度 (小数点以下の桁数) */
+	/** 内部的な値 (mantissa × 2^exp2 × 5^exp5) */
+	mantissa: bigint;
+	/** 2の指数 */
+	_exp2: bigint;
+	/** 5の指数 */
+	_exp5: bigint;
+	/** 2の指数を取得する */
+	exponent2(): bigint;
+	/** 5の指数を取得する */
+	exponent5(): bigint;
+	/** 精度 (小数点以下の最大桁数) */
 	_precision: bigint;
 	/**
 	 * @param value - 初期値
@@ -111,6 +119,26 @@ export declare class BigFloat {
 	 */
 	clone(): BigFloat;
 	/**
+	 * ソフト正規化 (2の累乗を外に出す。bit演算で高速)
+	 */
+	softNormalize(): void;
+	/**
+	 * レイジー正規化 (5の累乗も外に出す)
+	 */
+	lazyNormalize(): void;
+	/**
+	 * 指定された精度に丸める
+	 * @param precision - 精度 (省略時は自身の _precision)
+	 */
+	protected _applyPrecision(precision?: bigint): void;
+	/**
+	 * 手動丸め (内部用)
+	 * @param mantissa - 値
+	 * @param divisor - 除数
+	 * @returns 丸められた値
+	 */
+	protected static _roundManual(mantissa: bigint, divisor: bigint): bigint;
+	/**
 	 * 文字列を数値に変換する
 	 * @param str - 変換する文字列
 	 * @param precision - 小数点以下の桁数
@@ -125,13 +153,11 @@ export declare class BigFloat {
 	 * @param str - 解析する文字列
 	 * @returns 整数部、小数部、符号
 	 */
-	private _parse;
-	/**
-	 * 数値を正規化
-	 * @param val - 正規化する値
-	 * @returns 正規化された文字列
-	 */
-	private _normalize;
+	_parse(str: string): {
+		intPart: string;
+		fracPart: string;
+		sign: number;
+	};
 	/**
 	 * 引数を正規化する
 	 * @param args - 引数リスト
@@ -141,45 +167,30 @@ export declare class BigFloat {
 	/**
 	 * 精度を合わせる
 	 * @param other - 合わせる対象
-	 * @param useExPrecision - 拡張精度を使用するかどうか
-	 * @returns [値A, 値B, 内部精度, 外部精度]
+	 * @returns [BigFloatA, BigFloatB] (クローンされた、アラインメント済みのインスタンス)
 	 * @throws {Error} 精度の不一致が許容されていない場合
 	 */
-	protected _bothRescale(other: BigFloat | number | string | bigint, useExPrecision?: boolean): [
-		bigint,
-		bigint,
-		bigint,
-		bigint
-	];
-	/**
-	 * 複数の精度を合わせる
-	 * @param arr - 精度を合わせるインスタンスのリスト
-	 * @param useExPrecision - 拡張精度を使用するかどうか
-	 * @returns [値のリスト, 内部精度, 外部精度]
-	 * @throws {Error} 精度の不一致が許容されていない場合
-	 */
-	protected static _batchRescale(arr: any[], useExPrecision?: boolean): [
-		bigint[],
-		bigint,
-		bigint
+	protected _align(other: BigFloat | number | string | bigint): [
+		BigFloat,
+		BigFloat
 	];
 	/**
 	 * 結果を作成する (静的メソッド)
-	 * @param val - 値
-	 * @param precision - 精度
-	 * @param exPrecision - 拡張精度
+	 * @param val - 値 (10^valPrecision倍された整数)
+	 * @param precision - 保持する精度 (小数点以下の最大桁数)
+	 * @param valPrecision - 入力値の現在の精度 (省略時は precision)
 	 * @returns 作成されたBigFloatインスタンス
 	 */
-	protected static _makeResult(val: bigint, precision: bigint, exPrecision?: bigint): BigFloat;
+	protected static _makeResult(val: bigint, precision: bigint, valPrecision?: bigint): BigFloat;
 	/**
 	 * 結果を作成する (インスタンスメソッド)
-	 * @param val - 値
-	 * @param precision - 精度
-	 * @param exPrecision - 拡張精度
+	 * @param val - 値 (10^valPrecision倍された整数)
+	 * @param precision - 保持する精度 (小数点以下の最大桁数)
+	 * @param valPrecision - 入力値の現在の精度 (省略時は precision)
 	 * @param okMutate - 破壊的な変更を許可するかどうか
 	 * @returns 作成または更新されたBigFloatインスタンス
 	 */
-	protected _makeResult(val: bigint, precision: bigint, exPrecision?: bigint, okMutate?: boolean): BigFloat;
+	protected _makeResult(val: bigint, precision: bigint, valPrecision?: bigint, okMutate?: boolean): BigFloat;
 	/**
 	 * 精度をチェックする
 	 * @param precision - チェックする精度
@@ -336,6 +347,18 @@ export declare class BigFloat {
 	 */
 	div(other: BigFloat | number | string | bigint): BigFloat;
 	/**
+	 * インスタンスから結果を作成する
+	 * @param instance - 結果の元となるインスタンス
+	 * @returns 結果のインスタンス
+	 */
+	protected _makeResultFromInstance(instance: BigFloat): BigFloat;
+	/**
+	 * 内部的な計算用に、指定した精度の10進整数値を取得する
+	 * @param precision - 精度
+	 * @returns 10^precision倍された整数値
+	 */
+	protected _getInternalValue(precision: bigint): bigint;
+	/**
 	 * 剰余を計算する (内部用)
 	 * @param x - 被除数
 	 * @param m - 法
@@ -353,12 +376,6 @@ export declare class BigFloat {
 	 * @returns 符号が反転した結果
 	 */
 	neg(): BigFloat;
-	/**
-	 * 絶対値を取得する (内部用)
-	 * @param val - 値
-	 * @returns 絶対値
-	 */
-	protected static _abs(val: bigint): bigint;
 	/**
 	 * 絶対値を取得する
 	 * @returns 絶対値
@@ -380,14 +397,6 @@ export declare class BigFloat {
 	 * @returns 丸められた結果
 	 */
 	ceil(): BigFloat;
-	/**
-	 * 値を丸める (内部用)
-	 * @param val - 丸める値
-	 * @param currentPrec - 現在の精度
-	 * @param targetPrec - 目標の精度
-	 * @returns 丸められた値
-	 */
-	protected static _round(val: bigint, currentPrec: bigint, targetPrec: bigint): bigint;
 	/**
 	 * 四捨五入する
 	 * @returns 四捨五入された結果

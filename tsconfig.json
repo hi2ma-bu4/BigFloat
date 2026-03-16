@@ -10,11 +10,12 @@
         "noImplicitOverride": true,
         "noImplicitReturns": true,
         "noImplicitThis": true,
+        "types": [
+            "node"
+        ]
     },
-    "files": [
-        "src/index.ts"
-    ],
     "include": [
-        "src/**/*.ts"
+        "src/**/*.ts",
+        "test/**/*.ts"
     ]
 }
