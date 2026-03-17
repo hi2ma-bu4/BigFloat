@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.1.3
+ * BigFloat 1.1.4
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -139,11 +139,17 @@ var BigFloat = class _BigFloat {
       this._exp5 = 0n;
       return;
     }
-    const { intPart, fracPart, sign } = this._parse(value.toString());
-    const len = BigInt(fracPart.length);
-    this.mantissa = BigInt(intPart + fracPart) * BigInt(sign);
-    this._exp2 = -len;
-    this._exp5 = -len;
+    if (typeof value === "number" && Number.isInteger(value)) {
+      this.mantissa = BigInt(value);
+      this._exp2 = 0n;
+      this._exp5 = 0n;
+    } else {
+      const { intPart, fracPart, sign } = this._parse(value.toString());
+      const len = BigInt(fracPart.length);
+      this.mantissa = BigInt(intPart + fracPart) * BigInt(sign);
+      this._exp2 = -len;
+      this._exp5 = -len;
+    }
     this.lazyNormalize();
     this._applyPrecision();
   }
@@ -210,10 +216,16 @@ var BigFloat = class _BigFloat {
     if (this.mantissa === 0n) return;
     let m = this.mantissa;
     if (m < 0n) m = -m;
-    while (m > 0n && m % 5n === 0n) {
-      m /= 5n;
-      this.mantissa /= 5n;
-      this._exp5++;
+    const construct = this.constructor;
+    let p = 64n;
+    while (p > 0n) {
+      const p5 = construct._getPow5(p);
+      while (m > 0n && m % p5 === 0n) {
+        m /= p5;
+        this.mantissa /= p5;
+        this._exp5 += p;
+      }
+      p >>= 1n;
     }
   }
   /**
@@ -320,16 +332,28 @@ var BigFloat = class _BigFloat {
     for (const ch of rawInt.replace(/^[-+]/, "")) {
       intVal = intVal * bigBase + toDigit(ch);
     }
-    let res = new this(intVal * sign, precision);
+    const res = new this(intVal * sign, precision);
+    const config = this.config;
+    const originalMutate = config.mutateResult;
+    config.mutateResult = true;
     let currentBase = bigBase;
+    const tempD = new this(0n, precision);
+    const tempBase = new this(0n, precision);
     for (let i = 0; i < rawFrac.length; i++) {
       const d = toDigit(rawFrac[i]);
       if (d !== 0n) {
-        const part = new this(d * sign, precision).div(currentBase.toString());
-        res = res.add(part);
+        tempD.mantissa = d * sign;
+        tempD._exp2 = 0n;
+        tempD._exp5 = 0n;
+        tempBase.mantissa = currentBase;
+        tempBase._exp2 = 0n;
+        tempBase._exp5 = 0n;
+        const part = tempD.div(tempBase);
+        res.add(part);
       }
       currentBase *= bigBase;
     }
+    config.mutateResult = originalMutate;
     return res;
   }
   // ====================================================================================================
@@ -830,6 +854,7 @@ var BigFloat = class _BigFloat {
     res._exp5 = -targetP;
     res.softNormalize();
     res._applyPrecision(res._precision);
+    res.lazyNormalize();
     return res;
   }
   /**
@@ -1074,8 +1099,13 @@ var BigFloat = class _BigFloat {
     if (targetP <= 15n) {
       const val = this.toNumber();
       const root = Math.sqrt(val);
-      const bfRoot = new this.constructor(root, targetP);
-      return res.copyFrom(bfRoot);
+      res.mantissa = BigInt(Math.floor(root * 1e15));
+      res._exp2 = -15n;
+      res._exp5 = -15n;
+      res.softNormalize();
+      res._applyPrecision(targetP);
+      res.lazyNormalize();
+      return res;
     }
     let valForSqrt = res.mantissa;
     let e2s = res._exp2 + 2n * targetP;
@@ -1247,7 +1277,16 @@ var BigFloat = class _BigFloat {
     const construct = this.constructor;
     const config = construct.config;
     if (this._precision <= 15n) {
-      return new this.constructor(Math.sin(this.toNumber()), this._precision);
+      const res = Math.sin(this.toNumber());
+      const mutate = construct.config.mutateResult;
+      const out = mutate ? this : this.clone();
+      out.mantissa = BigInt(Math.floor(res * 1e15));
+      out._exp2 = -15n;
+      out._exp5 = -15n;
+      out.softNormalize();
+      out._applyPrecision(this._precision);
+      out.lazyNormalize();
+      return out;
     }
     const maxSteps = config.trigFuncsMaxSteps;
     const totalPr = this._precision + this.constructor.config.extraPrecision;
@@ -1292,7 +1331,16 @@ var BigFloat = class _BigFloat {
     const construct = this.constructor;
     const config = construct.config;
     if (this._precision <= 15n) {
-      return new this.constructor(Math.cos(this.toNumber()), this._precision);
+      const res = Math.cos(this.toNumber());
+      const mutate = construct.config.mutateResult;
+      const out = mutate ? this : this.clone();
+      out.mantissa = BigInt(Math.floor(res * 1e15));
+      out._exp2 = -15n;
+      out._exp5 = -15n;
+      out.softNormalize();
+      out._applyPrecision(this._precision);
+      out.lazyNormalize();
+      return out;
     }
     const maxSteps = config.trigFuncsMaxSteps;
     const totalPr = this._precision + this.constructor.config.extraPrecision;
@@ -1331,7 +1379,16 @@ var BigFloat = class _BigFloat {
     const construct = this.constructor;
     const config = construct.config;
     if (this._precision <= 15n) {
-      return new this.constructor(Math.tan(this.toNumber()), this._precision);
+      const res = Math.tan(this.toNumber());
+      const mutate = construct.config.mutateResult;
+      const out = mutate ? this : this.clone();
+      out.mantissa = BigInt(Math.floor(res * 1e15));
+      out._exp2 = -15n;
+      out._exp5 = -15n;
+      out.softNormalize();
+      out._applyPrecision(this._precision);
+      out.lazyNormalize();
+      return out;
     }
     const maxSteps = config.trigFuncsMaxSteps;
     const totalPr = this._precision + this.constructor.config.extraPrecision;
@@ -1371,7 +1428,16 @@ var BigFloat = class _BigFloat {
     const construct = this.constructor;
     const config = construct.config;
     if (this._precision <= 15n) {
-      return new this.constructor(Math.asin(this.toNumber()), this._precision);
+      const res = Math.asin(this.toNumber());
+      const mutate = construct.config.mutateResult;
+      const out = mutate ? this : this.clone();
+      out.mantissa = BigInt(Math.floor(res * 1e15));
+      out._exp2 = -15n;
+      out._exp5 = -15n;
+      out.softNormalize();
+      out._applyPrecision(this._precision);
+      out.lazyNormalize();
+      return out;
     }
     const maxSteps = config.trigFuncsMaxSteps;
     const totalPr = this._precision + this.constructor.config.extraPrecision;
@@ -1406,7 +1472,16 @@ var BigFloat = class _BigFloat {
     const construct = this.constructor;
     const config = construct.config;
     if (this._precision <= 15n) {
-      return new this.constructor(Math.acos(this.toNumber()), this._precision);
+      const res = Math.acos(this.toNumber());
+      const mutate = construct.config.mutateResult;
+      const out = mutate ? this : this.clone();
+      out.mantissa = BigInt(Math.floor(res * 1e15));
+      out._exp2 = -15n;
+      out._exp5 = -15n;
+      out.softNormalize();
+      out._applyPrecision(this._precision);
+      out.lazyNormalize();
+      return out;
     }
     const maxSteps = config.trigFuncsMaxSteps;
     const totalPr = this._precision + this.constructor.config.extraPrecision;
@@ -1454,7 +1529,16 @@ var BigFloat = class _BigFloat {
     const construct = this.constructor;
     const config = construct.config;
     if (this._precision <= 15n) {
-      return new this.constructor(Math.atan(this.toNumber()), this._precision);
+      const res = Math.atan(this.toNumber());
+      const mutate = construct.config.mutateResult;
+      const out = mutate ? this : this.clone();
+      out.mantissa = BigInt(Math.floor(res * 1e15));
+      out._exp2 = -15n;
+      out._exp5 = -15n;
+      out.softNormalize();
+      out._applyPrecision(this._precision);
+      out.lazyNormalize();
+      return out;
     }
     const maxSteps = config.trigFuncsMaxSteps;
     const totalPr = this._precision + this.constructor.config.extraPrecision;
@@ -1499,7 +1583,16 @@ var BigFloat = class _BigFloat {
     const construct = this.constructor;
     const config = construct.config;
     if (this._precision <= 15n) {
-      return new this.constructor(Math.atan2(this.toNumber(), bfB.toNumber()), this._precision);
+      const res = Math.atan2(this.toNumber(), bfB.toNumber());
+      const mutate = construct.config.mutateResult;
+      const out = mutate ? this : this.clone();
+      out.mantissa = BigInt(Math.floor(res * 1e15));
+      out._exp2 = -15n;
+      out._exp5 = -15n;
+      out.softNormalize();
+      out._applyPrecision(this._precision);
+      out.lazyNormalize();
+      return out;
     }
     const maxSteps = config.trigFuncsMaxSteps;
     const totalPr = this._precision + this.constructor.config.extraPrecision;
@@ -1603,8 +1696,16 @@ var BigFloat = class _BigFloat {
     const construct = this.constructor;
     if (this._precision <= 15n) {
       const val2 = this.toNumber();
-      const res = Math.exp(val2);
-      return new this.constructor(res, this._precision);
+      const eVal = Math.exp(val2);
+      const mutate = construct.config.mutateResult;
+      const res = mutate ? this : this.clone();
+      res.mantissa = BigInt(Math.floor(eVal * 1e15));
+      res._exp2 = -15n;
+      res._exp5 = -15n;
+      res.softNormalize();
+      res._applyPrecision(this._precision);
+      res.lazyNormalize();
+      return res;
     }
     const totalPr = this._precision + this.constructor.config.extraPrecision;
     const val = this._getInternalValue(totalPr);
@@ -1719,8 +1820,16 @@ var BigFloat = class _BigFloat {
     if (this._precision <= 15n) {
       const val2 = this.toNumber();
       if (val2 <= 0) throw new Error("ln(x) is undefined for x <= 0");
-      const res = Math.log(val2);
-      return new this.constructor(res, this._precision);
+      const logVal = Math.log(val2);
+      const mutate = construct.config.mutateResult;
+      const res = mutate ? this : this.clone();
+      res.mantissa = BigInt(Math.floor(logVal * 1e15));
+      res._exp2 = -15n;
+      res._exp5 = -15n;
+      res.softNormalize();
+      res._applyPrecision(this._precision);
+      res.lazyNormalize();
+      return res;
     }
     const totalPr = this._precision + this.constructor.config.extraPrecision;
     const val = this._getInternalValue(totalPr);

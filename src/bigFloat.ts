@@ -135,13 +135,19 @@ export class BigFloat {
 			return;
 		}
 
-		const { intPart, fracPart, sign } = this._parse(value.toString());
-		// value = (intPart + fracPart/10^fracPart.length) * sign
-		// = (intPart * 10^len + fracPart) / 10^len * sign
-		const len = BigInt(fracPart.length);
-		this.mantissa = BigInt(intPart + fracPart) * BigInt(sign);
-		this._exp2 = -len;
-		this._exp5 = -len;
+		if (typeof value === "number" && Number.isInteger(value)) {
+			this.mantissa = BigInt(value);
+			this._exp2 = 0n;
+			this._exp5 = 0n;
+		} else {
+			const { intPart, fracPart, sign } = this._parse(value.toString());
+			// value = (intPart + fracPart/10^fracPart.length) * sign
+			// = (intPart * 10^len + fracPart) / 10^len * sign
+			const len = BigInt(fracPart.length);
+			this.mantissa = BigInt(intPart + fracPart) * BigInt(sign);
+			this._exp2 = -len;
+			this._exp5 = -len;
+		}
 
 		this.lazyNormalize();
 		this._applyPrecision();
@@ -216,10 +222,18 @@ export class BigFloat {
 		if (this.mantissa === 0n) return;
 		let m = this.mantissa;
 		if (m < 0n) m = -m;
-		while (m > 0n && m % 5n === 0n) {
-			m /= 5n;
-			this.mantissa /= 5n;
-			this._exp5++;
+
+		const construct = this.constructor as typeof BigFloat;
+		// 5の累乗をまとめて割ることで高速化
+		let p = 64n;
+		while (p > 0n) {
+			const p5 = construct._getPow5(p);
+			while (m > 0n && m % p5 === 0n) {
+				m /= p5;
+				this.mantissa /= p5;
+				this._exp5 += p;
+			}
+			p >>= 1n;
 		}
 	}
 
@@ -364,16 +378,32 @@ export class BigFloat {
 
 		// 小数部分
 		// 1/base + 1/base^2 ...
-		let res = new this(intVal * sign, precision);
+		const res = new this(intVal * sign, precision);
+		const config = this.config;
+		const originalMutate = config.mutateResult;
+		config.mutateResult = true; // Use mutation to avoid temporary objects
+
 		let currentBase = bigBase;
+		const tempD = new this(0n, precision);
+		const tempBase = new this(0n, precision);
+
 		for (let i = 0; i < rawFrac.length; i++) {
 			const d = toDigit(rawFrac[i]);
 			if (d !== 0n) {
-				const part = new this(d * sign, precision).div(currentBase.toString());
-				res = res.add(part);
+				tempD.mantissa = d * sign;
+				tempD._exp2 = 0n;
+				tempD._exp5 = 0n;
+
+				tempBase.mantissa = currentBase;
+				tempBase._exp2 = 0n;
+				tempBase._exp5 = 0n;
+
+				const part = tempD.div(tempBase);
+				res.add(part);
 			}
 			currentBase *= bigBase;
 		}
+		config.mutateResult = originalMutate;
 
 		return res;
 	}
@@ -969,6 +999,7 @@ export class BigFloat {
 
 		res.softNormalize();
 		res._applyPrecision(res._precision);
+		res.lazyNormalize();
 		return res;
 	}
 
@@ -1246,8 +1277,13 @@ export class BigFloat {
 		if (targetP <= 15n) {
 			const val = this.toNumber();
 			const root = Math.sqrt(val);
-			const bfRoot = new (this.constructor as any)(root, targetP);
-			return res.copyFrom(bfRoot);
+			res.mantissa = BigInt(Math.floor(root * 1e15));
+			res._exp2 = -15n;
+			res._exp5 = -15n;
+			res.softNormalize();
+			res._applyPrecision(targetP);
+			res.lazyNormalize();
+			return res;
 		}
 
 		// 整数化は不要。10^(2P) 倍した状態でニュートン法
@@ -1451,7 +1487,16 @@ export class BigFloat {
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
-			return new (this.constructor as any)(Math.sin(this.toNumber()), this._precision);
+			const res = Math.sin(this.toNumber());
+			const mutate = construct.config.mutateResult;
+			const out = mutate ? this : this.clone();
+			out.mantissa = BigInt(Math.floor(res * 1e15));
+			out._exp2 = -15n;
+			out._exp5 = -15n;
+			out.softNormalize();
+			out._applyPrecision(this._precision);
+			out.lazyNormalize();
+			return out;
 		}
 
 		const maxSteps = config.trigFuncsMaxSteps;
@@ -1504,7 +1549,16 @@ export class BigFloat {
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
-			return new (this.constructor as any)(Math.cos(this.toNumber()), this._precision);
+			const res = Math.cos(this.toNumber());
+			const mutate = construct.config.mutateResult;
+			const out = mutate ? this : this.clone();
+			out.mantissa = BigInt(Math.floor(res * 1e15));
+			out._exp2 = -15n;
+			out._exp5 = -15n;
+			out.softNormalize();
+			out._applyPrecision(this._precision);
+			out.lazyNormalize();
+			return out;
 		}
 
 		const maxSteps = config.trigFuncsMaxSteps;
@@ -1549,7 +1603,16 @@ export class BigFloat {
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
-			return new (this.constructor as any)(Math.tan(this.toNumber()), this._precision);
+			const res = Math.tan(this.toNumber());
+			const mutate = construct.config.mutateResult;
+			const out = mutate ? this : this.clone();
+			out.mantissa = BigInt(Math.floor(res * 1e15));
+			out._exp2 = -15n;
+			out._exp5 = -15n;
+			out.softNormalize();
+			out._applyPrecision(this._precision);
+			out.lazyNormalize();
+			return out;
 		}
 
 		const maxSteps = config.trigFuncsMaxSteps;
@@ -1597,7 +1660,16 @@ export class BigFloat {
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
-			return new (this.constructor as any)(Math.asin(this.toNumber()), this._precision);
+			const res = Math.asin(this.toNumber());
+			const mutate = construct.config.mutateResult;
+			const out = mutate ? this : this.clone();
+			out.mantissa = BigInt(Math.floor(res * 1e15));
+			out._exp2 = -15n;
+			out._exp5 = -15n;
+			out.softNormalize();
+			out._applyPrecision(this._precision);
+			out.lazyNormalize();
+			return out;
 		}
 
 		const maxSteps = config.trigFuncsMaxSteps;
@@ -1638,7 +1710,16 @@ export class BigFloat {
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
-			return new (this.constructor as any)(Math.acos(this.toNumber()), this._precision);
+			const res = Math.acos(this.toNumber());
+			const mutate = construct.config.mutateResult;
+			const out = mutate ? this : this.clone();
+			out.mantissa = BigInt(Math.floor(res * 1e15));
+			out._exp2 = -15n;
+			out._exp5 = -15n;
+			out.softNormalize();
+			out._applyPrecision(this._precision);
+			out.lazyNormalize();
+			return out;
 		}
 
 		const maxSteps = config.trigFuncsMaxSteps;
@@ -1694,7 +1775,16 @@ export class BigFloat {
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
-			return new (this.constructor as any)(Math.atan(this.toNumber()), this._precision);
+			const res = Math.atan(this.toNumber());
+			const mutate = construct.config.mutateResult;
+			const out = mutate ? this : this.clone();
+			out.mantissa = BigInt(Math.floor(res * 1e15));
+			out._exp2 = -15n;
+			out._exp5 = -15n;
+			out.softNormalize();
+			out._applyPrecision(this._precision);
+			out.lazyNormalize();
+			return out;
 		}
 
 		const maxSteps = config.trigFuncsMaxSteps;
@@ -1747,7 +1837,16 @@ export class BigFloat {
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
-			return new (this.constructor as any)(Math.atan2(this.toNumber(), bfB.toNumber()), this._precision);
+			const res = Math.atan2(this.toNumber(), bfB.toNumber());
+			const mutate = construct.config.mutateResult;
+			const out = mutate ? this : this.clone();
+			out.mantissa = BigInt(Math.floor(res * 1e15));
+			out._exp2 = -15n;
+			out._exp5 = -15n;
+			out.softNormalize();
+			out._applyPrecision(this._precision);
+			out.lazyNormalize();
+			return out;
 		}
 
 		const maxSteps = config.trigFuncsMaxSteps;
@@ -1862,8 +1961,16 @@ export class BigFloat {
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
 			const val = this.toNumber();
-			const res = Math.exp(val);
-			return new (this.constructor as any)(res, this._precision);
+			const eVal = Math.exp(val);
+			const mutate = construct.config.mutateResult;
+			const res = mutate ? this : this.clone();
+			res.mantissa = BigInt(Math.floor(eVal * 1e15));
+			res._exp2 = -15n;
+			res._exp5 = -15n;
+			res.softNormalize();
+			res._applyPrecision(this._precision);
+			res.lazyNormalize();
+			return res;
 		}
 
 		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;
@@ -1989,8 +2096,16 @@ export class BigFloat {
 		if (this._precision <= 15n) {
 			const val = this.toNumber();
 			if (val <= 0) throw new Error("ln(x) is undefined for x <= 0");
-			const res = Math.log(val);
-			return new (this.constructor as any)(res, this._precision);
+			const logVal = Math.log(val);
+			const mutate = construct.config.mutateResult;
+			const res = mutate ? this : this.clone();
+			res.mantissa = BigInt(Math.floor(logVal * 1e15));
+			res._exp2 = -15n;
+			res._exp5 = -15n;
+			res.softNormalize();
+			res._applyPrecision(this._precision);
+			res.lazyNormalize();
+			return res;
 		}
 
 		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;

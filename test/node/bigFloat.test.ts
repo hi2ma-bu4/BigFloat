@@ -45,6 +45,11 @@ test("BigFloat Precision and Identity Tests", async (t) => {
 					const smallB = new BigFloat("0." + "0".repeat(998) + "2", 1000);
 					const smallSum = smallA.add(smallB);
 					assert.strictEqual(smallSum.toString(10, 1000), "1." + "0".repeat(998) + "3");
+
+					// Test for the case mentioned by user: 1/1 internal representation
+					const oneDivOne = new BigFloat(1, 1000).div(1);
+					// Check internal representation (mantissa should be 1 after lazy normalization)
+					assert.strictEqual(oneDivOne.mantissa, 1n, "1/1 mantissa should be 1 after lazy normalization");
 				}
 			});
 
