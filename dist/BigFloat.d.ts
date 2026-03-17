@@ -44,6 +44,7 @@ export interface BigFloatOptions {
 	trigFuncsMaxSteps?: bigint;
 	lnMaxSteps?: bigint;
 }
+export type BigFloatConstructor = typeof BigFloat;
 /**
  * BigFloat settings
  */
@@ -122,7 +123,7 @@ export declare class BigFloat {
 	 * クラスを複製する (設定複製用)
 	 * @returns 複製されたクラス
 	 */
-	static clone(): typeof BigFloat;
+	static clone(): BigFloatConstructor;
 	/**
 	 * インスタンスを複製する
 	 * @returns 複製されたインスタンス

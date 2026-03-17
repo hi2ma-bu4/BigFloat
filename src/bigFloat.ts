@@ -1,5 +1,7 @@
 import { PiAlgorithm, RoundingMode, type BigFloatOptions } from "./types";
 
+type BigFloatConstructor = typeof BigFloat;
+
 /**
  * BigFloat settings
  */
@@ -117,6 +119,7 @@ export class BigFloat {
 	 * @throws {RangeError} 精度が不正な場合
 	 */
 	public constructor(value?: string | number | bigint | BigFloat, precision: number | bigint = 20n) {
+		const construct = this.constructor as BigFloatConstructor;
 		if (value instanceof BigFloat) {
 			this.mantissa = value.mantissa;
 			this._exp2 = value._exp2;
@@ -126,7 +129,7 @@ export class BigFloat {
 		}
 
 		this._precision = BigInt(precision);
-		(this.constructor as typeof BigFloat)._checkPrecision(this._precision);
+		construct._checkPrecision(this._precision);
 
 		if (value === undefined || value === null || value === "") {
 			this.mantissa = 0n;
@@ -161,7 +164,7 @@ export class BigFloat {
 	 * クラスを複製する (設定複製用)
 	 * @returns 複製されたクラス
 	 */
-	public static clone(): typeof BigFloat {
+	public static clone(): BigFloatConstructor {
 		const Parent = this;
 		return class extends Parent {
 			public static override config = Parent.config.clone();
@@ -174,7 +177,7 @@ export class BigFloat {
 	 * @returns 複製されたインスタンス
 	 */
 	public clone(): BigFloat {
-		const instance = new (this.constructor as any)();
+		const instance = new (this.constructor as BigFloatConstructor)();
 		instance._precision = this._precision;
 		instance.mantissa = this.mantissa;
 		instance._exp2 = this._exp2;
@@ -223,7 +226,7 @@ export class BigFloat {
 		let m = this.mantissa;
 		if (m < 0n) m = -m;
 
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		// 5の累乗をまとめて割ることで高速化
 		let p = 64n;
 		while (p > 0n) {
@@ -269,13 +272,13 @@ export class BigFloat {
 		let e5p = this._exp5 + precision;
 
 		if (e2p >= 0n && e5p >= 0n) {
-			// 既に目標精度より粗いので何もしない (あるいは正規化で綺麗にするだけ)
+			// 既に目標精度より粗いので何もしない
 			return;
 		}
 
 		// 丸めが必要
 		let scaledMantissa = this.mantissa;
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		if (e2p < 0n) {
 			// e2pが負なので、その分 2^|e2p| で割る必要がある
 		} else if (e2p > 0n) {
@@ -295,7 +298,7 @@ export class BigFloat {
 		const divisor = div2 * div5;
 
 		if (divisor > 1n) {
-			this.mantissa = (this.constructor as typeof BigFloat)._roundManual(scaledMantissa, divisor);
+			this.mantissa = construct._roundManual(scaledMantissa, divisor);
 			this._exp2 = -precision;
 			this._exp5 = -precision;
 		}
@@ -466,8 +469,8 @@ export class BigFloat {
 	 * @throws {Error} 精度の不一致が許容されていない場合
 	 */
 	protected _align(other: BigFloat | number | string | bigint, mutateA = false): [BigFloat, BigFloat] {
-		const bfB = other instanceof BigFloat ? other : new (this.constructor as any)(other, this._precision);
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
+		const bfB = other instanceof BigFloat ? other : new construct(other, this._precision);
 		const config = construct.config;
 
 		if (this._precision !== bfB._precision && !config.allowPrecisionMismatch) {
@@ -479,9 +482,6 @@ export class BigFloat {
 		}
 
 		const resA = mutateA ? this : this.clone();
-		// Bは常に新しく作るか、クローンして安全に保つ必要があるが、
-		// _alignの呼び出し元が結果をどう使うかによる。
-		// 一般的にbは後続の計算で読み取られるだけ。
 		const resB = bfB._precision === resA._precision ? bfB : bfB.clone().changePrecision(resA._precision);
 
 		if (resA._exp2 === resB._exp2 && resA._exp5 === resB._exp5) {
@@ -544,8 +544,7 @@ export class BigFloat {
 	 * @returns 作成または更新されたBigFloatインスタンス
 	 */
 	protected _makeResult(val: bigint, precision: bigint, valPrecision: bigint = precision, okMutate = true): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
-		const res = construct._makeResult(val, precision, valPrecision);
+		const res = (this.constructor as BigFloatConstructor)._makeResult(val, precision, valPrecision);
 		return this._makeResultFromInstance(res);
 	}
 
@@ -581,7 +580,7 @@ export class BigFloat {
 	 * @returns 一致している桁数
 	 */
 	public matchingPrecision(other: BigFloat | number | string | bigint): bigint {
-		const bfB = other instanceof BigFloat ? other : new BigFloat(other, this._precision);
+		const bfB = other instanceof BigFloat ? other : new (this.constructor as BigFloatConstructor)(other, this._precision);
 		const diff = this.sub(bfB).abs();
 		const maxP = this._precision > bfB._precision ? this._precision : bfB._precision;
 		if (diff.isZero()) return maxP;
@@ -709,11 +708,12 @@ export class BigFloat {
 	 * @returns 相対差
 	 */
 	public relativeDiff(other: BigFloat | number | string | bigint): BigFloat {
+		const construct = this.constructor as BigFloatConstructor;
 		const diff = this.absoluteDiff(other);
 		const absA = this.abs();
-		const absB = (other instanceof BigFloat ? other : new BigFloat(other, this._precision)).abs();
+		const absB = (other instanceof BigFloat ? other : new construct(other, this._precision)).abs();
 		const denominator = absA.gt(absB) ? absA : absB;
-		if (denominator.isZero()) return new BigFloat(0n, this._precision);
+		if (denominator.isZero()) return new construct(0n, this._precision);
 		return diff.div(denominator);
 	}
 
@@ -737,9 +737,10 @@ export class BigFloat {
 	 * @returns 非一致度 (%)
 	 */
 	public percentDiff(other: BigFloat | number | string | bigint): BigFloat {
+		const construct = this.constructor as BigFloatConstructor;
 		const diff = this.absoluteDiff(other);
-		const absB = (other instanceof BigFloat ? other : new BigFloat(other, this._precision)).abs();
-		if (absB.isZero()) return new BigFloat(0n, this._precision);
+		const absB = (other instanceof BigFloat ? other : new construct(other, this._precision)).abs();
+		if (absB.isZero()) return new construct(0n, this._precision);
 		return diff.div(absB).mul(100);
 	}
 
@@ -766,7 +767,7 @@ export class BigFloat {
 		const sign = temp.mantissa < 0n ? "-" : "";
 		let m = temp.mantissa < 0n ? -temp.mantissa : temp.mantissa;
 
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		// 10^P 倍して整数にする
 		// V = M * 2^E2 * 5^E5
 		// V * 10^P = M * 2^(E2+P) * 5^(E5+P)
@@ -831,9 +832,8 @@ export class BigFloat {
 	 * @returns JSON文字列
 	 */
 	public toJSON(): string {
-		const config = (this.constructor as typeof BigFloat).config;
+		const config = (this.constructor as BigFloatConstructor).config;
 		let bf: BigFloat = this;
-		if (config.mutateResult) bf = bf.clone();
 		return bf.toString();
 	}
 
@@ -902,7 +902,7 @@ export class BigFloat {
 	 * @returns 加算結果
 	 */
 	public add(other: BigFloat | number | string | bigint): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		const mutate = construct.config.mutateResult;
 		const [a, b] = this._align(other, mutate);
 		a.mantissa += b.mantissa;
@@ -917,7 +917,7 @@ export class BigFloat {
 	 * @returns 減算結果
 	 */
 	public sub(other: BigFloat | number | string | bigint): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		const mutate = construct.config.mutateResult;
 		const [a, b] = this._align(other, mutate);
 		a.mantissa -= b.mantissa;
@@ -932,9 +932,9 @@ export class BigFloat {
 	 * @returns 乗算結果
 	 */
 	public mul(other: BigFloat | number | string | bigint): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		if (!(other instanceof BigFloat)) {
-			other = new (this.constructor as any)(other, this._precision);
+			other = new construct(other, this._precision);
 		}
 		const bfB = other as BigFloat;
 		const mutate = construct.config.mutateResult;
@@ -956,9 +956,9 @@ export class BigFloat {
 	 * @throws {Error} ゼロ除算の場合
 	 */
 	public div(other: BigFloat | number | string | bigint): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		if (!(other instanceof BigFloat)) {
-			other = new (this.constructor as any)(other, this._precision);
+			other = new construct(other, this._precision);
 		}
 		const bfB = other as BigFloat;
 		if (bfB.mantissa === 0n) throw new Error("Division by zero");
@@ -973,7 +973,7 @@ export class BigFloat {
 			const valA = this.toNumber();
 			const valB = bfB.toNumber();
 			const divRes = valA / valB;
-			return res.copyFrom(new (this.constructor as any)(divRes, res._precision));
+			return res.copyFrom(new construct(divRes, res._precision));
 		}
 
 		// V = (Ma * 2^E2a * 5^E5a) / (Mb * 2^E2b * 5^E5b)
@@ -993,7 +993,7 @@ export class BigFloat {
 		const div5 = e5 < 0n ? construct._getPow5(-e5) : 1n;
 		const divisor = bfB.mantissa * div2 * div5;
 
-		res.mantissa = (this.constructor as typeof BigFloat)._roundManual(m, divisor);
+		res.mantissa = construct._roundManual(m, divisor);
 		res._exp2 = -targetP;
 		res._exp5 = -targetP;
 
@@ -1009,7 +1009,7 @@ export class BigFloat {
 	 * @returns 結果のインスタンス
 	 */
 	protected _makeResultFromInstance(instance: BigFloat): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		if (construct.config.mutateResult) {
 			this.mantissa = instance.mantissa;
 			this._exp2 = instance._exp2;
@@ -1028,7 +1028,7 @@ export class BigFloat {
 	protected _getInternalValue(precision: bigint): bigint {
 		const temp = this.clone();
 		temp._applyPrecision(precision);
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		let m = temp.mantissa;
 		let e2 = temp._exp2 + precision;
 		let e5 = temp._exp5 + precision;
@@ -1056,7 +1056,7 @@ export class BigFloat {
 	 * @returns 剰余
 	 */
 	public mod(other: BigFloat | number | string | bigint): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		const mutate = construct.config.mutateResult;
 		const [a, b] = this._align(other, mutate);
 		const result = construct._mod(a.mantissa, b.mantissa);
@@ -1071,7 +1071,7 @@ export class BigFloat {
 	 * @returns 符号が反転した結果
 	 */
 	public neg(): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		const mutate = construct.config.mutateResult;
 		const res = mutate ? this : this.clone();
 		res.mantissa = -res.mantissa;
@@ -1083,7 +1083,7 @@ export class BigFloat {
 	 * @returns 絶対値
 	 */
 	public abs(): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		const mutate = construct.config.mutateResult;
 		const res = mutate ? this : this.clone();
 		res.mantissa = res.mantissa < 0n ? -res.mantissa : res.mantissa;
@@ -1096,7 +1096,7 @@ export class BigFloat {
 	 * @throws {Error} ゼロの場合
 	 */
 	public reciprocal(): BigFloat {
-		return new BigFloat(1n, this._precision).div(this);
+		return new (this.constructor as BigFloatConstructor)(1n, this._precision).div(this);
 	}
 
 	/**
@@ -1107,10 +1107,11 @@ export class BigFloat {
 		const temp = this.clone();
 		temp._applyPrecision(0n); // 丸めモードの影響を受けるので注意
 		// 常に FLOOR モードで丸める必要がある
-		const originalMode = (this.constructor as typeof BigFloat).config.roundingMode;
-		(this.constructor as typeof BigFloat).config.roundingMode = RoundingMode.FLOOR;
+		const config = (this.constructor as BigFloatConstructor).config;
+		const originalMode = config.roundingMode;
+		config.roundingMode = RoundingMode.FLOOR;
 		temp._applyPrecision(0n);
-		(this.constructor as typeof BigFloat).config.roundingMode = originalMode;
+		config.roundingMode = originalMode;
 		return this._makeResultFromInstance(temp);
 	}
 
@@ -1120,10 +1121,11 @@ export class BigFloat {
 	 */
 	public ceil(): BigFloat {
 		const temp = this.clone();
-		const originalMode = (this.constructor as typeof BigFloat).config.roundingMode;
-		(this.constructor as typeof BigFloat).config.roundingMode = RoundingMode.CEIL;
+		const config = (this.constructor as BigFloatConstructor).config;
+		const originalMode = config.roundingMode;
+		config.roundingMode = RoundingMode.CEIL;
 		temp._applyPrecision(0n);
-		(this.constructor as typeof BigFloat).config.roundingMode = originalMode;
+		config.roundingMode = originalMode;
 		return this._makeResultFromInstance(temp);
 	}
 
@@ -1133,10 +1135,11 @@ export class BigFloat {
 	 */
 	public round(): BigFloat {
 		const temp = this.clone();
-		const originalMode = (this.constructor as typeof BigFloat).config.roundingMode;
-		(this.constructor as typeof BigFloat).config.roundingMode = RoundingMode.HALF_UP;
+		const config = (this.constructor as BigFloatConstructor).config;
+		const originalMode = config.roundingMode;
+		config.roundingMode = RoundingMode.HALF_UP;
 		temp._applyPrecision(0n);
-		(this.constructor as typeof BigFloat).config.roundingMode = originalMode;
+		config.roundingMode = originalMode;
 		return this._makeResultFromInstance(temp);
 	}
 
@@ -1146,10 +1149,11 @@ export class BigFloat {
 	 */
 	public trunc(): BigFloat {
 		const temp = this.clone();
-		const originalMode = (this.constructor as typeof BigFloat).config.roundingMode;
-		(this.constructor as typeof BigFloat).config.roundingMode = RoundingMode.TRUNCATE;
+		const config = (this.constructor as BigFloatConstructor).config;
+		const originalMode = config.roundingMode;
+		config.roundingMode = RoundingMode.TRUNCATE;
 		temp._applyPrecision(0n);
-		(this.constructor as typeof BigFloat).config.roundingMode = originalMode;
+		config.roundingMode = originalMode;
 		return this._makeResultFromInstance(temp);
 	}
 
@@ -1201,11 +1205,11 @@ export class BigFloat {
 	 * @returns 冪乗の結果
 	 */
 	public pow(exponent: BigFloat | number | string | bigint): BigFloat {
-		const bfB = exponent instanceof BigFloat ? exponent : new BigFloat(exponent, this._precision);
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
+		const bfB = exponent instanceof BigFloat ? exponent : new construct(exponent, this._precision);
 
 		// 整数指数チェック
-		if (bfB.isZero()) return new BigFloat(1, this._precision);
+		if (bfB.isZero()) return new construct(1, this._precision);
 		if (bfB._exp2 >= 0n && bfB._exp5 >= 0n) {
 			// 指数は整数
 			let expVal = bfB.mantissa;
@@ -1213,7 +1217,7 @@ export class BigFloat {
 			if (bfB._exp5 > 0n) expVal *= construct._getPow5(bfB._exp5);
 
 			if (expVal > 0n) {
-				let res = new BigFloat(1, this._precision);
+				let res = new construct(1, this._precision);
 				let base = this.clone();
 				let e = expVal;
 				while (e > 0n) {
@@ -1223,7 +1227,7 @@ export class BigFloat {
 				}
 				return res;
 			} else {
-				return new BigFloat(1, this._precision).div(this.pow(-expVal));
+				return new construct(1, this._precision).div(this.pow(-expVal));
 			}
 		}
 
@@ -1262,9 +1266,9 @@ export class BigFloat {
 	 */
 	public sqrt(): BigFloat {
 		if (this.mantissa < 0n) throw new Error("Cannot compute square root of negative number");
-		if (this.mantissa === 0n) return new BigFloat(0n, this._precision);
+		const construct = this.constructor as BigFloatConstructor;
+		if (this.mantissa === 0n) return new construct(0n, this._precision);
 
-		const construct = this.constructor as typeof BigFloat;
 		const mutate = construct.config.mutateResult;
 		const res = mutate ? this : this.clone();
 
@@ -1387,7 +1391,7 @@ export class BigFloat {
 
 		const res = this.clone();
 		const targetP = res._precision;
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		// V * 10^(nP) / 10^P
 		let m = res.mantissa;
 		let e2 = res._exp2 + bn * targetP;
@@ -1482,13 +1486,13 @@ export class BigFloat {
 	 * @returns 正弦
 	 */
 	public sin(): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		const config = construct.config;
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
 			const res = Math.sin(this.toNumber());
-			const mutate = construct.config.mutateResult;
+			const mutate = config.mutateResult;
 			const out = mutate ? this : this.clone();
 			out.mantissa = BigInt(Math.floor(res * 1e15));
 			out._exp2 = -15n;
@@ -1500,11 +1504,11 @@ export class BigFloat {
 		}
 
 		const maxSteps = config.trigFuncsMaxSteps;
-		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;
+		const totalPr = this._precision + config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
 
 		const result = construct._sin(val, totalPr, maxSteps);
-		const resBF = new BigFloat();
+		const resBF = new construct();
 		resBF._precision = this._precision;
 		resBF.mantissa = result;
 		resBF._exp2 = -totalPr;
@@ -1544,13 +1548,13 @@ export class BigFloat {
 	 * @returns 余弦
 	 */
 	public cos(): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		const config = construct.config;
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
 			const res = Math.cos(this.toNumber());
-			const mutate = construct.config.mutateResult;
+			const mutate = config.mutateResult;
 			const out = mutate ? this : this.clone();
 			out.mantissa = BigInt(Math.floor(res * 1e15));
 			out._exp2 = -15n;
@@ -1562,11 +1566,11 @@ export class BigFloat {
 		}
 
 		const maxSteps = config.trigFuncsMaxSteps;
-		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;
+		const totalPr = this._precision + config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
 
 		const result = construct._cos(val, totalPr, maxSteps);
-		const resBF = new BigFloat();
+		const resBF = new construct();
 		resBF._precision = this._precision;
 		resBF.mantissa = result;
 		resBF._exp2 = -totalPr;
@@ -1598,13 +1602,13 @@ export class BigFloat {
 	 * @returns 正接
 	 */
 	public tan(): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		const config = construct.config;
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
 			const res = Math.tan(this.toNumber());
-			const mutate = construct.config.mutateResult;
+			const mutate = config.mutateResult;
 			const out = mutate ? this : this.clone();
 			out.mantissa = BigInt(Math.floor(res * 1e15));
 			out._exp2 = -15n;
@@ -1616,11 +1620,11 @@ export class BigFloat {
 		}
 
 		const maxSteps = config.trigFuncsMaxSteps;
-		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;
+		const totalPr = this._precision + config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
 
 		const result = construct._tan(val, totalPr, maxSteps);
-		const resBF = new BigFloat();
+		const resBF = new construct();
 		resBF._precision = this._precision;
 		resBF.mantissa = result;
 		resBF._exp2 = -totalPr;
@@ -1655,13 +1659,13 @@ export class BigFloat {
 	 * @returns 角度(ラジアン)
 	 */
 	public asin(): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		const config = construct.config;
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
 			const res = Math.asin(this.toNumber());
-			const mutate = construct.config.mutateResult;
+			const mutate = config.mutateResult;
 			const out = mutate ? this : this.clone();
 			out.mantissa = BigInt(Math.floor(res * 1e15));
 			out._exp2 = -15n;
@@ -1673,11 +1677,11 @@ export class BigFloat {
 		}
 
 		const maxSteps = config.trigFuncsMaxSteps;
-		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;
+		const totalPr = this._precision + config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
 
 		const result = construct._asin(val, totalPr, maxSteps);
-		const resBF = new BigFloat();
+		const resBF = new construct();
 		resBF._precision = this._precision;
 		resBF.mantissa = result;
 		resBF._exp2 = -totalPr;
@@ -1705,13 +1709,13 @@ export class BigFloat {
 	 * @returns 角度(ラジアン)
 	 */
 	public acos(): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		const config = construct.config;
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
 			const res = Math.acos(this.toNumber());
-			const mutate = construct.config.mutateResult;
+			const mutate = config.mutateResult;
 			const out = mutate ? this : this.clone();
 			out.mantissa = BigInt(Math.floor(res * 1e15));
 			out._exp2 = -15n;
@@ -1723,11 +1727,11 @@ export class BigFloat {
 		}
 
 		const maxSteps = config.trigFuncsMaxSteps;
-		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;
+		const totalPr = this._precision + config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
 
 		const result = construct._acos(val, totalPr, maxSteps);
-		const resBF = new BigFloat();
+		const resBF = new construct();
 		resBF._precision = this._precision;
 		resBF.mantissa = result;
 		resBF._exp2 = -totalPr;
@@ -1770,13 +1774,13 @@ export class BigFloat {
 	 * @returns 角度(ラジアン)
 	 */
 	public atan(): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		const config = construct.config;
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
 			const res = Math.atan(this.toNumber());
-			const mutate = construct.config.mutateResult;
+			const mutate = config.mutateResult;
 			const out = mutate ? this : this.clone();
 			out.mantissa = BigInt(Math.floor(res * 1e15));
 			out._exp2 = -15n;
@@ -1788,11 +1792,11 @@ export class BigFloat {
 		}
 
 		const maxSteps = config.trigFuncsMaxSteps;
-		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;
+		const totalPr = this._precision + config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
 
 		const result = construct._atan(val, totalPr, maxSteps);
-		const resBF = new BigFloat();
+		const resBF = new construct();
 		resBF._precision = this._precision;
 		resBF.mantissa = result;
 		resBF._exp2 = -totalPr;
@@ -1831,14 +1835,14 @@ export class BigFloat {
 	 * @returns 角度(ラジアン)
 	 */
 	public atan2(x: BigFloat | number | string | bigint): BigFloat {
-		const bfB = x instanceof BigFloat ? x : new BigFloat(x, this._precision);
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
+		const bfB = x instanceof BigFloat ? x : new construct(x, this._precision);
 		const config = construct.config;
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
 			const res = Math.atan2(this.toNumber(), bfB.toNumber());
-			const mutate = construct.config.mutateResult;
+			const mutate = config.mutateResult;
 			const out = mutate ? this : this.clone();
 			out.mantissa = BigInt(Math.floor(res * 1e15));
 			out._exp2 = -15n;
@@ -1850,12 +1854,12 @@ export class BigFloat {
 		}
 
 		const maxSteps = config.trigFuncsMaxSteps;
-		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;
+		const totalPr = this._precision + config.extraPrecision;
 		const valA = this._getInternalValue(totalPr);
 		const valB = bfB._getInternalValue(totalPr);
 
 		const result = construct._atan2(valA, valB, totalPr, maxSteps);
-		const resBF = new BigFloat();
+		const resBF = new construct();
 		resBF._precision = this._precision;
 		resBF.mantissa = result;
 		resBF._exp2 = -totalPr;
@@ -1956,13 +1960,14 @@ export class BigFloat {
 	 * @returns e^x
 	 */
 	public exp(): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
+		const config = construct.config;
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
 			const val = this.toNumber();
 			const eVal = Math.exp(val);
-			const mutate = construct.config.mutateResult;
+			const mutate = config.mutateResult;
 			const res = mutate ? this : this.clone();
 			res.mantissa = BigInt(Math.floor(eVal * 1e15));
 			res._exp2 = -15n;
@@ -1973,7 +1978,7 @@ export class BigFloat {
 			return res;
 		}
 
-		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;
+		const totalPr = this._precision + config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
 		const expInt = construct._exp(val, totalPr);
 		return this._makeResult(expInt, this._precision, totalPr);
@@ -1997,10 +2002,10 @@ export class BigFloat {
 	 * @returns 2^x
 	 */
 	public exp2(): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		const config = construct.config;
 		const maxSteps = config.lnMaxSteps;
-		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;
+		const totalPr = this._precision + config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
 		const exp2Int = construct._exp2(val, totalPr, maxSteps);
 		return this._makeResult(exp2Int, this._precision, totalPr);
@@ -2039,8 +2044,8 @@ export class BigFloat {
 	 * @returns e^x - 1
 	 */
 	public expm1(): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
-		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;
+		const construct = this.constructor as BigFloatConstructor;
+		const totalPr = this._precision + construct.config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
 		const expInt = construct._expm1(val, totalPr);
 		return this._makeResult(expInt, this._precision, totalPr);
@@ -2088,7 +2093,7 @@ export class BigFloat {
 	 * @returns ln(x)
 	 */
 	public ln(): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		const config = construct.config;
 		const maxSteps = config.lnMaxSteps;
 
@@ -2097,7 +2102,7 @@ export class BigFloat {
 			const val = this.toNumber();
 			if (val <= 0) throw new Error("ln(x) is undefined for x <= 0");
 			const logVal = Math.log(val);
-			const mutate = construct.config.mutateResult;
+			const mutate = config.mutateResult;
 			const res = mutate ? this : this.clone();
 			res.mantissa = BigInt(Math.floor(logVal * 1e15));
 			res._exp2 = -15n;
@@ -2108,7 +2113,7 @@ export class BigFloat {
 			return res;
 		}
 
-		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;
+		const totalPr = this._precision + config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
 		const raw = construct._ln(val, totalPr, maxSteps);
 		return this._makeResult(raw, this._precision, totalPr);
@@ -2138,11 +2143,11 @@ export class BigFloat {
 	 * @returns log_base(x)
 	 */
 	public log(base: BigFloat | number | string | bigint): BigFloat {
-		const bfB = base instanceof BigFloat ? base : new BigFloat(base, this._precision);
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
+		const bfB = base instanceof BigFloat ? base : new construct(base, this._precision);
 		const maxSteps = construct.config.lnMaxSteps;
 
-		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;
+		const totalPr = this._precision + construct.config.extraPrecision;
 		const valA = this._getInternalValue(totalPr);
 		const valB = bfB._getInternalValue(totalPr);
 
@@ -2168,9 +2173,9 @@ export class BigFloat {
 	 * @returns log2(x)
 	 */
 	public log2(): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		const maxSteps = construct.config.lnMaxSteps;
-		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;
+		const totalPr = this._precision + construct.config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
 		const raw = construct._log2(val, totalPr, maxSteps);
 		return this._makeResult(raw, this._precision, totalPr);
@@ -2193,9 +2198,9 @@ export class BigFloat {
 	 * @returns log10(x)
 	 */
 	public log10(): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		const maxSteps = construct.config.lnMaxSteps;
-		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;
+		const totalPr = this._precision + construct.config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
 		const raw = construct._log10(val, totalPr, maxSteps);
 		return this._makeResult(raw, this._precision, totalPr);
@@ -2219,9 +2224,9 @@ export class BigFloat {
 	 * @returns ln(1 + x)
 	 */
 	public log1p(): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 		const maxSteps = construct.config.lnMaxSteps;
-		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;
+		const totalPr = this._precision + construct.config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
 		const raw = construct._log1p(val, totalPr, maxSteps);
 		return this._makeResult(raw, this._precision, totalPr);
@@ -2383,7 +2388,7 @@ export class BigFloat {
 			case PiAlgorithm.MATH_DEFAULT:
 			default:
 				this._checkPrecision(precision);
-				return new (this as any)(`${Math.PI}`, precision)._getInternalValue(precision);
+				return new (this as BigFloatConstructor)(`${Math.PI}`, precision)._getInternalValue(precision);
 		}
 		this._updateCache("pi", piRet, precision, piAlgorithm);
 		return piRet;
@@ -2434,7 +2439,7 @@ export class BigFloat {
 	 * @throws {Error} 引数が空の場合
 	 */
 	public static max(...args: any[]): BigFloat {
-		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new BigFloat(x)));
+		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new (this.constructor as BigFloatConstructor)(x)));
 		if (arr.length === 0) throw new Error("No arguments provided");
 		let maxBF = arr[0];
 		for (let i = 1; i < arr.length; i++) {
@@ -2450,7 +2455,7 @@ export class BigFloat {
 	 * @throws {Error} 引数が空の場合
 	 */
 	public static min(...args: any[]): BigFloat {
-		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new BigFloat(x)));
+		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new (this.constructor as BigFloatConstructor)(x)));
 		if (arr.length === 0) throw new Error("No arguments provided");
 		let minBF = arr[0];
 		for (let i = 1; i < arr.length; i++) {
@@ -2465,9 +2470,10 @@ export class BigFloat {
 	 * @returns 合計
 	 */
 	public static sum(...args: any[]): BigFloat {
-		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new BigFloat(x)));
-		if (arr.length === 0) return new BigFloat(0);
-		let total = new BigFloat(0, arr[0]._precision);
+		const construct = this.constructor as BigFloatConstructor;
+		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new construct(x)));
+		if (arr.length === 0) return new construct(0);
+		let total = new construct(0, arr[0]._precision);
 		for (const item of arr) {
 			total = total.add(item);
 		}
@@ -2480,9 +2486,10 @@ export class BigFloat {
 	 * @returns 積
 	 */
 	public static product(...args: any[]): BigFloat {
-		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new BigFloat(x)));
-		if (arr.length === 0) return new BigFloat(1);
-		let prod = new BigFloat(1, arr[0]._precision);
+		const construct = this.constructor as BigFloatConstructor;
+		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new construct(x)));
+		if (arr.length === 0) return new construct(1);
+		let prod = new construct(1, arr[0]._precision);
 		for (const item of arr) {
 			prod = prod.mul(item);
 		}
@@ -2508,7 +2515,7 @@ export class BigFloat {
 	 * @throws {Error} 引数が空の場合
 	 */
 	public static median(...args: any[]): BigFloat {
-		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new BigFloat(x)));
+		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new (this.constructor as BigFloatConstructor)(x)));
 		if (arr.length === 0) throw new Error("No arguments provided");
 		const sorted = arr.sort((a, b) => a.compare(b));
 		const mid = Math.floor(sorted.length / 2);
@@ -2526,15 +2533,16 @@ export class BigFloat {
 	 * @throws {Error} 引数が空の場合
 	 */
 	public static variance(...args: any[]): BigFloat {
-		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new BigFloat(x)));
+		const construct = this.constructor as BigFloatConstructor;
+		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new construct(x)));
 		if (arr.length === 0) throw new Error("No arguments provided");
-		if (arr.length === 1) return new BigFloat("0", arr[0]._precision);
+		if (arr.length === 1) return new construct("0", arr[0]._precision);
 
-		const n = new BigFloat(arr.length);
+		const n = new construct(arr.length);
 		const total = this.sum(arr);
 		const meanVal = total.div(n);
 
-		let sumSquares = new BigFloat(0, meanVal._precision);
+		let sumSquares = new construct(0, meanVal._precision);
 		for (const item of arr) {
 			const diff = item.sub(meanVal);
 			sumSquares = sumSquares.add(diff.mul(diff));
@@ -2585,7 +2593,7 @@ export class BigFloat {
 		const precisionBig = BigInt(precision);
 		this._checkPrecision(precisionBig);
 		let randBigInt = this._randomBigInt(precisionBig);
-		const res = new BigFloat(0, precisionBig);
+		const res = new (this.constructor as BigFloatConstructor)(0, precisionBig);
 		res.mantissa = randBigInt;
 		res._exp2 = -precisionBig;
 		res._exp5 = -precisionBig;
@@ -2757,9 +2765,9 @@ export class BigFloat {
 	 * @returns ガンマ関数
 	 */
 	public gamma(): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
+		const construct = this.constructor as BigFloatConstructor;
 
-		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;
+		const totalPr = this._precision + construct.config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
 		const raw = construct._gammaLanczos(val, totalPr);
 		return this._makeResult(raw, this._precision, totalPr);
@@ -2792,8 +2800,8 @@ export class BigFloat {
 	 * @returns 階乗
 	 */
 	public factorial(): BigFloat {
-		const construct = this.constructor as typeof BigFloat;
-		const totalPr = this._precision + (this.constructor as typeof BigFloat).config.extraPrecision;
+		const construct = this.constructor as BigFloatConstructor;
+		const totalPr = this._precision + construct.config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
 		const scale = 10n ** totalPr;
 		let raw;
