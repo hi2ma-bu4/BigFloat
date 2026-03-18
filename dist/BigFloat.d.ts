@@ -87,6 +87,8 @@ export declare class BigFloatConfig {
 export declare class BigFloat {
 	/** 最大精度 (Stringの限界) */
 	static MAX_PRECISION: bigint;
+	/** レイジー正規化の閾値 */
+	static LAZY_NORMALIZE_SMALL_THRESHOLD: bigint;
 	/** 設定 */
 	static config: BigFloatConfig;
 	/** キャッシュ */
@@ -136,11 +138,11 @@ export declare class BigFloat {
 	 */
 	copyFrom(other: BigFloat): this;
 	/**
-	 * ソフト正規化 (2の累乗を外に出す。bit演算で高速)
+	 * ソフト正規化 (2の累乗を外に出す)
 	 */
 	softNormalize(): void;
 	/**
-	 * レイジー正規化 (5の累乗も外に出す)
+	 * レイジー正規化 (5の累乗を外に出す)
 	 */
 	lazyNormalize(): void;
 	/**

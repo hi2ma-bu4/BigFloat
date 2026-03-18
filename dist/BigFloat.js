@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.1.4
+ * BigFloat 1.1.5
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -83,14 +83,16 @@ var BigFloatConfig = class _BigFloatConfig {
 var BigFloat = class _BigFloat {
   /** 最大精度 (Stringの限界) */
   static MAX_PRECISION = 200000000n;
+  /** レイジー正規化の閾値 */
+  static LAZY_NORMALIZE_SMALL_THRESHOLD = 32n;
   /** 設定 */
   static config = new BigFloatConfig();
   /** キャッシュ */
   static _cached = {};
   /** 5の累乗キャッシュ */
-  static _pow5Cache = /* @__PURE__ */ new Map();
+  static _pow5Cache = [1n];
   /** 2の累乗キャッシュ */
-  static _pow2Cache = /* @__PURE__ */ new Map();
+  static _pow2Cache = [1n];
   /** Bernoulli numbers cache */
   static _bernoulliCache = {};
   /**
@@ -98,8 +100,8 @@ var BigFloat = class _BigFloat {
    */
   static clearCache() {
     this._cached = {};
-    this._pow5Cache.clear();
-    this._pow2Cache.clear();
+    this._pow5Cache = [1n];
+    this._pow2Cache = [1n];
     this._bernoulliCache = {};
   }
   /** 内部的な値 (mantissa × 2^exp2 × 5^exp5) */
@@ -193,7 +195,7 @@ var BigFloat = class _BigFloat {
     return this;
   }
   /**
-   * ソフト正規化 (2の累乗を外に出す。bit演算で高速)
+   * ソフト正規化 (2の累乗を外に出す)
    */
   softNormalize() {
     if (this.mantissa === 0n) {
@@ -203,30 +205,50 @@ var BigFloat = class _BigFloat {
     }
     let m = this.mantissa;
     if (m < 0n) m = -m;
-    while (m > 0n && (m & 1n) === 0n) {
+    let shift = 0n;
+    while ((m & 1n) === 0n) {
       m >>= 1n;
-      this.mantissa >>= 1n;
-      this._exp2++;
+      shift++;
+    }
+    if (shift !== 0n) {
+      this.mantissa >>= shift;
+      this._exp2 += shift;
     }
   }
   /**
-   * レイジー正規化 (5の累乗も外に出す)
+   * レイジー正規化 (5の累乗を外に出す)
    */
   lazyNormalize() {
     this.softNormalize();
     if (this.mantissa === 0n) return;
     let m = this.mantissa;
-    if (m < 0n) m = -m;
+    const neg = m < 0n;
+    if (neg) m = -m;
     const construct = this.constructor;
-    let p = 64n;
-    while (p > 0n) {
-      const p5 = construct._getPow5(p);
-      while (m > 0n && m % p5 === 0n) {
-        m /= p5;
-        this.mantissa /= p5;
-        this._exp5 += p;
+    let low = 0n;
+    let high = 1n;
+    while (true) {
+      const p5 = construct._getPow5(high);
+      const q = m / p5;
+      if (q * p5 !== m) break;
+      low = high;
+      high <<= 1n;
+    }
+    while (low < high) {
+      const mid = low + high + 1n >> 1n;
+      const p5 = construct._getPow5(mid);
+      const q = m / p5;
+      if (q * p5 === m) {
+        low = mid;
+      } else {
+        high = mid - 1n;
       }
-      p >>= 1n;
+    }
+    if (low !== 0n) {
+      const p5 = construct._getPow5(low);
+      m /= p5;
+      this._exp5 += low;
+      this.mantissa = neg ? -m : m;
     }
   }
   /**
@@ -239,33 +261,33 @@ var BigFloat = class _BigFloat {
       this._exp5 = 0n;
       return;
     }
-    const diff2 = precision + this._exp2;
-    const diff5 = precision + this._exp5;
-    let e2p = this._exp2 + precision;
-    let e5p = this._exp5 + precision;
-    if (e2p >= 0n && e5p >= 0n) {
+    const diff2 = this._exp2 + precision;
+    const diff5 = this._exp5 + precision;
+    if (diff2 >= 0n && diff5 >= 0n) {
       return;
     }
     let scaledMantissa = this.mantissa;
     const construct = this.constructor;
-    if (e2p < 0n) {
-    } else if (e2p > 0n) {
-      scaledMantissa <<= e2p;
-      e2p = 0n;
+    let div2 = 1n;
+    let div5 = 1n;
+    if (diff2 > 0n) {
+      scaledMantissa <<= diff2;
+    } else if (diff2 < 0n) {
+      div2 = construct._getPow2(-diff2);
     }
-    if (e5p < 0n) {
-    } else if (e5p > 0n) {
-      scaledMantissa *= construct._getPow5(e5p);
-      e5p = 0n;
+    if (diff5 > 0n) {
+      scaledMantissa *= construct._getPow5(diff5);
+    } else if (diff5 < 0n) {
+      div5 = construct._getPow5(-diff5);
     }
-    const div2 = construct._getPow2(-e2p);
-    const div5 = construct._getPow5(-e5p);
     const divisor = div2 * div5;
     if (divisor > 1n) {
       this.mantissa = construct._roundManual(scaledMantissa, divisor);
-      this._exp2 = -precision;
-      this._exp5 = -precision;
+    } else {
+      this.mantissa = scaledMantissa;
     }
+    this._exp2 = -precision;
+    this._exp5 = -precision;
     this.softNormalize();
   }
   /**
@@ -280,7 +302,6 @@ var BigFloat = class _BigFloat {
     const base = mantissa / divisor;
     if (rem === 0n) return base;
     const absRem = rem < 0n ? -rem : rem;
-    const half = divisor / 2n;
     const isNeg = mantissa < 0n;
     let offset = 0n;
     switch (mode) {
@@ -294,10 +315,10 @@ var BigFloat = class _BigFloat {
         if (isNeg) offset = -1n;
         break;
       case 4 /* HALF_UP */:
-        if (absRem >= half) offset = isNeg ? -1n : 1n;
+        if (absRem * 2n >= divisor) offset = isNeg ? -1n : 1n;
         break;
       case 5 /* HALF_DOWN */:
-        if (absRem > half) offset = isNeg ? -1n : 1n;
+        if (absRem * 2n > divisor) offset = isNeg ? -1n : 1n;
         break;
       case 0 /* TRUNCATE */:
       case 0 /* DOWN */:
@@ -776,8 +797,7 @@ var BigFloat = class _BigFloat {
    * @returns 加算結果
    */
   add(other) {
-    const construct = this.constructor;
-    const mutate = construct.config.mutateResult;
+    const mutate = this.constructor.config.mutateResult;
     const [a, b] = this._align(other, mutate);
     a.mantissa += b.mantissa;
     a.softNormalize();
@@ -790,8 +810,7 @@ var BigFloat = class _BigFloat {
    * @returns 減算結果
    */
   sub(other) {
-    const construct = this.constructor;
-    const mutate = construct.config.mutateResult;
+    const mutate = this.constructor.config.mutateResult;
     const [a, b] = this._align(other, mutate);
     a.mantissa -= b.mantissa;
     a.softNormalize();
@@ -2551,15 +2570,12 @@ var BigFloat = class _BigFloat {
    */
   static _getPow5(n) {
     if (n < 0n) return 0n;
-    if (n === 0n) return 1n;
-    let res = this._pow5Cache.get(n);
-    if (res === void 0) {
-      res = 5n ** n;
-      if (this._pow5Cache.size < 1e4) {
-        this._pow5Cache.set(n, res);
-      }
+    const ni = Number(n);
+    let cache = this._pow5Cache;
+    for (let i = cache.length; i <= ni; i++) {
+      cache[i] = cache[i - 1] * 5n;
     }
-    return res;
+    return cache[ni];
   }
   /**
    * 2の累乗を取得する (キャッシュ付き)
@@ -2568,15 +2584,12 @@ var BigFloat = class _BigFloat {
    */
   static _getPow2(n) {
     if (n < 0n) return 0n;
-    if (n === 0n) return 1n;
-    let res = this._pow2Cache.get(n);
-    if (res === void 0) {
-      res = 1n << n;
-      if (this._pow2Cache.size < 1e4) {
-        this._pow2Cache.set(n, res);
-      }
+    const ni = Number(n);
+    let cache = this._pow2Cache;
+    for (let i = cache.length; i <= ni; i++) {
+      cache[i] = cache[i - 1] << 1n;
     }
-    return res;
+    return cache[ni];
   }
   // ====================================================================================================
   // * 定数オブジェクト

@@ -72,15 +72,18 @@ export class BigFloat {
 	/** 最大精度 (Stringの限界) */
 	public static MAX_PRECISION = 200000000n;
 
+	/** レイジー正規化の閾値 */
+	public static LAZY_NORMALIZE_SMALL_THRESHOLD = 32n;
+
 	/** 設定 */
 	public static config = new BigFloatConfig();
 
 	/** キャッシュ */
 	private static _cached: Record<string, { value: bigint; precision: bigint; priority: number }> = {};
 	/** 5の累乗キャッシュ */
-	private static _pow5Cache: Map<bigint, bigint> = new Map();
+	private static _pow5Cache: bigint[] = [1n];
 	/** 2の累乗キャッシュ */
-	private static _pow2Cache: Map<bigint, bigint> = new Map();
+	private static _pow2Cache: bigint[] = [1n];
 	/** Bernoulli numbers cache */
 	private static _bernoulliCache: Record<string, bigint[]> = {};
 
@@ -89,8 +92,8 @@ export class BigFloat {
 	 */
 	public static clearCache(): void {
 		this._cached = {};
-		this._pow5Cache.clear();
-		this._pow2Cache.clear();
+		this._pow5Cache = [1n];
+		this._pow2Cache = [1n];
 		this._bernoulliCache = {};
 	}
 
@@ -199,7 +202,7 @@ export class BigFloat {
 	}
 
 	/**
-	 * ソフト正規化 (2の累乗を外に出す。bit演算で高速)
+	 * ソフト正規化 (2の累乗を外に出す)
 	 */
 	public softNormalize(): void {
 		if (this.mantissa === 0n) {
@@ -209,34 +212,67 @@ export class BigFloat {
 		}
 		let m = this.mantissa;
 		if (m < 0n) m = -m;
-		// 2で割れるだけ割る
-		while (m > 0n && (m & 1n) === 0n) {
+
+		let shift = 0n;
+
+		while ((m & 1n) === 0n) {
 			m >>= 1n;
-			this.mantissa >>= 1n;
-			this._exp2++;
+			shift++;
+		}
+
+		if (shift !== 0n) {
+			this.mantissa >>= shift;
+			this._exp2 += shift;
 		}
 	}
 
 	/**
-	 * レイジー正規化 (5の累乗も外に出す)
+	 * レイジー正規化 (5の累乗を外に出す)
 	 */
 	public lazyNormalize(): void {
 		this.softNormalize();
 		if (this.mantissa === 0n) return;
+
 		let m = this.mantissa;
-		if (m < 0n) m = -m;
+		const neg = m < 0n;
+		if (neg) m = -m;
 
 		const construct = this.constructor as BigFloatConstructor;
-		// 5の累乗をまとめて割ることで高速化
-		let p = 64n;
-		while (p > 0n) {
-			const p5 = construct._getPow5(p);
-			while (m > 0n && m % p5 === 0n) {
-				m /= p5;
-				this.mantissa /= p5;
-				this._exp5 += p;
+
+		let low = 0n;
+		let high = 1n;
+
+		// 指数探索
+		while (true) {
+			const p5 = construct._getPow5(high);
+			const q = m / p5;
+			if (q * p5 !== m) break;
+
+			low = high;
+			high <<= 1n;
+		}
+
+		// 二分探索
+		while (low < high) {
+			const mid = (low + high + 1n) >> 1n;
+			const p5 = construct._getPow5(mid);
+
+			const q = m / p5;
+
+			if (q * p5 === m) {
+				low = mid;
+			} else {
+				high = mid - 1n;
 			}
-			p >>= 1n;
+		}
+
+		// まとめて除去
+		if (low !== 0n) {
+			const p5 = construct._getPow5(low);
+			m /= p5;
+
+			this._exp5 += low;
+			this.mantissa = neg ? -m : m;
 		}
 	}
 
@@ -250,28 +286,15 @@ export class BigFloat {
 			this._exp5 = 0n;
 			return;
 		}
+
 		// 10^-precision = 2^-precision * 5^-precision
-		// 現在の値: mantissa * 2^exp2 * 5^exp5
-		// 目標精度と比較して、足りない分を削る
 
-		const diff2 = precision + this._exp2;
-		const diff5 = precision + this._exp5;
+		// 目的のスケール 10^precision 倍した値を整数に丸める
+		// V * 10^P = M * 2^exp2 * 5^exp5 * 2^P * 5^P = M * 2^(exp2+P) * 5^(exp5+P)
+		const diff2 = this._exp2 + precision;
+		const diff5 = this._exp5 + precision;
 
-		// 10^-precision より細かい精度を持っている場合 (exp < -precision)
-		// 10^-precision に合わせるためには、10^(exp + precision) 倍して丸めて、10^-precision にする
-		// ここでは exp2 と exp5 がバラバラなので、
-		// 共通のスケール 10^X = 2^X * 5^X に合わせる必要があるかもしれないが、
-		// 実際には 10^-precision の形に落とし込むのが toString 等で楽。
-
-		// 簡易的に、10^-precision の精度に丸めるロジック:
-		// 現在の値 V = M * 2^e2 * 5^e5
-		// 目標精度 P の値 V' = round(V * 10^P) / 10^P
-		// V * 10^P = M * 2^e2 * 5^e5 * 2^P * 5^P = M * 2^(e2+P) * 5^(e5+P)
-
-		let e2p = this._exp2 + precision;
-		let e5p = this._exp5 + precision;
-
-		if (e2p >= 0n && e5p >= 0n) {
+		if (diff2 >= 0n && diff5 >= 0n) {
 			// 既に目標精度より粗いので何もしない
 			return;
 		}
@@ -279,29 +302,30 @@ export class BigFloat {
 		// 丸めが必要
 		let scaledMantissa = this.mantissa;
 		const construct = this.constructor as BigFloatConstructor;
-		if (e2p < 0n) {
-			// e2pが負なので、その分 2^|e2p| で割る必要がある
-		} else if (e2p > 0n) {
-			scaledMantissa <<= e2p;
-			e2p = 0n;
-		}
-		if (e5p < 0n) {
-			// e5pが負なので、その分 5^|e5p| で割る必要がある
-		} else if (e5p > 0n) {
-			scaledMantissa *= construct._getPow5(e5p);
-			e5p = 0n;
+
+		let div2 = 1n;
+		let div5 = 1n;
+
+		if (diff2 > 0n) {
+			scaledMantissa <<= diff2;
+		} else if (diff2 < 0n) {
+			div2 = construct._getPow2(-diff2);
 		}
 
-		// scaledMantissa * 2^e2p * 5^e5p を整数に丸める (e2p, e5p <= 0)
-		const div2 = construct._getPow2(-e2p);
-		const div5 = construct._getPow5(-e5p);
+		if (diff5 > 0n) {
+			scaledMantissa *= construct._getPow5(diff5);
+		} else if (diff5 < 0n) {
+			div5 = construct._getPow5(-diff5);
+		}
+
 		const divisor = div2 * div5;
-
 		if (divisor > 1n) {
 			this.mantissa = construct._roundManual(scaledMantissa, divisor);
-			this._exp2 = -precision;
-			this._exp5 = -precision;
+		} else {
+			this.mantissa = scaledMantissa;
 		}
+		this._exp2 = -precision;
+		this._exp5 = -precision;
 		this.softNormalize();
 	}
 
@@ -318,7 +342,6 @@ export class BigFloat {
 		if (rem === 0n) return base;
 
 		const absRem = rem < 0n ? -rem : rem;
-		const half = divisor / 2n;
 		const isNeg = mantissa < 0n;
 
 		let offset = 0n;
@@ -333,10 +356,10 @@ export class BigFloat {
 				if (isNeg) offset = -1n;
 				break;
 			case RoundingMode.HALF_UP:
-				if (absRem >= half) offset = isNeg ? -1n : 1n;
+				if (absRem * 2n >= divisor) offset = isNeg ? -1n : 1n;
 				break;
 			case RoundingMode.HALF_DOWN:
-				if (absRem > half) offset = isNeg ? -1n : 1n;
+				if (absRem * 2n > divisor) offset = isNeg ? -1n : 1n;
 				break;
 			case RoundingMode.TRUNCATE:
 			case RoundingMode.DOWN:
@@ -902,8 +925,7 @@ export class BigFloat {
 	 * @returns 加算結果
 	 */
 	public add(other: BigFloat | number | string | bigint): BigFloat {
-		const construct = this.constructor as BigFloatConstructor;
-		const mutate = construct.config.mutateResult;
+		const mutate = (this.constructor as BigFloatConstructor).config.mutateResult;
 		const [a, b] = this._align(other, mutate);
 		a.mantissa += b.mantissa;
 		a.softNormalize();
@@ -917,8 +939,7 @@ export class BigFloat {
 	 * @returns 減算結果
 	 */
 	public sub(other: BigFloat | number | string | bigint): BigFloat {
-		const construct = this.constructor as BigFloatConstructor;
-		const mutate = construct.config.mutateResult;
+		const mutate = (this.constructor as BigFloatConstructor).config.mutateResult;
 		const [a, b] = this._align(other, mutate);
 		a.mantissa -= b.mantissa;
 		a.softNormalize();
@@ -2899,15 +2920,16 @@ export class BigFloat {
 	 */
 	protected static _getPow5(n: bigint): bigint {
 		if (n < 0n) return 0n;
-		if (n === 0n) return 1n;
-		let res = this._pow5Cache.get(n);
-		if (res === undefined) {
-			res = 5n ** n;
-			if (this._pow5Cache.size < 10000) {
-				this._pow5Cache.set(n, res);
-			}
+
+		const ni = Number(n);
+
+		let cache = this._pow5Cache;
+
+		for (let i = cache.length; i <= ni; i++) {
+			cache[i] = cache[i - 1] * 5n;
 		}
-		return res;
+
+		return cache[ni];
 	}
 
 	/**
@@ -2917,15 +2939,16 @@ export class BigFloat {
 	 */
 	protected static _getPow2(n: bigint): bigint {
 		if (n < 0n) return 0n;
-		if (n === 0n) return 1n;
-		let res = this._pow2Cache.get(n);
-		if (res === undefined) {
-			res = 1n << n;
-			if (this._pow2Cache.size < 10000) {
-				this._pow2Cache.set(n, res);
-			}
+
+		const ni = Number(n);
+
+		let cache = this._pow2Cache;
+
+		for (let i = cache.length; i <= ni; i++) {
+			cache[i] = cache[i - 1] << 1n;
 		}
-		return res;
+
+		return cache[ni];
 	}
 
 	// ====================================================================================================
