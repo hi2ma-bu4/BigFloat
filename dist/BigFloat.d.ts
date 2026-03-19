@@ -45,6 +45,16 @@ export interface BigFloatOptions {
 	lnMaxSteps?: bigint;
 }
 export type BigFloatConstructor = typeof BigFloat;
+export type BigFloatRawValue = {
+	mantissa: bigint;
+	exp2: bigint;
+	exp5: bigint;
+};
+export type BigFloatCacheEntry = BigFloatRawValue & {
+	exactValue: bigint;
+	precision: bigint;
+	priority: number;
+};
 /**
  * BigFloat settings
  */
@@ -183,6 +193,39 @@ export declare class BigFloat {
 	 * @returns 正規化された引数リスト
 	 */
 	protected static _normalizeArgs(args: any[]): any[];
+	/**
+	 * 内部整数値から生の内部表現を生成する
+	 * @param value - 10^precision倍された整数値
+	 * @param precision - 精度
+	 * @returns 生の内部表現
+	 */
+	protected static _fromInternalValue(value: bigint, precision: bigint): BigFloatRawValue;
+	/**
+	 * 生の内部表現を10^precision倍された整数値に変換する
+	 * @param value - 生の内部表現
+	 * @param precision - 精度
+	 * @returns 10^precision倍された整数値
+	 */
+	protected static _toInternalValue(value: BigFloatRawValue, precision: bigint): bigint;
+	/**
+	 * 生の内部表現をソフト正規化する
+	 * @param value - 対象
+	 * @returns 正規化後の内部表現
+	 */
+	protected static _softNormalizeRaw(value: BigFloatRawValue): BigFloatRawValue;
+	/**
+	 * 生の内部表現を指定精度へ丸める
+	 * @param value - 対象
+	 * @param precision - 精度
+	 * @returns 丸め後の内部表現
+	 */
+	protected static _applyRawPrecision(value: BigFloatRawValue, precision: bigint): BigFloatRawValue;
+	/**
+	 * 生の内部表現をレイジー正規化する
+	 * @param value - 対象
+	 * @returns 正規化後の内部表現
+	 */
+	protected static _lazyNormalizeRaw(value: BigFloatRawValue): BigFloatRawValue;
 	/**
 	 * 精度を合わせる
 	 * @param other - 合わせる対象
@@ -489,6 +532,14 @@ export declare class BigFloat {
 	 */
 	protected static _sin(x: bigint, precision: bigint, maxSteps: bigint): bigint;
 	/**
+	 * 範囲縮約なしで正弦(sin)を計算する (内部用)
+	 * @param x - 角度(ラジアン)
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns 正弦
+	 */
+	protected static _sinSeries(x: bigint, precision: bigint, maxSteps: bigint): bigint;
+	/**
 	 * 正弦(sin)を計算する
 	 * @returns 正弦
 	 */
@@ -501,6 +552,37 @@ export declare class BigFloat {
 	 * @returns 余弦
 	 */
 	protected static _cos(x: bigint, precision: bigint, maxSteps: bigint): bigint;
+	/**
+	 * キャッシュ値を別精度へ変換する
+	 * @param value - 値
+	 * @param fromPrecision - 元の精度
+	 * @param toPrecision - 変換先の精度
+	 * @returns 変換後の値
+	 */
+	protected static _rescaleInternalValue(value: bigint, fromPrecision: bigint, toPrecision: bigint): bigint;
+	/**
+	 * 低精度キャッシュを取得する
+	 * @param key - キャッシュキー
+	 * @param precision - 必要精度
+	 * @param priority - アルゴリズム優先度
+	 * @returns 低精度キャッシュ
+	 */
+	protected static _getSeedCache(key: string, precision: bigint, priority?: number): BigFloatCacheEntry | null;
+	/**
+	 * キャッシュされたpiを高精度へ補正する
+	 * @param seed - 低精度キャッシュ
+	 * @param precision - 必要精度
+	 * @returns 高精度化したpi
+	 */
+	protected static _refinePiFromCache(seed: BigFloatCacheEntry, precision: bigint): bigint;
+	/**
+	 * キャッシュされた対数定数を高精度へ補正する
+	 * @param value - 対数を取る対象
+	 * @param seed - 低精度キャッシュ
+	 * @param precision - 必要精度
+	 * @returns 高精度化した対数定数
+	 */
+	protected static _refineLogConstantFromCache(value: bigint, seed: BigFloatCacheEntry, precision: bigint): bigint;
 	/**
 	 * 余弦(cos)を計算する
 	 * @returns 余弦
@@ -943,6 +1025,12 @@ export declare class BigFloat {
 	 * @returns 2^n
 	 */
 	protected static _getPow2(n: bigint): bigint;
+	/**
+	 * 10の累乗を取得する (キャッシュ付き)
+	 * @param n - 指数
+	 * @returns 10^n
+	 */
+	protected static _getPow10(n: bigint): bigint;
 	/**
 	 * 定数 -1 を取得する
 	 * @param precision - 精度
