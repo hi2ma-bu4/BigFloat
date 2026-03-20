@@ -156,6 +156,29 @@ export declare class BigFloat {
 	 */
 	copyFrom(other: BigFloat): this;
 	/**
+	 * 生の内部表現から結果を作成する
+	 * @param mantissa - 仮数
+	 * @param exp2 - 2の指数
+	 * @param exp5 - 5の指数
+	 * @returns 結果
+	 */
+	protected _makeExactResult(mantissa: bigint, exp2?: bigint, exp5?: bigint): BigFloat;
+	/**
+	 * 厳密な整数値を取得する
+	 * @returns 整数値、整数でない場合はnull
+	 */
+	protected _getExactInteger(): bigint | null;
+	/**
+	 * 厳密な2の冪指数を取得する
+	 * @returns 2の冪指数、該当しない場合はnull
+	 */
+	protected _getExactPowerOf2Exponent(): bigint | null;
+	/**
+	 * 厳密な10の冪指数を取得する
+	 * @returns 10の冪指数、該当しない場合はnull
+	 */
+	protected _getExactPowerOf10Exponent(): bigint | null;
+	/**
 	 * ソフト正規化 (2の累乗を外に出す)
 	 */
 	softNormalize(): void;
@@ -245,6 +268,13 @@ export declare class BigFloat {
 		exp2: bigint;
 		exp5: bigint;
 	};
+	/**
+	 * 最大公約数を取得する
+	 * @param a - 値A
+	 * @param b - 値B
+	 * @returns 最大公約数
+	 */
+	protected static _gcd(a: bigint, b: bigint): bigint;
 	/**
 	 * 精度を合わせる
 	 * @param other - 合わせる対象

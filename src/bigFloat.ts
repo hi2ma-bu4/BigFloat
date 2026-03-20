@@ -208,6 +208,75 @@ export class BigFloat {
 	}
 
 	/**
+	 * 生の内部表現から結果を作成する
+	 * @param mantissa - 仮数
+	 * @param exp2 - 2の指数
+	 * @param exp5 - 5の指数
+	 * @returns 結果
+	 */
+	protected _makeExactResult(mantissa: bigint, exp2 = 0n, exp5 = 0n): BigFloat {
+		const construct = this.constructor as BigFloatConstructor;
+		const mutate = construct.config.mutateResult;
+		const result = mutate ? this : new construct();
+		result._precision = this._precision;
+		result.mantissa = mantissa;
+		result._exp2 = exp2;
+		result._exp5 = exp5;
+		result.softNormalize();
+		return result;
+	}
+
+	/**
+	 * 厳密な整数値を取得する
+	 * @returns 整数値、整数でない場合はnull
+	 */
+	protected _getExactInteger(): bigint | null {
+		if (this.mantissa === 0n) return 0n;
+		const construct = this.constructor as BigFloatConstructor;
+		const factors = construct._extractPowerFactors(this.mantissa);
+		const totalExp2 = factors.exp2 + this._exp2;
+		const totalExp5 = factors.exp5 + this._exp5;
+		if (totalExp2 < 0n || totalExp5 < 0n) return null;
+
+		let value = factors.sign * factors.mantissa;
+		if (totalExp2 > 0n) value <<= totalExp2;
+		if (totalExp5 > 0n) value *= construct._getPow5(totalExp5);
+		return value;
+	}
+
+	/**
+	 * 厳密な2の冪指数を取得する
+	 * @returns 2の冪指数、該当しない場合はnull
+	 */
+	protected _getExactPowerOf2Exponent(): bigint | null {
+		if (this.mantissa <= 0n) return null;
+		const construct = this.constructor as BigFloatConstructor;
+		const factors = construct._extractPowerFactors(this.mantissa);
+		const totalExp2 = factors.exp2 + this._exp2;
+		const totalExp5 = factors.exp5 + this._exp5;
+		if (factors.sign > 0n && factors.mantissa === 1n && totalExp5 === 0n) {
+			return totalExp2;
+		}
+		return null;
+	}
+
+	/**
+	 * 厳密な10の冪指数を取得する
+	 * @returns 10の冪指数、該当しない場合はnull
+	 */
+	protected _getExactPowerOf10Exponent(): bigint | null {
+		if (this.mantissa <= 0n) return null;
+		const construct = this.constructor as BigFloatConstructor;
+		const factors = construct._extractPowerFactors(this.mantissa);
+		const totalExp2 = factors.exp2 + this._exp2;
+		const totalExp5 = factors.exp5 + this._exp5;
+		if (factors.sign > 0n && factors.mantissa === 1n && totalExp2 === totalExp5) {
+			return totalExp2;
+		}
+		return null;
+	}
+
+	/**
 	 * ソフト正規化 (2の累乗を外に出す)
 	 */
 	public softNormalize(): void {
@@ -662,6 +731,23 @@ export class BigFloat {
 		}
 
 		return { sign, mantissa: value, exp2, exp5 };
+	}
+
+	/**
+	 * 最大公約数を取得する
+	 * @param a - 値A
+	 * @param b - 値B
+	 * @returns 最大公約数
+	 */
+	protected static _gcd(a: bigint, b: bigint): bigint {
+		let x = a < 0n ? -a : a;
+		let y = b < 0n ? -b : b;
+		while (y !== 0n) {
+			const remainder = x % y;
+			x = y;
+			y = remainder;
+		}
+		return x;
 	}
 
 	/**
@@ -1180,21 +1266,12 @@ export class BigFloat {
 			return res.copyFrom(new construct(divRes, res._precision));
 		}
 
-		if (res.mantissa % bfB.mantissa === 0n) {
-			res.mantissa /= bfB.mantissa;
-			res._exp2 -= bfB._exp2;
-			res._exp5 -= bfB._exp5;
-			res.softNormalize();
-			res._applyPrecision(res._precision);
-			res.lazyNormalize();
-			return res;
-		}
-
-		const divisorFactors = construct._extractPowerFactors(bfB.mantissa);
+		const gcdMantissa = construct._gcd(res.mantissa, bfB.mantissa);
+		const reducedNumeratorMantissa = res.mantissa / gcdMantissa;
+		const reducedDivisorMantissa = bfB.mantissa / gcdMantissa;
+		const divisorFactors = construct._extractPowerFactors(reducedDivisorMantissa);
 		if (divisorFactors.mantissa === 1n) {
-			if (divisorFactors.sign < 0n) {
-				res.mantissa = -res.mantissa;
-			}
+			res.mantissa = divisorFactors.sign < 0n ? -reducedNumeratorMantissa : reducedNumeratorMantissa;
 			res._exp2 -= bfB._exp2 + divisorFactors.exp2;
 			res._exp5 -= bfB._exp5 + divisorFactors.exp5;
 			res.softNormalize();
@@ -1733,6 +1810,7 @@ export class BigFloat {
 	public sin(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		const config = construct.config;
+		if (this.mantissa === 0n) return this._makeExactResult(0n);
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
@@ -1891,6 +1969,7 @@ export class BigFloat {
 	public cos(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		const config = construct.config;
+		if (this.mantissa === 0n) return this._makeExactResult(1n);
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
@@ -1945,6 +2024,7 @@ export class BigFloat {
 	public tan(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		const config = construct.config;
+		if (this.mantissa === 0n) return this._makeExactResult(0n);
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
@@ -2002,6 +2082,7 @@ export class BigFloat {
 	public asin(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		const config = construct.config;
+		if (this.mantissa === 0n) return this._makeExactResult(0n);
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
@@ -2052,6 +2133,7 @@ export class BigFloat {
 	public acos(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		const config = construct.config;
+		if (this._getExactInteger() === 1n) return this._makeExactResult(0n);
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
@@ -2117,6 +2199,7 @@ export class BigFloat {
 	public atan(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		const config = construct.config;
+		if (this.mantissa === 0n) return this._makeExactResult(0n);
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
@@ -2179,6 +2262,7 @@ export class BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		const bfB = x instanceof BigFloat ? x : new construct(x, this._precision);
 		const config = construct.config;
+		if (this.mantissa === 0n && bfB.mantissa >= 0n) return this._makeExactResult(0n);
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
@@ -2303,6 +2387,7 @@ export class BigFloat {
 	public exp(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		const config = construct.config;
+		if (this.mantissa === 0n) return this._makeExactResult(1n);
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
@@ -2345,6 +2430,9 @@ export class BigFloat {
 	public exp2(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		const config = construct.config;
+		if (this.mantissa === 0n) return this._makeExactResult(1n);
+		const exactInteger = this._getExactInteger();
+		if (exactInteger !== null) return this._makeExactResult(1n, exactInteger, 0n);
 		const maxSteps = config.lnMaxSteps;
 		const totalPr = this._precision + config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
@@ -2386,6 +2474,7 @@ export class BigFloat {
 	 */
 	public expm1(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
+		if (this.mantissa === 0n) return this._makeExactResult(0n);
 		const totalPr = this._precision + construct.config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
 		const expInt = construct._expm1(val, totalPr);
@@ -2436,6 +2525,7 @@ export class BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		const config = construct.config;
 		const maxSteps = config.lnMaxSteps;
+		if (this._getExactInteger() === 1n) return this._makeExactResult(0n);
 
 		// ハイブリッド方式
 		if (this._precision <= 15n) {
@@ -2486,6 +2576,7 @@ export class BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		const bfB = base instanceof BigFloat ? base : new construct(base, this._precision);
 		const maxSteps = construct.config.lnMaxSteps;
+		if (this._getExactInteger() === 1n) return this._makeExactResult(0n);
 
 		const totalPr = this._precision + construct.config.extraPrecision;
 		const valA = this._getInternalValue(totalPr);
@@ -2514,6 +2605,9 @@ export class BigFloat {
 	 */
 	public log2(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
+		if (this._getExactInteger() === 1n) return this._makeExactResult(0n);
+		const exactPower = this._getExactPowerOf2Exponent();
+		if (exactPower !== null) return this._makeExactResult(exactPower);
 		const maxSteps = construct.config.lnMaxSteps;
 		const totalPr = this._precision + construct.config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
@@ -2539,6 +2633,9 @@ export class BigFloat {
 	 */
 	public log10(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
+		if (this._getExactInteger() === 1n) return this._makeExactResult(0n);
+		const exactPower = this._getExactPowerOf10Exponent();
+		if (exactPower !== null) return this._makeExactResult(exactPower);
 		const maxSteps = construct.config.lnMaxSteps;
 		const totalPr = this._precision + construct.config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
@@ -2565,6 +2662,7 @@ export class BigFloat {
 	 */
 	public log1p(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
+		if (this.mantissa === 0n) return this._makeExactResult(0n);
 		const maxSteps = construct.config.lnMaxSteps;
 		const totalPr = this._precision + construct.config.extraPrecision;
 		const val = this._getInternalValue(totalPr);

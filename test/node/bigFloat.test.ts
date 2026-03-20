@@ -56,6 +56,29 @@ test("BigFloat Precision and Identity Tests", async (t) => {
 					assert.strictEqual(oneDivFive.mantissa, 1n, "1/5 mantissa should stay exact");
 					assert.strictEqual(oneDivFive._exp2, 0n, "1/5 exp2 should stay exact");
 					assert.strictEqual(oneDivFive._exp5, -1n, "1/5 exp5 should stay exact");
+
+					const sixDivFifteen = new BigFloat(6, 1000).div(15);
+					assert.strictEqual(sixDivFifteen.toString(10, 1000), "0.4");
+					assert.strictEqual(sixDivFifteen.mantissa, 1n, "6/15 mantissa should stay exact after reduction");
+					assert.strictEqual(sixDivFifteen._exp2, 1n, "6/15 exp2 should stay exact after reduction");
+					assert.strictEqual(sixDivFifteen._exp5, -1n, "6/15 exp5 should stay exact after reduction");
+
+					assert.strictEqual(new BigFloat(0, 1000).cos().toString(10, 1000), "1");
+					assert.strictEqual(new BigFloat(0, 1000).sin().toString(10, 1000), "0");
+					assert.strictEqual(new BigFloat(0, 1000).tan().toString(10, 1000), "0");
+					assert.strictEqual(new BigFloat(0, 1000).asin().toString(10, 1000), "0");
+					assert.strictEqual(new BigFloat(1, 1000).acos().toString(10, 1000), "0");
+					assert.strictEqual(new BigFloat(0, 1000).atan().toString(10, 1000), "0");
+					assert.strictEqual(new BigFloat(0, 1000).atan2(5).toString(10, 1000), "0");
+					assert.strictEqual(new BigFloat(0, 1000).exp().toString(10, 1000), "1");
+					assert.strictEqual(new BigFloat(0, 1000).exp2().toString(10, 1000), "1");
+					assert.strictEqual(new BigFloat(3, 1000).exp2().toString(10, 1000), "8");
+					assert.strictEqual(new BigFloat("1.0", 1000).ln().toString(10, 1000), "0");
+					assert.strictEqual(new BigFloat(1, 1000).log(2).toString(10, 1000), "0");
+					assert.strictEqual(new BigFloat(8, 1000).log2().toString(10, 1000), "3");
+					assert.strictEqual(new BigFloat("0.001", 1000).log10().toString(10, 1000), "-3");
+					assert.strictEqual(new BigFloat(0, 1000).log1p().toString(10, 1000), "0");
+					assert.strictEqual(new BigFloat(0, 1000).expm1().toString(10, 1000), "0");
 				}
 			});
 
