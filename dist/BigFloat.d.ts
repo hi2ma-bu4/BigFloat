@@ -44,6 +44,14 @@ export interface BigFloatOptions {
 	trigFuncsMaxSteps?: bigint;
 	lnMaxSteps?: bigint;
 }
+/**
+ * BigFloatに変換可能な値
+ */
+export type BigFloatValue = BigFloat | number | string | bigint;
+/**
+ * BigFloatStreamで扱う値
+ */
+export type BigFloatStreamValue = BigFloatValue;
 export type BigFloatConstructor = typeof BigFloat;
 export type BigFloatRawValue = {
 	mantissa: bigint;
@@ -130,7 +138,7 @@ export declare class BigFloat {
 	 * @param precision - 精度
 	 * @throws {RangeError} 精度が不正な場合
 	 */
-	constructor(value?: string | number | bigint | BigFloat, precision?: number | bigint);
+	constructor(value?: BigFloatValue, precision?: number | bigint);
 	/**
 	 * クラスを複製する (設定複製用)
 	 * @returns 複製されたクラス
@@ -176,7 +184,7 @@ export declare class BigFloat {
 	 * @throws {RangeError} 基数が2から36の範囲外の場合
 	 * @throws {Error} 不正な文字が含まれている場合
 	 */
-	static parseFloat(str: string | number | bigint | BigFloat, precision?: number | bigint, base?: number): BigFloat;
+	static parseFloat(str: BigFloatValue, precision?: number | bigint, base?: number): BigFloat;
 	/**
 	 * 文字列を解析して数値を取得
 	 * @param str - 解析する文字列
@@ -233,7 +241,7 @@ export declare class BigFloat {
 	 * @returns [BigFloatA, BigFloatB] (アラインメント済みのインスタンス)
 	 * @throws {Error} 精度の不一致が許容されていない場合
 	 */
-	protected _align(other: BigFloat | number | string | bigint, mutateA?: boolean): [
+	protected _align(other: BigFloatValue, mutateA?: boolean): [
 		BigFloat,
 		BigFloat
 	];
@@ -271,55 +279,55 @@ export declare class BigFloat {
 	 * @param other - 比較対象
 	 * @returns 一致している桁数
 	 */
-	matchingPrecision(other: BigFloat | number | string | bigint): bigint;
+	matchingPrecision(other: BigFloatValue): bigint;
 	/**
 	 * 比較演算
 	 * @param other - 比較対象
 	 * @returns 比較結果 (-1, 0, 1)
 	 */
-	compare(other: BigFloat | number | string | bigint): number;
+	compare(other: BigFloatValue): number;
 	/**
 	 * 等しいかどうかを判定する (==)
 	 * @param other - 比較対象
 	 * @returns 等しい場合はtrue
 	 */
-	eq(other: BigFloat | number | string | bigint): boolean;
+	eq(other: BigFloatValue): boolean;
 	/**
 	 * 等しいかどうかを判定する (==)
 	 * @param other - 比較対象
 	 * @returns 等しい場合はtrue
 	 */
-	equals(other: BigFloat | number | string | bigint): boolean;
+	equals(other: BigFloatValue): boolean;
 	/**
 	 * 等しくないかどうかを判定する (!=)
 	 * @param other - 比較対象
 	 * @returns 等しくない場合はtrue
 	 */
-	ne(other: BigFloat | number | string | bigint): boolean;
+	ne(other: BigFloatValue): boolean;
 	/**
 	 * より小さいかどうかを判定する (<)
 	 * @param other - 比較対象
 	 * @returns より小さい場合はtrue
 	 */
-	lt(other: BigFloat | number | string | bigint): boolean;
+	lt(other: BigFloatValue): boolean;
 	/**
 	 * 以下かどうかを判定する (<=)
 	 * @param other - 比較対象
 	 * @returns 以下の場合はtrue
 	 */
-	lte(other: BigFloat | number | string | bigint): boolean;
+	lte(other: BigFloatValue): boolean;
 	/**
 	 * より大きいかどうかを判定する (>)
 	 * @param other - 比較対象
 	 * @returns より大きい場合はtrue
 	 */
-	gt(other: BigFloat | number | string | bigint): boolean;
+	gt(other: BigFloatValue): boolean;
 	/**
 	 * 以上かどうかを判定する (>=)
 	 * @param other - 比較対象
 	 * @returns 以上の場合はtrue
 	 */
-	gte(other: BigFloat | number | string | bigint): boolean;
+	gte(other: BigFloatValue): boolean;
 	/**
 	 * ゼロかどうかを判定する
 	 * @returns ゼロの場合はtrue
@@ -340,19 +348,19 @@ export declare class BigFloat {
 	 * @param other - 比較対象
 	 * @returns 相対差
 	 */
-	relativeDiff(other: BigFloat | number | string | bigint): BigFloat;
+	relativeDiff(other: BigFloatValue): BigFloat;
 	/**
 	 * 絶対差を計算する
 	 * @param other - 比較対象
 	 * @returns 絶対差
 	 */
-	absoluteDiff(other: BigFloat | number | string | bigint): BigFloat;
+	absoluteDiff(other: BigFloatValue): BigFloat;
 	/**
 	 * 差分の非一致度を計算する (百分率)
 	 * @param other - 比較対象
 	 * @returns 非一致度 (%)
 	 */
-	percentDiff(other: BigFloat | number | string | bigint): BigFloat;
+	percentDiff(other: BigFloatValue): BigFloat;
 	/**
 	 * 文字列に変換する
 	 * @param base - 基数 (2-36)
@@ -389,26 +397,26 @@ export declare class BigFloat {
 	 * @param other - 加算する値
 	 * @returns 加算結果
 	 */
-	add(other: BigFloat | number | string | bigint): BigFloat;
+	add(other: BigFloatValue): BigFloat;
 	/**
 	 * 減算する (-)
 	 * @param other - 減算する値
 	 * @returns 減算結果
 	 */
-	sub(other: BigFloat | number | string | bigint): BigFloat;
+	sub(other: BigFloatValue): BigFloat;
 	/**
 	 * 乗算する (*)
 	 * @param other - 乗算する値
 	 * @returns 乗算結果
 	 */
-	mul(other: BigFloat | number | string | bigint): BigFloat;
+	mul(other: BigFloatValue): BigFloat;
 	/**
 	 * 除算する (/)
 	 * @param other - 除算する値
 	 * @returns 除算結果
 	 * @throws {Error} ゼロ除算の場合
 	 */
-	div(other: BigFloat | number | string | bigint): BigFloat;
+	div(other: BigFloatValue): BigFloat;
 	/**
 	 * インスタンスから結果を作成する
 	 * @param instance - 結果の元となるインスタンス
@@ -433,7 +441,7 @@ export declare class BigFloat {
 	 * @param other - 法
 	 * @returns 剰余
 	 */
-	mod(other: BigFloat | number | string | bigint): BigFloat;
+	mod(other: BigFloatValue): BigFloat;
 	/**
 	 * 符号を反転させる
 	 * @returns 符号が反転した結果
@@ -484,7 +492,7 @@ export declare class BigFloat {
 	 * @param exponent - 指数
 	 * @returns 冪乗の結果
 	 */
-	pow(exponent: BigFloat | number | string | bigint): BigFloat;
+	pow(exponent: BigFloatValue): BigFloat;
 	/**
 	 * 平方根を計算する (内部用)
 	 * @param n - 値
@@ -656,7 +664,7 @@ export declare class BigFloat {
 	 * @param x - x座標
 	 * @returns 角度(ラジアン)
 	 */
-	atan2(x: BigFloat | number | string | bigint): BigFloat;
+	atan2(x: BigFloatValue): BigFloat;
 	/**
 	 * マチン(Machin)の公式用のatan計算 (内部用)
 	 * @param invX - 1/xのx
@@ -748,7 +756,7 @@ export declare class BigFloat {
 	 * @param base - 底
 	 * @returns log_base(x)
 	 */
-	log(base: BigFloat | number | string | bigint): BigFloat;
+	log(base: BigFloatValue): BigFloat;
 	/**
 	 * 2を底とする対数(log2)を計算する (内部用)
 	 * @param value - 値
@@ -1056,31 +1064,134 @@ export declare class BigFloat {
  * @param precision - 精度
  * @returns BigFloat インスタンス
  */
-export declare function bigFloat(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat;
+export declare function bigFloat(value: BigFloatValue, precision?: number | bigint): BigFloat;
+export type BigFloatStreamFactory = () => Iterator<BigFloat>;
+export type BigFloatStreamStageSignal = BigFloat | typeof BIGFLOAT_STREAM_SKIP;
+export type BigFloatStreamStageContext = {
+	pushIterator: (iterator: Iterator<BigFloat>, stageIndex: number) => void;
+	stop: () => void;
+};
+export type BigFloatStreamStageDefinition = {
+	createState: (data: unknown) => unknown;
+	process: (value: BigFloat, state: unknown, data: unknown, context: BigFloatStreamStageContext, nextStageIndex: number) => BigFloatStreamStageSignal;
+};
+export type BigFloatStreamStage = {
+	definition: BigFloatStreamStageDefinition;
+	data: unknown;
+};
+declare const BIGFLOAT_STREAM_SKIP: unique symbol;
 /**
  * BigFloat-specific Stream (Lazy List)
  */
 export declare class BigFloatStream implements Iterable<BigFloat> {
-	/** 内部イテレータ */
-	private _iter;
-	/** パイプラインステージのリスト */
-	private _pipeline;
+	/** mapステージ定義 */
+	private static readonly _mapStageDefinition;
+	/** filterステージ定義 */
+	private static readonly _filterStageDefinition;
+	/** peekステージ定義 */
+	private static readonly _peekStageDefinition;
+	/** flatMapステージ定義 */
+	private static readonly _flatMapStageDefinition;
+	/** distinctステージ定義 */
+	private static readonly _distinctStageDefinition;
+	/** limitステージ定義 */
+	private static readonly _limitStageDefinition;
+	/** skipステージ定義 */
+	private static readonly _skipStageDefinition;
+	/** 内部イテレータファクトリ */
+	private _sourceFactory;
+	/** 直前のストリーム */
+	private _previousStream;
+	/** 現在のステージ定義 */
+	private _stageDefinition;
+	/** 現在のステージデータ */
+	private _stageData;
 	/**
 	 * @param source - BigFloatの反復可能オブジェクト
 	 */
-	constructor(source: Iterable<BigFloat>);
+	constructor(source: Iterable<BigFloat> | BigFloatStreamFactory);
+	/**
+	 * 内部状態からストリームを生成する
+	 * @param sourceFactory - ソースファクトリ
+	 * @param previousStream - 直前のストリーム
+	 * @param stageDefinition - ステージ定義
+	 * @param stageData - ステージデータ
+	 * @returns BigFloatStream
+	 */
+	protected static _fromState(sourceFactory: BigFloatStreamFactory, previousStream: BigFloatStream | null, stageDefinition: BigFloatStreamStageDefinition | null, stageData: unknown): BigFloatStream;
+	/**
+	 * 値をBigFloatへ変換する
+	 * @param value - 変換する値
+	 * @param precision - 精度
+	 * @returns BigFloat
+	 */
+	protected static _toBigFloat(value: BigFloatStreamValue, precision?: bigint): BigFloat;
+	/**
+	 * 値をBigFloatのイテレータに変換する
+	 * @param iterable - 変換する反復可能オブジェクト
+	 * @param precision - 精度
+	 * @returns BigFloatのイテレータ
+	 */
+	protected static _toIterator(iterable: Iterable<BigFloatStreamValue>, precision?: bigint): IterableIterator<BigFloat>;
+	/**
+	 * ストリームの精度を解決する
+	 * @param values - 値
+	 * @param precision - 明示精度
+	 * @returns 精度
+	 */
+	protected static _resolvePrecision(values: BigFloatStreamValue[], precision?: number | bigint): bigint;
 	/**
 	 * 反復可能オブジェクトからBigFloatStreamを作成する
 	 * @param iterable - BigFloatの反復可能オブジェクト
+	 * @param precision - 変換時の精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	static from(iterable: Iterable<BigFloat>): BigFloatStream;
+	static from(iterable: Iterable<BigFloatStreamValue>, precision?: number | bigint): BigFloatStream;
+	/**
+	 * 値のリストからBigFloatStreamを作成する
+	 * @param values - 値のリスト
+	 * @returns BigFloatStreamインスタンス
+	 */
+	static of(...values: BigFloatStreamValue[]): BigFloatStream;
+	/**
+	 * 範囲を生成する
+	 * @param start - 開始値
+	 * @param end - 終了値
+	 * @param step - ステップ
+	 * @param precision - 精度
+	 * @returns BigFloatStreamインスタンス
+	 */
+	static range(start: BigFloatStreamValue, end?: BigFloatStreamValue, step?: BigFloatStreamValue, precision?: number | bigint): BigFloatStream;
+	/**
+	 * ストリームを複製する
+	 * @returns 複製されたストリーム
+	 */
+	clone(): BigFloatStream;
+	/**
+	 * ストリームを分岐させる
+	 * @returns 複製されたストリーム
+	 */
+	branch(): BigFloatStream;
+	/**
+	 * 現在の状態を引き継いだストリームを生成する
+	 * @param sourceFactory - ソースファクトリ
+	 * @param previousStream - 直前のストリーム
+	 * @param stageDefinition - ステージ定義
+	 * @param stageData - ステージデータ
+	 * @returns 新しいストリーム
+	 */
+	protected _fork(sourceFactory?: BigFloatStreamFactory, previousStream?: BigFloatStream | null, stageDefinition?: BigFloatStreamStageDefinition | null, stageData?: unknown): this;
 	/**
 	 * パイプラインステージを追加する
-	 * @param fn - ステージ関数
-	 * @returns 自身
+	 * @param stage - ステージ
+	 * @returns 新しいストリーム
 	 */
-	protected _use(fn: (iter: Iterator<BigFloat>) => Generator<BigFloat, void, unknown>): this;
+	protected _use(stage: BigFloatStreamStage): this;
+	/**
+	 * パイプラインを配列化する
+	 * @returns ステージ配列
+	 */
+	protected _collectPipelineStages(): BigFloatStreamStage[];
 	/**
 	 * 各要素を変換する
 	 * @param fn - 変換関数
@@ -1098,13 +1209,13 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @param fn - 変換関数
 	 * @returns 平坦化されたストリーム
 	 */
-	flatMap(fn: (item: BigFloat) => Iterable<BigFloat>): this;
+	flatMap(fn: (item: BigFloat) => Iterable<BigFloatStreamValue>): this;
 	/**
 	 * 重複を除去する
 	 * @param keyFn - キー生成関数
 	 * @returns 重複が除去されたストリーム
 	 */
-	distinct(keyFn?: (item: BigFloat) => any): this;
+	distinct(keyFn?: (item: BigFloat) => unknown): this;
 	/**
 	 * 要素をソートする (終端操作ではないが、全要素を内部で保持する)
 	 * @param compareFn - 比較関数
@@ -1118,17 +1229,41 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 */
 	peek(fn: (item: BigFloat) => void): this;
 	/**
+	 * 各要素に対してアクションを実行する (ストリームは維持)
+	 * @param fn - アクション関数
+	 * @returns 自身
+	 */
+	tap(fn: (item: BigFloat) => void): this;
+	/**
 	 * 要素数を制限する
 	 * @param n - 最大要素数
 	 * @returns 制限されたストリーム
 	 */
 	limit(n: number): this;
 	/**
+	 * 要素数を制限する
+	 * @param n - 最大要素数
+	 * @returns 制限されたストリーム
+	 */
+	take(n: number): this;
+	/**
 	 * 指定した要素数をスキップする
 	 * @param n - スキップする数
 	 * @returns スキップされたストリーム
 	 */
 	skip(n: number): this;
+	/**
+	 * 指定した要素数をスキップする
+	 * @param n - スキップする数
+	 * @returns スキップされたストリーム
+	 */
+	drop(n: number): this;
+	/**
+	 * 末尾にストリームを連結する
+	 * @param iterables - 連結するストリーム
+	 * @returns 連結後のストリーム
+	 */
+	concat(...iterables: Iterable<BigFloatStreamValue>[]): this;
 	/**
 	 * イテレータの実装
 	 * @returns イテレータ
@@ -1145,6 +1280,11 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 */
 	toArray(): BigFloat[];
 	/**
+	 * 配列に変換する (終端操作)
+	 * @returns 要素の配列
+	 */
+	collect(): BigFloat[];
+	/**
 	 * 畳み込み処理を行う (終端操作)
 	 * @param fn - 畳み込み関数
 	 * @param initial - 初期値
@@ -1156,6 +1296,11 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns 要素数
 	 */
 	count(): number;
+	/**
+	 * ストリームが空かどうか判定する
+	 * @returns 空ならtrue
+	 */
+	isEmpty(): boolean;
 	/**
 	 * いずれかの要素が条件を満たすか判定する (終端操作)
 	 * @param fn - 判定関数
@@ -1169,10 +1314,27 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 */
 	every(fn: (item: BigFloat) => boolean): boolean;
 	/**
+	 * 条件に一致する最初の要素を返す (終端操作)
+	 * @param fn - 判定関数
+	 * @returns 条件に一致した要素、存在しない場合はundefined
+	 */
+	find(fn: (item: BigFloat) => boolean): BigFloat | undefined;
+	/**
 	 * 最初の要素を返す (終端操作)
 	 * @returns 最初の要素、空の場合はundefined
 	 */
 	findFirst(): BigFloat | undefined;
+	/**
+	 * 最初の要素を返す (終端操作)
+	 * @returns 最初の要素、空の場合はundefined
+	 */
+	first(): BigFloat | undefined;
+	/**
+	 * 指定位置の要素を返す (終端操作)
+	 * @param index - インデックス
+	 * @returns 要素、存在しない場合はundefined
+	 */
+	at(index: number): BigFloat | undefined;
 	/**
 	 * すべての要素の精度を変更する
 	 * @param precision - 新しい精度
@@ -1184,31 +1346,31 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @param other - 加算する値
 	 * @returns 加算後のストリーム
 	 */
-	add(other: BigFloat | number | string | bigint): this;
+	add(other: BigFloatValue): this;
 	/**
 	 * 各要素から減算する
 	 * @param other - 減算する値
 	 * @returns 減算後のストリーム
 	 */
-	sub(other: BigFloat | number | string | bigint): this;
+	sub(other: BigFloatValue): this;
 	/**
 	 * 各要素に乗算する
 	 * @param other - 乗算する値
 	 * @returns 乗算後のストリーム
 	 */
-	mul(other: BigFloat | number | string | bigint): this;
+	mul(other: BigFloatValue): this;
 	/**
 	 * 各要素を除算する
 	 * @param other - 除算する値
 	 * @returns 除算後のストリーム
 	 */
-	div(other: BigFloat | number | string | bigint): this;
+	div(other: BigFloatValue): this;
 	/**
 	 * 各要素の剰余を計算する
 	 * @param other - 法
 	 * @returns 剰余後のストリーム
 	 */
-	mod(other: BigFloat | number | string | bigint): this;
+	mod(other: BigFloatValue): this;
 	/**
 	 * 各要素の符号を反転させる
 	 * @returns 反転後のストリーム
@@ -1229,7 +1391,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @param exponent - 指数
 	 * @returns 冪乗後のストリーム
 	 */
-	pow(exponent: BigFloat | number | string | bigint): this;
+	pow(exponent: BigFloatValue): this;
 	/**
 	 * 各要素の平方根を計算する
 	 * @returns 平方根後のストリーム

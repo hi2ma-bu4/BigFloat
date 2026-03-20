@@ -1,3 +1,5 @@
+import type { BigFloat } from "./bigFloat";
+
 /**
  * 丸めモード
  */
@@ -44,3 +46,13 @@ export interface BigFloatOptions {
 	trigFuncsMaxSteps?: bigint;
 	lnMaxSteps?: bigint;
 }
+
+/**
+ * BigFloatに変換可能な値
+ */
+export type BigFloatValue = BigFloat | number | string | bigint;
+
+/**
+ * BigFloatStreamで扱う値
+ */
+export type BigFloatStreamValue = BigFloatValue;

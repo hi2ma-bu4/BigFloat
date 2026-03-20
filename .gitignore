@@ -1,6 +1,3 @@
 **/node_modules/**
 
 *.log
-
-dev/compare-baseline.mjs
-JavaLibraryScript.js

@@ -1,4 +1,4 @@
-import { PiAlgorithm, RoundingMode, type BigFloatOptions } from "./types";
+import { PiAlgorithm, RoundingMode, type BigFloatOptions, type BigFloatValue } from "./types";
 
 type BigFloatConstructor = typeof BigFloat;
 type BigFloatRawValue = { mantissa: bigint; exp2: bigint; exp5: bigint };
@@ -127,7 +127,7 @@ export class BigFloat {
 	 * @param precision - 精度
 	 * @throws {RangeError} 精度が不正な場合
 	 */
-	public constructor(value?: string | number | bigint | BigFloat, precision: number | bigint = 20n) {
+	public constructor(value?: BigFloatValue, precision: number | bigint = 20n) {
 		const construct = this.constructor as BigFloatConstructor;
 		if (value instanceof BigFloat) {
 			this.mantissa = value.mantissa;
@@ -384,7 +384,7 @@ export class BigFloat {
 	 * @throws {RangeError} 基数が2から36の範囲外の場合
 	 * @throws {Error} 不正な文字が含まれている場合
 	 */
-	public static parseFloat(str: string | number | bigint | BigFloat, precision: number | bigint = 20n, base = 10): BigFloat {
+	public static parseFloat(str: BigFloatValue, precision: number | bigint = 20n, base = 10): BigFloat {
 		if (str instanceof BigFloat) return str.clone();
 		if (typeof str !== "string") str = String(str);
 		if (base < 2 || base > 36) throw new RangeError("Base must be between 2 and 36");
@@ -639,7 +639,7 @@ export class BigFloat {
 	 * @returns [BigFloatA, BigFloatB] (アラインメント済みのインスタンス)
 	 * @throws {Error} 精度の不一致が許容されていない場合
 	 */
-	protected _align(other: BigFloat | number | string | bigint, mutateA = false): [BigFloat, BigFloat] {
+	protected _align(other: BigFloatValue, mutateA = false): [BigFloat, BigFloat] {
 		const construct = this.constructor as BigFloatConstructor;
 		const bfB = other instanceof BigFloat ? other : new construct(other, this._precision);
 		const config = construct.config;
@@ -750,7 +750,7 @@ export class BigFloat {
 	 * @param other - 比較対象
 	 * @returns 一致している桁数
 	 */
-	public matchingPrecision(other: BigFloat | number | string | bigint): bigint {
+	public matchingPrecision(other: BigFloatValue): bigint {
 		const bfB = other instanceof BigFloat ? other : new (this.constructor as BigFloatConstructor)(other, this._precision);
 		const diff = this.sub(bfB).abs();
 		const maxP = this._precision > bfB._precision ? this._precision : bfB._precision;
@@ -779,7 +779,7 @@ export class BigFloat {
 	 * @param other - 比較対象
 	 * @returns 比較結果 (-1, 0, 1)
 	 */
-	public compare(other: BigFloat | number | string | bigint): number {
+	public compare(other: BigFloatValue): number {
 		const [a, b] = this._align(other);
 		if (a.mantissa < b.mantissa) return -1;
 		if (a.mantissa > b.mantissa) return 1;
@@ -791,7 +791,7 @@ export class BigFloat {
 	 * @param other - 比較対象
 	 * @returns 等しい場合はtrue
 	 */
-	public eq(other: BigFloat | number | string | bigint): boolean {
+	public eq(other: BigFloatValue): boolean {
 		return this.compare(other) === 0;
 	}
 
@@ -800,7 +800,7 @@ export class BigFloat {
 	 * @param other - 比較対象
 	 * @returns 等しい場合はtrue
 	 */
-	public equals(other: BigFloat | number | string | bigint): boolean {
+	public equals(other: BigFloatValue): boolean {
 		return this.compare(other) === 0;
 	}
 
@@ -809,7 +809,7 @@ export class BigFloat {
 	 * @param other - 比較対象
 	 * @returns 等しくない場合はtrue
 	 */
-	public ne(other: BigFloat | number | string | bigint): boolean {
+	public ne(other: BigFloatValue): boolean {
 		return this.compare(other) !== 0;
 	}
 
@@ -818,7 +818,7 @@ export class BigFloat {
 	 * @param other - 比較対象
 	 * @returns より小さい場合はtrue
 	 */
-	public lt(other: BigFloat | number | string | bigint): boolean {
+	public lt(other: BigFloatValue): boolean {
 		return this.compare(other) === -1;
 	}
 
@@ -827,7 +827,7 @@ export class BigFloat {
 	 * @param other - 比較対象
 	 * @returns 以下の場合はtrue
 	 */
-	public lte(other: BigFloat | number | string | bigint): boolean {
+	public lte(other: BigFloatValue): boolean {
 		return this.compare(other) <= 0;
 	}
 
@@ -836,7 +836,7 @@ export class BigFloat {
 	 * @param other - 比較対象
 	 * @returns より大きい場合はtrue
 	 */
-	public gt(other: BigFloat | number | string | bigint): boolean {
+	public gt(other: BigFloatValue): boolean {
 		return this.compare(other) === 1;
 	}
 
@@ -845,7 +845,7 @@ export class BigFloat {
 	 * @param other - 比較対象
 	 * @returns 以上の場合はtrue
 	 */
-	public gte(other: BigFloat | number | string | bigint): boolean {
+	public gte(other: BigFloatValue): boolean {
 		return this.compare(other) >= 0;
 	}
 
@@ -878,7 +878,7 @@ export class BigFloat {
 	 * @param other - 比較対象
 	 * @returns 相対差
 	 */
-	public relativeDiff(other: BigFloat | number | string | bigint): BigFloat {
+	public relativeDiff(other: BigFloatValue): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		const diff = this.absoluteDiff(other);
 		const absA = this.abs();
@@ -893,7 +893,7 @@ export class BigFloat {
 	 * @param other - 比較対象
 	 * @returns 絶対差
 	 */
-	public absoluteDiff(other: BigFloat | number | string | bigint): BigFloat {
+	public absoluteDiff(other: BigFloatValue): BigFloat {
 		const [a, b] = this._align(other);
 		const res = a.clone();
 		res.mantissa = a.mantissa > b.mantissa ? a.mantissa - b.mantissa : b.mantissa - a.mantissa;
@@ -907,7 +907,7 @@ export class BigFloat {
 	 * @param other - 比較対象
 	 * @returns 非一致度 (%)
 	 */
-	public percentDiff(other: BigFloat | number | string | bigint): BigFloat {
+	public percentDiff(other: BigFloatValue): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		const diff = this.absoluteDiff(other);
 		const absB = (other instanceof BigFloat ? other : new construct(other, this._precision)).abs();
@@ -1075,7 +1075,7 @@ export class BigFloat {
 	 * @param other - 加算する値
 	 * @returns 加算結果
 	 */
-	public add(other: BigFloat | number | string | bigint): BigFloat {
+	public add(other: BigFloatValue): BigFloat {
 		const mutate = (this.constructor as BigFloatConstructor).config.mutateResult;
 		const [a, b] = this._align(other, mutate);
 		a.mantissa += b.mantissa;
@@ -1089,7 +1089,7 @@ export class BigFloat {
 	 * @param other - 減算する値
 	 * @returns 減算結果
 	 */
-	public sub(other: BigFloat | number | string | bigint): BigFloat {
+	public sub(other: BigFloatValue): BigFloat {
 		const mutate = (this.constructor as BigFloatConstructor).config.mutateResult;
 		const [a, b] = this._align(other, mutate);
 		a.mantissa -= b.mantissa;
@@ -1103,7 +1103,7 @@ export class BigFloat {
 	 * @param other - 乗算する値
 	 * @returns 乗算結果
 	 */
-	public mul(other: BigFloat | number | string | bigint): BigFloat {
+	public mul(other: BigFloatValue): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		if (!(other instanceof BigFloat)) {
 			other = new construct(other, this._precision);
@@ -1127,7 +1127,7 @@ export class BigFloat {
 	 * @returns 除算結果
 	 * @throws {Error} ゼロ除算の場合
 	 */
-	public div(other: BigFloat | number | string | bigint): BigFloat {
+	public div(other: BigFloatValue): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		if (!(other instanceof BigFloat)) {
 			other = new construct(other, this._precision);
@@ -1220,7 +1220,7 @@ export class BigFloat {
 	 * @param other - 法
 	 * @returns 剰余
 	 */
-	public mod(other: BigFloat | number | string | bigint): BigFloat {
+	public mod(other: BigFloatValue): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		const mutate = construct.config.mutateResult;
 		const [a, b] = this._align(other, mutate);
@@ -1369,7 +1369,7 @@ export class BigFloat {
 	 * @param exponent - 指数
 	 * @returns 冪乗の結果
 	 */
-	public pow(exponent: BigFloat | number | string | bigint): BigFloat {
+	public pow(exponent: BigFloatValue): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		const bfB = exponent instanceof BigFloat ? exponent : new construct(exponent, this._precision);
 
@@ -2120,7 +2120,7 @@ export class BigFloat {
 	 * @param x - x座標
 	 * @returns 角度(ラジアン)
 	 */
-	public atan2(x: BigFloat | number | string | bigint): BigFloat {
+	public atan2(x: BigFloatValue): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		const bfB = x instanceof BigFloat ? x : new construct(x, this._precision);
 		const config = construct.config;
@@ -2427,7 +2427,7 @@ export class BigFloat {
 	 * @param base - 底
 	 * @returns log_base(x)
 	 */
-	public log(base: BigFloat | number | string | bigint): BigFloat {
+	public log(base: BigFloatValue): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
 		const bfB = base instanceof BigFloat ? base : new construct(base, this._precision);
 		const maxSteps = construct.config.lnMaxSteps;
@@ -3281,6 +3281,6 @@ export class BigFloat {
  * @param precision - 精度
  * @returns BigFloat インスタンス
  */
-export function bigFloat(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat {
+export function bigFloat(value: BigFloatValue, precision?: number | bigint): BigFloat {
 	return new BigFloat(value, precision);
 }

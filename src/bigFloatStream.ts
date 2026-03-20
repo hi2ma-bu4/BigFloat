@@ -1,39 +1,290 @@
 import { BigFloat } from "./bigFloat";
+import type { BigFloatStreamValue, BigFloatValue } from "./types";
+
+type BigFloatStreamFactory = () => Iterator<BigFloat>;
+type BigFloatStreamFrame = { iterator: Iterator<BigFloat>; stageIndex: number };
+type BigFloatStreamStageSignal = BigFloat | typeof BIGFLOAT_STREAM_SKIP;
+type BigFloatStreamStageContext = {
+	pushIterator: (iterator: Iterator<BigFloat>, stageIndex: number) => void;
+	stop: () => void;
+};
+type BigFloatStreamStageDefinition = {
+	createState: (data: unknown) => unknown;
+	process: (value: BigFloat, state: unknown, data: unknown, context: BigFloatStreamStageContext, nextStageIndex: number) => BigFloatStreamStageSignal;
+};
+type BigFloatStreamStage = {
+	definition: BigFloatStreamStageDefinition;
+	data: unknown;
+};
+
+const BIGFLOAT_STREAM_SKIP = Symbol("BIGFLOAT_STREAM_SKIP");
 
 /**
  * BigFloat-specific Stream (Lazy List)
  */
 export class BigFloatStream implements Iterable<BigFloat> {
-	/** 内部イテレータ */
-	private _iter: Iterator<BigFloat>;
-	/** パイプラインステージのリスト */
-	private _pipeline: Array<(iter: Iterator<BigFloat>) => Generator<BigFloat, void, unknown>>;
+	/** mapステージ定義 */
+	private static readonly _mapStageDefinition: BigFloatStreamStageDefinition = {
+		createState: () => null,
+		process: (value, _state, data) => (data as (item: BigFloat) => BigFloat)(value),
+	};
+	/** filterステージ定義 */
+	private static readonly _filterStageDefinition: BigFloatStreamStageDefinition = {
+		createState: () => null,
+		process: (value, _state, data) => ((data as (item: BigFloat) => boolean)(value) ? value : BIGFLOAT_STREAM_SKIP),
+	};
+	/** peekステージ定義 */
+	private static readonly _peekStageDefinition: BigFloatStreamStageDefinition = {
+		createState: () => null,
+		process: (value, _state, data) => {
+			(data as (item: BigFloat) => void)(value);
+			return value;
+		},
+	};
+	/** flatMapステージ定義 */
+	private static readonly _flatMapStageDefinition: BigFloatStreamStageDefinition = {
+		createState: () => null,
+		process: (value, _state, data, context, nextStageIndex) => {
+			context.pushIterator(BigFloatStream._toIterator((data as (item: BigFloat) => Iterable<BigFloatStreamValue>)(value), value._precision), nextStageIndex);
+			return BIGFLOAT_STREAM_SKIP;
+		},
+	};
+	/** distinctステージ定義 */
+	private static readonly _distinctStageDefinition: BigFloatStreamStageDefinition = {
+		createState: () => new Set<unknown>(),
+		process: (value, state, data) => {
+			const seen = state as Set<unknown>;
+			const key = (data as (item: BigFloat) => unknown)(value);
+			if (seen.has(key)) return BIGFLOAT_STREAM_SKIP;
+			seen.add(key);
+			return value;
+		},
+	};
+	/** limitステージ定義 */
+	private static readonly _limitStageDefinition: BigFloatStreamStageDefinition = {
+		createState: (data) => ({ remaining: data as number }),
+		process: (value, state, _data, context) => {
+			const limitState = state as { remaining: number };
+			if (limitState.remaining <= 0) {
+				context.stop();
+				return BIGFLOAT_STREAM_SKIP;
+			}
+			limitState.remaining--;
+			return value;
+		},
+	};
+	/** skipステージ定義 */
+	private static readonly _skipStageDefinition: BigFloatStreamStageDefinition = {
+		createState: (data) => ({ remaining: data as number }),
+		process: (value, state) => {
+			const skipState = state as { remaining: number };
+			if (skipState.remaining > 0) {
+				skipState.remaining--;
+				return BIGFLOAT_STREAM_SKIP;
+			}
+			return value;
+		},
+	};
+
+	/** 内部イテレータファクトリ */
+	private _sourceFactory: BigFloatStreamFactory;
+	/** 直前のストリーム */
+	private _previousStream: BigFloatStream | null;
+	/** 現在のステージ定義 */
+	private _stageDefinition: BigFloatStreamStageDefinition | null;
+	/** 現在のステージデータ */
+	private _stageData: unknown;
 
 	/**
 	 * @param source - BigFloatの反復可能オブジェクト
 	 */
-	constructor(source: Iterable<BigFloat>) {
-		this._iter = source[Symbol.iterator]();
-		this._pipeline = [];
+	constructor(source: Iterable<BigFloat> | BigFloatStreamFactory) {
+		if (typeof source === "function") {
+			this._sourceFactory = source;
+		} else {
+			this._sourceFactory = () => source[Symbol.iterator]();
+		}
+		this._previousStream = null;
+		this._stageDefinition = null;
+		this._stageData = null;
+	}
+
+	/**
+	 * 内部状態からストリームを生成する
+	 * @param sourceFactory - ソースファクトリ
+	 * @param previousStream - 直前のストリーム
+	 * @param stageDefinition - ステージ定義
+	 * @param stageData - ステージデータ
+	 * @returns BigFloatStream
+	 */
+	protected static _fromState(sourceFactory: BigFloatStreamFactory, previousStream: BigFloatStream | null, stageDefinition: BigFloatStreamStageDefinition | null, stageData: unknown): BigFloatStream {
+		const stream = Object.create(BigFloatStream.prototype) as BigFloatStream;
+		stream._sourceFactory = sourceFactory;
+		stream._previousStream = previousStream;
+		stream._stageDefinition = stageDefinition;
+		stream._stageData = stageData;
+		return stream;
+	}
+
+	/**
+	 * 値をBigFloatへ変換する
+	 * @param value - 変換する値
+	 * @param precision - 精度
+	 * @returns BigFloat
+	 */
+	protected static _toBigFloat(value: BigFloatStreamValue, precision?: bigint): BigFloat {
+		if (value instanceof BigFloat) {
+			if (precision === undefined || value._precision === precision) return value;
+			return value.clone().changePrecision(precision);
+		}
+		return new BigFloat(value, precision ?? 20n);
+	}
+
+	/**
+	 * 値をBigFloatのイテレータに変換する
+	 * @param iterable - 変換する反復可能オブジェクト
+	 * @param precision - 精度
+	 * @returns BigFloatのイテレータ
+	 */
+	protected static _toIterator(iterable: Iterable<BigFloatStreamValue>, precision?: bigint): IterableIterator<BigFloat> {
+		return (function* () {
+			for (const item of iterable) {
+				yield BigFloatStream._toBigFloat(item, precision);
+			}
+		})();
+	}
+
+	/**
+	 * ストリームの精度を解決する
+	 * @param values - 値
+	 * @param precision - 明示精度
+	 * @returns 精度
+	 */
+	protected static _resolvePrecision(values: BigFloatStreamValue[], precision?: number | bigint): bigint {
+		if (precision !== undefined) return BigInt(precision);
+		let resolved = 20n;
+		for (const value of values) {
+			if (value instanceof BigFloat && value._precision > resolved) {
+				resolved = value._precision;
+			}
+		}
+		return resolved;
 	}
 
 	/**
 	 * 反復可能オブジェクトからBigFloatStreamを作成する
 	 * @param iterable - BigFloatの反復可能オブジェクト
+	 * @param precision - 変換時の精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	public static from(iterable: Iterable<BigFloat>): BigFloatStream {
-		return new BigFloatStream(iterable);
+	public static from(iterable: Iterable<BigFloatStreamValue>, precision?: number | bigint): BigFloatStream {
+		if (precision === undefined) {
+			return new BigFloatStream(function* () {
+				for (const item of iterable) {
+					yield item instanceof BigFloat ? item : new BigFloat(item);
+				}
+			});
+		}
+
+		const precisionBig = BigInt(precision);
+		return new BigFloatStream(function* () {
+			for (const item of iterable) {
+				yield BigFloatStream._toBigFloat(item, precisionBig);
+			}
+		});
+	}
+
+	/**
+	 * 値のリストからBigFloatStreamを作成する
+	 * @param values - 値のリスト
+	 * @returns BigFloatStreamインスタンス
+	 */
+	public static of(...values: BigFloatStreamValue[]): BigFloatStream {
+		return this.from(values);
+	}
+
+	/**
+	 * 範囲を生成する
+	 * @param start - 開始値
+	 * @param end - 終了値
+	 * @param step - ステップ
+	 * @param precision - 精度
+	 * @returns BigFloatStreamインスタンス
+	 */
+	public static range(start: BigFloatStreamValue, end?: BigFloatStreamValue, step: BigFloatStreamValue = 1, precision?: number | bigint): BigFloatStream {
+		const actualStart = end === undefined ? 0 : start;
+		const actualEnd = end === undefined ? start : end;
+		const resolvedPrecision = this._resolvePrecision([actualStart, actualEnd, step], precision);
+
+		return new BigFloatStream(function* () {
+			let current = BigFloatStream._toBigFloat(actualStart, resolvedPrecision);
+			const endValue = BigFloatStream._toBigFloat(actualEnd, resolvedPrecision);
+			const stepValue = BigFloatStream._toBigFloat(step, resolvedPrecision);
+			if (stepValue.isZero()) throw new Error("Step cannot be zero");
+
+			if (stepValue.gt(0)) {
+				while (current.lt(endValue)) {
+					yield current;
+					current = current.add(stepValue);
+				}
+			} else {
+				while (current.gt(endValue)) {
+					yield current;
+					current = current.add(stepValue);
+				}
+			}
+		});
+	}
+
+	/**
+	 * ストリームを複製する
+	 * @returns 複製されたストリーム
+	 */
+	public clone(): BigFloatStream {
+		return this._fork();
+	}
+
+	/**
+	 * ストリームを分岐させる
+	 * @returns 複製されたストリーム
+	 */
+	public branch(): BigFloatStream {
+		return this.clone();
+	}
+
+	/**
+	 * 現在の状態を引き継いだストリームを生成する
+	 * @param sourceFactory - ソースファクトリ
+	 * @param previousStream - 直前のストリーム
+	 * @param stageDefinition - ステージ定義
+	 * @param stageData - ステージデータ
+	 * @returns 新しいストリーム
+	 */
+	protected _fork(sourceFactory: BigFloatStreamFactory = this._sourceFactory, previousStream: BigFloatStream | null = this._previousStream, stageDefinition: BigFloatStreamStageDefinition | null = this._stageDefinition, stageData: unknown = this._stageData): this {
+		return BigFloatStream._fromState(sourceFactory, previousStream, stageDefinition, stageData) as this;
 	}
 
 	/**
 	 * パイプラインステージを追加する
-	 * @param fn - ステージ関数
-	 * @returns 自身
+	 * @param stage - ステージ
+	 * @returns 新しいストリーム
 	 */
-	protected _use(fn: (iter: Iterator<BigFloat>) => Generator<BigFloat, void, unknown>): this {
-		this._pipeline.push(fn);
-		return this;
+	protected _use(stage: BigFloatStreamStage): this {
+		return this._fork(this._sourceFactory, this, stage.definition, stage.data);
+	}
+
+	/**
+	 * パイプラインを配列化する
+	 * @returns ステージ配列
+	 */
+	protected _collectPipelineStages(): BigFloatStreamStage[] {
+		const stages: BigFloatStreamStage[] = [];
+		for (let stream: BigFloatStream | null = this; stream; stream = stream._previousStream) {
+			if (stream._stageDefinition === null) continue;
+			stages.push({ definition: stream._stageDefinition, data: stream._stageData });
+		}
+		stages.reverse();
+		return stages;
 	}
 
 	// ==================================================
@@ -46,11 +297,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns 変換されたストリーム
 	 */
 	public map(fn: (item: BigFloat) => BigFloat): this {
-		return this._use(function* (iter) {
-			for (let next = iter.next(); !next.done; next = iter.next()) {
-				yield fn(next.value);
-			}
-		});
+		return this._use({ definition: BigFloatStream._mapStageDefinition, data: fn });
 	}
 
 	/**
@@ -59,11 +306,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns フィルタリングされたストリーム
 	 */
 	public filter(fn: (item: BigFloat) => boolean): this {
-		return this._use(function* (iter) {
-			for (let next = iter.next(); !next.done; next = iter.next()) {
-				if (fn(next.value)) yield next.value;
-			}
-		});
+		return this._use({ definition: BigFloatStream._filterStageDefinition, data: fn });
 	}
 
 	/**
@@ -71,12 +314,8 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param fn - 変換関数
 	 * @returns 平坦化されたストリーム
 	 */
-	public flatMap(fn: (item: BigFloat) => Iterable<BigFloat>): this {
-		return this._use(function* (iter) {
-			for (let next = iter.next(); !next.done; next = iter.next()) {
-				yield* fn(next.value);
-			}
-		});
+	public flatMap(fn: (item: BigFloat) => Iterable<BigFloatStreamValue>): this {
+		return this._use({ definition: BigFloatStream._flatMapStageDefinition, data: fn });
 	}
 
 	/**
@@ -84,17 +323,8 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param keyFn - キー生成関数
 	 * @returns 重複が除去されたストリーム
 	 */
-	public distinct(keyFn: (item: BigFloat) => any = (x) => x.toString()): this {
-		return this._use(function* (iter) {
-			const seen = new Set();
-			for (let next = iter.next(); !next.done; next = iter.next()) {
-				const key = keyFn(next.value);
-				if (!seen.has(key)) {
-					seen.add(key);
-					yield next.value;
-				}
-			}
-		});
+	public distinct(keyFn: (item: BigFloat) => unknown = (x) => x.toString()): this {
+		return this._use({ definition: BigFloatStream._distinctStageDefinition, data: keyFn });
 	}
 
 	/**
@@ -103,14 +333,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns ソートされたストリーム
 	 */
 	public sorted(compareFn: (a: BigFloat, b: BigFloat) => number = (a, b) => a.compare(b)): this {
-		return this._use(function* (iter) {
-			const arr: BigFloat[] = [];
-			for (let next = iter.next(); !next.done; next = iter.next()) {
-				arr.push(next.value);
-			}
+		const current = this.clone();
+		return this._fork(function* () {
+			const arr = current.toArray();
 			arr.sort(compareFn);
 			yield* arr;
-		});
+		}, null, null, null);
 	}
 
 	/**
@@ -119,12 +347,16 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns 自身
 	 */
 	public peek(fn: (item: BigFloat) => void): this {
-		return this._use(function* (iter) {
-			for (let next = iter.next(); !next.done; next = iter.next()) {
-				fn(next.value);
-				yield next.value;
-			}
-		});
+		return this._use({ definition: BigFloatStream._peekStageDefinition, data: fn });
+	}
+
+	/**
+	 * 各要素に対してアクションを実行する (ストリームは維持)
+	 * @param fn - アクション関数
+	 * @returns 自身
+	 */
+	public tap(fn: (item: BigFloat) => void): this {
+		return this.peek(fn);
 	}
 
 	/**
@@ -133,13 +365,19 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns 制限されたストリーム
 	 */
 	public limit(n: number): this {
-		return this._use(function* (iter) {
-			let i = 0;
-			for (let next = iter.next(); !next.done; next = iter.next()) {
-				if (i++ >= n) break;
-				yield next.value;
-			}
-		});
+		if (n <= 0) {
+			return this._fork(() => [][Symbol.iterator](), null, null, null);
+		}
+		return this._use({ definition: BigFloatStream._limitStageDefinition, data: n });
+	}
+
+	/**
+	 * 要素数を制限する
+	 * @param n - 最大要素数
+	 * @returns 制限されたストリーム
+	 */
+	public take(n: number): this {
+		return this.limit(n);
 	}
 
 	/**
@@ -148,13 +386,32 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns スキップされたストリーム
 	 */
 	public skip(n: number): this {
-		return this._use(function* (iter) {
-			let i = 0;
-			for (let next = iter.next(); !next.done; next = iter.next()) {
-				if (i++ < n) continue;
-				yield next.value;
+		if (n <= 0) return this;
+		return this._use({ definition: BigFloatStream._skipStageDefinition, data: n });
+	}
+
+	/**
+	 * 指定した要素数をスキップする
+	 * @param n - スキップする数
+	 * @returns スキップされたストリーム
+	 */
+	public drop(n: number): this {
+		return this.skip(n);
+	}
+
+	/**
+	 * 末尾にストリームを連結する
+	 * @param iterables - 連結するストリーム
+	 * @returns 連結後のストリーム
+	 */
+	public concat(...iterables: Iterable<BigFloatStreamValue>[]): this {
+		const current = this.clone();
+		return this._fork(function* () {
+			yield* current;
+			for (const iterable of iterables) {
+				yield* BigFloatStream._toIterator(iterable);
 			}
-		});
+		}, null, null, null);
 	}
 
 	// ==================================================
@@ -166,7 +423,50 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns イテレータ
 	 */
 	public [Symbol.iterator](): Iterator<BigFloat> {
-		return this._pipeline.reduce((iter, fn) => fn(iter), this._iter);
+		const stages = this._collectPipelineStages();
+		const states = stages.map((stage) => stage.definition.createState(stage.data));
+		const stack: BigFloatStreamFrame[] = [{ iterator: this._sourceFactory(), stageIndex: 0 }];
+		let shouldStop = false;
+		const context: BigFloatStreamStageContext = {
+			pushIterator: (iterator, stageIndex) => {
+				stack.push({ iterator, stageIndex });
+			},
+			stop: () => {
+				shouldStop = true;
+			},
+		};
+
+		return (function* () {
+			while (stack.length > 0) {
+				if (shouldStop) return;
+				const frame = stack[stack.length - 1];
+				const next = frame.iterator.next();
+				if (next.done) {
+					stack.pop();
+					continue;
+				}
+
+				let current = next.value;
+				let stageIndex = frame.stageIndex;
+				let shouldYield = true;
+
+				while (stageIndex < stages.length) {
+					const stage = stages[stageIndex];
+					const result = stage.definition.process(current, states[stageIndex], stage.data, context, stageIndex + 1);
+					if (shouldStop) return;
+					if (result === BIGFLOAT_STREAM_SKIP) {
+						shouldYield = false;
+						break;
+					}
+					current = result;
+					stageIndex++;
+				}
+
+				if (shouldYield) {
+					yield current;
+				}
+			}
+		})();
 	}
 
 	// ==================================================
@@ -190,6 +490,14 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
+	 * 配列に変換する (終端操作)
+	 * @returns 要素の配列
+	 */
+	public collect(): BigFloat[] {
+		return this.toArray();
+	}
+
+	/**
 	 * 畳み込み処理を行う (終端操作)
 	 * @param fn - 畳み込み関数
 	 * @param initial - 初期値
@@ -208,9 +516,17 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns 要素数
 	 */
 	public count(): number {
-		let c = 0;
-		for (const _ of this) c++;
-		return c;
+		let count = 0;
+		for (const _ of this) count++;
+		return count;
+	}
+
+	/**
+	 * ストリームが空かどうか判定する
+	 * @returns 空ならtrue
+	 */
+	public isEmpty(): boolean {
+		return this.findFirst() === undefined;
 	}
 
 	/**
@@ -238,11 +554,45 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
+	 * 条件に一致する最初の要素を返す (終端操作)
+	 * @param fn - 判定関数
+	 * @returns 条件に一致した要素、存在しない場合はundefined
+	 */
+	public find(fn: (item: BigFloat) => boolean): BigFloat | undefined {
+		for (const item of this) {
+			if (fn(item)) return item;
+		}
+		return undefined;
+	}
+
+	/**
 	 * 最初の要素を返す (終端操作)
 	 * @returns 最初の要素、空の場合はundefined
 	 */
 	public findFirst(): BigFloat | undefined {
 		for (const item of this) return item;
+		return undefined;
+	}
+
+	/**
+	 * 最初の要素を返す (終端操作)
+	 * @returns 最初の要素、空の場合はundefined
+	 */
+	public first(): BigFloat | undefined {
+		return this.findFirst();
+	}
+
+	/**
+	 * 指定位置の要素を返す (終端操作)
+	 * @param index - インデックス
+	 * @returns 要素、存在しない場合はundefined
+	 */
+	public at(index: number): BigFloat | undefined {
+		if (index < 0) return undefined;
+		let currentIndex = 0;
+		for (const item of this) {
+			if (currentIndex++ === index) return item;
+		}
 		return undefined;
 	}
 
@@ -256,7 +606,8 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns 精度が変更されたストリーム
 	 */
 	public changePrecision(precision: number | bigint): this {
-		return this.peek((x) => x.changePrecision(precision));
+		const precisionBig = BigInt(precision);
+		return this.map((x) => x.clone().changePrecision(precisionBig));
 	}
 
 	/**
@@ -264,7 +615,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param other - 加算する値
 	 * @returns 加算後のストリーム
 	 */
-	public add(other: BigFloat | number | string | bigint): this {
+	public add(other: BigFloatValue): this {
 		return this.map((x) => x.add(other));
 	}
 
@@ -273,7 +624,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param other - 減算する値
 	 * @returns 減算後のストリーム
 	 */
-	public sub(other: BigFloat | number | string | bigint): this {
+	public sub(other: BigFloatValue): this {
 		return this.map((x) => x.sub(other));
 	}
 
@@ -282,7 +633,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param other - 乗算する値
 	 * @returns 乗算後のストリーム
 	 */
-	public mul(other: BigFloat | number | string | bigint): this {
+	public mul(other: BigFloatValue): this {
 		return this.map((x) => x.mul(other));
 	}
 
@@ -291,7 +642,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param other - 除算する値
 	 * @returns 除算後のストリーム
 	 */
-	public div(other: BigFloat | number | string | bigint): this {
+	public div(other: BigFloatValue): this {
 		return this.map((x) => x.div(other));
 	}
 
@@ -300,7 +651,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param other - 法
 	 * @returns 剰余後のストリーム
 	 */
-	public mod(other: BigFloat | number | string | bigint): this {
+	public mod(other: BigFloatValue): this {
 		return this.map((x) => x.mod(other));
 	}
 
@@ -333,7 +684,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param exponent - 指数
 	 * @returns 冪乗後のストリーム
 	 */
-	public pow(exponent: BigFloat | number | string | bigint): this {
+	public pow(exponent: BigFloatValue): this {
 		return this.map((x) => x.pow(exponent));
 	}
 
@@ -367,7 +718,15 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns 最大値
 	 */
 	public max(): BigFloat {
-		return BigFloat.max(this.toArray());
+		const iter = this[Symbol.iterator]();
+		const first = iter.next();
+		if (first.done) throw new Error("No arguments provided");
+
+		let result = first.value;
+		for (let next = iter.next(); !next.done; next = iter.next()) {
+			if (next.value.gt(result)) result = next.value;
+		}
+		return result.clone();
 	}
 
 	/**
@@ -375,7 +734,15 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns 最小値
 	 */
 	public min(): BigFloat {
-		return BigFloat.min(this.toArray());
+		const iter = this[Symbol.iterator]();
+		const first = iter.next();
+		if (first.done) throw new Error("No arguments provided");
+
+		let result = first.value;
+		for (let next = iter.next(); !next.done; next = iter.next()) {
+			if (next.value.lt(result)) result = next.value;
+		}
+		return result.clone();
 	}
 
 	/**
@@ -383,7 +750,15 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns 合計
 	 */
 	public sum(): BigFloat {
-		return BigFloat.sum(this.toArray());
+		const iter = this[Symbol.iterator]();
+		const first = iter.next();
+		if (first.done) return new BigFloat(0);
+
+		let total = first.value.clone();
+		for (let next = iter.next(); !next.done; next = iter.next()) {
+			total = total.add(next.value);
+		}
+		return total;
 	}
 
 	/**
@@ -391,7 +766,15 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns 積
 	 */
 	public product(): BigFloat {
-		return BigFloat.product(this.toArray());
+		const iter = this[Symbol.iterator]();
+		const first = iter.next();
+		if (first.done) return new BigFloat(1);
+
+		let total = first.value.clone();
+		for (let next = iter.next(); !next.done; next = iter.next()) {
+			total = total.mul(next.value);
+		}
+		return total;
 	}
 
 	/**
@@ -399,7 +782,17 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns 平均
 	 */
 	public average(): BigFloat {
-		return BigFloat.average(this.toArray());
+		const iter = this[Symbol.iterator]();
+		const first = iter.next();
+		if (first.done) return new BigFloat(0);
+
+		let total = first.value.clone();
+		let count = 1;
+		for (let next = iter.next(); !next.done; next = iter.next()) {
+			total = total.add(next.value);
+			count++;
+		}
+		return total.div(count);
 	}
 
 	/**
