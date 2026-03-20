@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.2.3
+ * BigFloat 1.2.4
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -2759,6 +2759,183 @@ var BigFloat = class _BigFloat {
     return B;
   }
   /**
+   * 1 に近い zeta 引数に必要な追加精度を見積もる
+   * @param value - 値
+   * @param precision - 精度
+   * @returns 追加精度
+   */
+  static _zetaPoleCancellationDigits(value, precision) {
+    const scale = this._getPow10(precision);
+    const distance = value >= scale ? value - scale : scale - value;
+    if (distance === 0n || distance >= scale) return 0n;
+    return precision - BigInt(distance.toString().length) + 1n;
+  }
+  /**
+   * 正の偶数整数に対する zeta 関数を計算する
+   * @param exponent - 偶数整数の指数
+   * @param precision - 精度
+   * @returns zeta(exponent)
+   */
+  static _zetaPositiveEvenInteger(exponent, precision) {
+    const scale = this._getPow10(precision);
+    const order = Number(exponent);
+    const halfOrder = Number(exponent / 2n);
+    const bNumbers = this._getBernoulliNumbers(order, precision);
+    const b2n = bNumbers[order];
+    const twoPi = 2n * this._pi(precision);
+    const power = this._pow(twoPi, exponent * scale, precision);
+    let result = b2n * power / scale / this._factorial(exponent);
+    result /= 2n;
+    if (halfOrder % 2 === 0) result = -result;
+    return result;
+  }
+  /**
+   * 負の整数に対する zeta 関数を計算する
+   * @param absoluteInteger - 負の整数の絶対値
+   * @param precision - 精度
+   * @returns zeta(-absoluteInteger)
+   */
+  static _zetaNegativeInteger(absoluteInteger, precision) {
+    const scale = this._getPow10(precision);
+    if (absoluteInteger === 0n) return -scale / 2n;
+    if (absoluteInteger % 2n === 0n) return 0n;
+    const order = Number(absoluteInteger + 1n);
+    const bNumbers = this._getBernoulliNumbers(order, precision);
+    return -bNumbers[order] / BigInt(order);
+  }
+  /**
+   * Euler-Maclaurin 展開で zeta 関数を近似する
+   * @param s - 値
+   * @param precision - 精度
+   * @param terms - 直接和を取る項数
+   * @returns zeta(s) の近似値
+   */
+  static _zetaEulerMaclaurinEstimate(s, precision, terms) {
+    const scale = this._getPow10(precision);
+    let result = 0n;
+    for (let n = 1; n < terms; n++) {
+      const base = BigInt(n) * scale;
+      result += this._pow(base, -s, precision);
+    }
+    const nValue = BigInt(terms);
+    const nScaled = nValue * scale;
+    const nPowNegativeS = this._pow(nScaled, -s, precision);
+    const nPowOneMinusS = this._pow(nScaled, scale - s, precision);
+    result += nPowNegativeS / 2n;
+    result += nPowOneMinusS * scale / (s - scale);
+    const bernoulliTerms = Math.max(8, Math.ceil(Number(precision) / 12) + 8);
+    const bNumbers = this._getBernoulliNumbers(2 * bernoulliTerms, precision);
+    let rising = s;
+    let factorial = 2n;
+    let exponent = -(s + scale);
+    for (let k = 1; k <= bernoulliTerms; k++) {
+      const b2k = bNumbers[2 * k];
+      const nPow = this._pow(nScaled, exponent, precision);
+      let correction = b2k / factorial;
+      correction = correction * rising / scale;
+      correction = correction * nPow / scale;
+      result += correction;
+      if (correction === 0n && k > 2) break;
+      const factorA = s + BigInt(2 * k - 1) * scale;
+      const factorB = s + BigInt(2 * k) * scale;
+      rising = rising * factorA / scale;
+      rising = rising * factorB / scale;
+      factorial *= BigInt(2 * k + 1) * BigInt(2 * k + 2);
+      exponent -= 2n * scale;
+    }
+    return result;
+  }
+  /**
+   * s > 1 に対する zeta 関数を計算する
+   * @param s - 値
+   * @param precision - 精度
+   * @returns zeta(s)
+   */
+  static _zetaPositive(s, precision) {
+    const scale = this._getPow10(precision);
+    if (s <= scale) {
+      throw new Error("zeta(s) requires s > 1 in _zetaPositive");
+    }
+    if (s % scale === 0n) {
+      const integerValue = s / scale;
+      if (integerValue > 0n && integerValue % 2n === 0n) {
+        return this._zetaPositiveEvenInteger(integerValue, precision);
+      }
+    }
+    let terms = Math.max(16, Math.ceil(Number(precision) / 2) + 12);
+    let previous = null;
+    let current = 0n;
+    for (let attempt = 0; attempt < 8; attempt++) {
+      current = this._zetaEulerMaclaurinEstimate(s, precision, terms);
+      if (previous !== null) {
+        const diff = current >= previous ? current - previous : previous - current;
+        if (diff <= 8n) return current;
+      }
+      previous = current;
+      terms *= 2;
+    }
+    return current;
+  }
+  /**
+   * Dirichlet eta 関数を Euler 変換で計算して zeta 関数へ変換する
+   * @param s - 値
+   * @param precision - 精度
+   * @returns zeta(s)
+   */
+  static _zetaEta(s, precision) {
+    const scale = this._getPow10(precision);
+    const termCount = Math.max(18, Math.ceil(Number(precision) * Math.log2(10)) + 12);
+    const differences = new Array(termCount + 1);
+    for (let i = 0; i <= termCount; i++) {
+      differences[i] = this._pow(BigInt(i + 1) * scale, -s, precision);
+    }
+    let eta = 0n;
+    let weight = scale / 2n;
+    for (let order = 0; order <= termCount && weight !== 0n; order++) {
+      eta += differences[0] * weight / scale;
+      for (let i = 0; i < termCount - order; i++) {
+        differences[i] = differences[i] - differences[i + 1];
+      }
+      weight /= 2n;
+    }
+    const ln2 = this._ln2(precision, this.config.lnMaxSteps);
+    const exponent = (scale - s) * ln2 / scale;
+    const denominator = -this._expm1(exponent, precision);
+    if (denominator === 0n) throw new Error("zeta(s) has a pole at s = 1");
+    return eta * scale / denominator;
+  }
+  /**
+   * Riemann zeta 関数を計算する (内部用)
+   * @param s - 値
+   * @param precision - 精度
+   * @returns zeta(s)
+   */
+  static _zeta(s, precision) {
+    const scale = this._getPow10(precision);
+    if (s === scale) throw new Error("zeta(s) has a pole at s = 1");
+    if (s === 0n) return -scale / 2n;
+    if (s % scale === 0n) {
+      const integerValue = s / scale;
+      if (integerValue < 0n) return this._zetaNegativeInteger(-integerValue, precision);
+      if (integerValue > 0n && integerValue % 2n === 0n) {
+        return this._zetaPositiveEvenInteger(integerValue, precision);
+      }
+    }
+    if (s > scale) return this._zetaPositive(s, precision);
+    if (s > 0n) return this._zetaEta(s, precision);
+    const oneMinusS = scale - s;
+    const twoPowS = this._pow(2n * scale, s, precision);
+    const piPow = this._pow(this._pi(precision), s - scale, precision);
+    const sinTerm = this._sinPi(s / 2n, precision);
+    const gammaTerm = this._gammaLanczos(oneMinusS, precision);
+    const reflected = this._zetaPositive(oneMinusS, precision);
+    let result = twoPowS * piPow / scale;
+    result = result * sinTerm / scale;
+    result = result * gammaTerm / scale;
+    result = result * reflected / scale;
+    return result;
+  }
+  /**
    * ガンマ関数をStirlingの近似で計算する (内部用)
    * @param z - 値
    * @param precision - 精度
@@ -2821,6 +2998,22 @@ var BigFloat = class _BigFloat {
     const totalPr = this._precision + construct.config.extraPrecision;
     const val = this._getInternalValue(totalPr);
     const raw = construct._gammaLanczos(val, totalPr);
+    return this._makeResult(raw, this._precision, totalPr);
+  }
+  /**
+   * Riemann zeta 関数を計算する
+   * @returns zeta(this)
+   */
+  zeta() {
+    const construct = this.constructor;
+    const exactInteger = this._getExactInteger();
+    if (exactInteger === 1n) throw new Error("zeta(s) has a pole at s = 1");
+    if (exactInteger === 0n) return this._makeExactResult(-1n, -1n);
+    const currentPrecisionValue = this._getInternalValue(this._precision);
+    const extraCancellationDigits = construct._zetaPoleCancellationDigits(currentPrecisionValue, this._precision);
+    const totalPr = this._precision + construct.config.extraPrecision + extraCancellationDigits + 6n;
+    const val = this._getInternalValue(totalPr);
+    const raw = construct._zeta(val, totalPr);
     return this._makeResult(raw, this._precision, totalPr);
   }
   /**

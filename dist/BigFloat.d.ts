@@ -996,6 +996,56 @@ export declare class BigFloat {
 	 */
 	protected static _getBernoulliNumbers(n: number, precision: bigint): bigint[];
 	/**
+	 * 1 に近い zeta 引数に必要な追加精度を見積もる
+	 * @param value - 値
+	 * @param precision - 精度
+	 * @returns 追加精度
+	 */
+	protected static _zetaPoleCancellationDigits(value: bigint, precision: bigint): bigint;
+	/**
+	 * 正の偶数整数に対する zeta 関数を計算する
+	 * @param exponent - 偶数整数の指数
+	 * @param precision - 精度
+	 * @returns zeta(exponent)
+	 */
+	protected static _zetaPositiveEvenInteger(exponent: bigint, precision: bigint): bigint;
+	/**
+	 * 負の整数に対する zeta 関数を計算する
+	 * @param absoluteInteger - 負の整数の絶対値
+	 * @param precision - 精度
+	 * @returns zeta(-absoluteInteger)
+	 */
+	protected static _zetaNegativeInteger(absoluteInteger: bigint, precision: bigint): bigint;
+	/**
+	 * Euler-Maclaurin 展開で zeta 関数を近似する
+	 * @param s - 値
+	 * @param precision - 精度
+	 * @param terms - 直接和を取る項数
+	 * @returns zeta(s) の近似値
+	 */
+	protected static _zetaEulerMaclaurinEstimate(s: bigint, precision: bigint, terms: number): bigint;
+	/**
+	 * s > 1 に対する zeta 関数を計算する
+	 * @param s - 値
+	 * @param precision - 精度
+	 * @returns zeta(s)
+	 */
+	protected static _zetaPositive(s: bigint, precision: bigint): bigint;
+	/**
+	 * Dirichlet eta 関数を Euler 変換で計算して zeta 関数へ変換する
+	 * @param s - 値
+	 * @param precision - 精度
+	 * @returns zeta(s)
+	 */
+	protected static _zetaEta(s: bigint, precision: bigint): bigint;
+	/**
+	 * Riemann zeta 関数を計算する (内部用)
+	 * @param s - 値
+	 * @param precision - 精度
+	 * @returns zeta(s)
+	 */
+	protected static _zeta(s: bigint, precision: bigint): bigint;
+	/**
 	 * ガンマ関数をStirlingの近似で計算する (内部用)
 	 * @param z - 値
 	 * @param precision - 精度
@@ -1008,6 +1058,11 @@ export declare class BigFloat {
 	 * @returns ガンマ関数
 	 */
 	gamma(): BigFloat;
+	/**
+	 * Riemann zeta 関数を計算する
+	 * @returns zeta(this)
+	 */
+	zeta(): BigFloat;
 	/**
 	 * 階乗を計算する (内部用)
 	 * @param n - 値
