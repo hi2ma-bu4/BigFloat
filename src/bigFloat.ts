@@ -2923,17 +2923,30 @@ export class BigFloat {
 	 * @returns ランダムな値
 	 */
 	protected static _randomBigInt(precision: bigint): bigint {
-		const maxSteps = this.config.lnMaxSteps;
+		// 固定範囲なので直接指定
+		const LOG2_10_NUM = 33219280948873626n;
+		const LOG2_10_DEN = 10n ** 16n;
+
+		const bits = (precision * LOG2_10_NUM + LOG2_10_DEN - 1n) / LOG2_10_DEN;
+		const rounds = (bits + 52n) / 53n;
+
+		const totalBits = rounds * 53n;
+		const excessBits = totalBits - bits;
+
 		const scale = this._getPow10(precision);
-		let result = 0n;
-		const maxBits = this._log2(scale * scale, precision, maxSteps);
-		const rawBits = (maxBits + scale - 1n) / scale;
-		const rounds = Number((rawBits + 52n) / 53n);
-		for (let i = 0; i < rounds; i++) {
-			const r = BigInt(Math.floor(Math.random() * Number(2 ** 53)));
-			result = (result << 53n) + r;
+
+		while (true) {
+			let result = 0n;
+
+			for (let i = 0n; i < rounds; i++) {
+				const r = BigInt(Math.floor(Math.random() * 2 ** 53));
+				result = (result << 53n) + r;
+			}
+			if (excessBits > 0n) {
+				result >>= excessBits;
+			}
+			if (result < scale) return result;
 		}
-		return result % scale;
 	}
 
 	/**
