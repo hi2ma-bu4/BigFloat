@@ -170,3 +170,13 @@ test("Constant Precision", () => {
 			.lt(new BigFloat(1, p).div(10n ** 40n)),
 	);
 });
+
+test("BigFloat random stays within [0, 1)", () => {
+	const values = Array.from({ length: 8 }, () => BigFloat.random(20));
+
+	for (const value of values) {
+		assert.ok(value.gte(0));
+		assert.ok(value.lt(1));
+		assert.strictEqual(value._precision, 20n);
+	}
+});

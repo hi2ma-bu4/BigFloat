@@ -3037,7 +3037,7 @@ export class BigFloat {
 		const precisionBig = BigInt(precision);
 		this._checkPrecision(precisionBig);
 		let randBigInt = this._randomBigInt(precisionBig);
-		const res = new (this.constructor as BigFloatConstructor)(0, precisionBig);
+		const res = new this(0, precisionBig);
 		res.mantissa = randBigInt;
 		res._exp2 = -precisionBig;
 		res._exp5 = -precisionBig;

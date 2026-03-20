@@ -72,3 +72,30 @@ test("BigFloatStream aggregations avoid exhausting the source", () => {
 	assert.strictEqual(stream.max().toString(), "4");
 	assert.strictEqual(stream.min().toString(), "1");
 });
+
+test("BigFloatStream sequence factories generate expected values", () => {
+	assert.deepStrictEqual(toDecimalList(BigFloatStream.arithmetic(1, 2, 4)), ["1", "3", "5", "7"]);
+	assert.deepStrictEqual(toDecimalList(BigFloatStream.geometric(2, 3, 4)), ["2", "6", "18", "54"]);
+	assert.deepStrictEqual(toDecimalList(BigFloatStream.linspace(0, 1, 5, 10)), ["0", "0.25", "0.5", "0.75", "1"]);
+	assert.deepStrictEqual(toDecimalList(BigFloatStream.logspace(0, 3, 4, 10)), ["1", "10", "100", "1000"]);
+	assert.deepStrictEqual(toDecimalList(BigFloatStream.repeat(7, 3)), ["7", "7", "7"]);
+	assert.deepStrictEqual(toDecimalList(BigFloatStream.fibonacci(7)), ["0", "1", "1", "2", "3", "5", "8"]);
+	assert.deepStrictEqual(toDecimalList(BigFloatStream.factorial(6)), ["1", "1", "2", "6", "24", "120"]);
+
+	const harmonic = BigFloatStream.harmonic(4, 10).toArray().map((value) => value.toString(10, 10));
+	assert.deepStrictEqual(harmonic.slice(0, 2), ["1", "0.5"]);
+	assert.ok(harmonic[2].startsWith("0.3333333333"));
+	assert.strictEqual(harmonic[3], "0.25");
+});
+
+test("BigFloatStream random respects bounds and count", () => {
+	const values = BigFloatStream.random(16, { precision: 20, min: 5, max: 6 }).toArray();
+
+	assert.strictEqual(values.length, 16);
+	for (const value of values) {
+		assert.ok(value.gte(5));
+		assert.ok(value.lt(6));
+	}
+
+	assert.deepStrictEqual(toDecimalList(BigFloatStream.random(3, { min: 7, max: 7 })), ["7", "7", "7"]);
+});

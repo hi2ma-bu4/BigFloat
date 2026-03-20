@@ -1120,6 +1120,11 @@ export type BigFloatStreamStage = {
 	definition: BigFloatStreamStageDefinition;
 	data: unknown;
 };
+export type BigFloatStreamRandomOptions = {
+	min?: BigFloatStreamValue;
+	max?: BigFloatStreamValue;
+	precision?: number | bigint;
+};
 declare const BIGFLOAT_STREAM_SKIP: unique symbol;
 /**
  * BigFloat-specific Stream (Lazy List)
@@ -1182,6 +1187,18 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 */
 	protected static _resolvePrecision(values: BigFloatStreamValue[], precision?: number | bigint): bigint;
 	/**
+	 * 要素数を正規化する
+	 * @param count - 要素数
+	 * @returns 正規化された要素数
+	 * @throws {RangeError} 要素数が不正な場合
+	 */
+	protected static _normalizeCount(count: number): number;
+	/**
+	 * 空のストリームを生成する
+	 * @returns 空のストリーム
+	 */
+	static empty(): BigFloatStream;
+	/**
 	 * 反復可能オブジェクトからBigFloatStreamを作成する
 	 * @param iterable - BigFloatの反復可能オブジェクト
 	 * @param precision - 変換時の精度
@@ -1194,6 +1211,78 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns BigFloatStreamインスタンス
 	 */
 	static of(...values: BigFloatStreamValue[]): BigFloatStream;
+	/**
+	 * 等差数列を生成する
+	 * @param start - 初項
+	 * @param step - 公差
+	 * @param count - 要素数
+	 * @param precision - 精度
+	 * @returns BigFloatStreamインスタンス
+	 */
+	static arithmetic(start: BigFloatStreamValue, step: BigFloatStreamValue, count: number, precision?: number | bigint): BigFloatStream;
+	/**
+	 * 等比数列を生成する
+	 * @param start - 初項
+	 * @param ratio - 公比
+	 * @param count - 要素数
+	 * @param precision - 精度
+	 * @returns BigFloatStreamインスタンス
+	 */
+	static geometric(start: BigFloatStreamValue, ratio: BigFloatStreamValue, count: number, precision?: number | bigint): BigFloatStream;
+	/**
+	 * 指定個数で等間隔な値を生成する
+	 * @param start - 開始値
+	 * @param end - 終了値
+	 * @param count - 要素数
+	 * @param precision - 精度
+	 * @returns BigFloatStreamインスタンス
+	 */
+	static linspace(start: BigFloatStreamValue, end: BigFloatStreamValue, count: number, precision?: number | bigint): BigFloatStream;
+	/**
+	 * 10を底とする対数間隔の値を生成する
+	 * @param start - 開始指数
+	 * @param end - 終了指数
+	 * @param count - 要素数
+	 * @param precision - 精度
+	 * @returns BigFloatStreamインスタンス
+	 */
+	static logspace(start: BigFloatStreamValue, end: BigFloatStreamValue, count: number, precision?: number | bigint): BigFloatStream;
+	/**
+	 * 調和級数を生成する
+	 * @param count - 要素数
+	 * @param precision - 精度
+	 * @returns BigFloatStreamインスタンス
+	 */
+	static harmonic(count: number, precision?: number | bigint): BigFloatStream;
+	/**
+	 * 乱数列を生成する
+	 * @param count - 要素数
+	 * @param options - 生成オプション
+	 * @returns BigFloatStreamインスタンス
+	 */
+	static random(count: number, options?: BigFloatStreamRandomOptions): BigFloatStream;
+	/**
+	 * 同じ値を繰り返す
+	 * @param value - 繰り返す値
+	 * @param count - 要素数
+	 * @param precision - 精度
+	 * @returns BigFloatStreamインスタンス
+	 */
+	static repeat(value: BigFloatStreamValue, count: number, precision?: number | bigint): BigFloatStream;
+	/**
+	 * フィボナッチ数列を生成する
+	 * @param count - 要素数
+	 * @param precision - 精度
+	 * @returns BigFloatStreamインスタンス
+	 */
+	static fibonacci(count: number, precision?: number | bigint): BigFloatStream;
+	/**
+	 * 階乗列を生成する
+	 * @param count - 要素数
+	 * @param precision - 精度
+	 * @returns BigFloatStreamインスタンス
+	 */
+	static factorial(count: number, precision?: number | bigint): BigFloatStream;
 	/**
 	 * 範囲を生成する
 	 * @param start - 開始値

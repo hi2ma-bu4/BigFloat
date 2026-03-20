@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.1.7
+ * BigFloat 1.2.1
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -2672,7 +2672,7 @@ var BigFloat = class _BigFloat {
     const precisionBig = BigInt(precision);
     this._checkPrecision(precisionBig);
     let randBigInt = this._randomBigInt(precisionBig);
-    const res = new this.constructor(0, precisionBig);
+    const res = new this(0, precisionBig);
     res.mantissa = randBigInt;
     res._exp2 = -precisionBig;
     res._exp5 = -precisionBig;
@@ -3160,6 +3160,25 @@ var BigFloatStream = class _BigFloatStream {
     return resolved;
   }
   /**
+   * 要素数を正規化する
+   * @param count - 要素数
+   * @returns 正規化された要素数
+   * @throws {RangeError} 要素数が不正な場合
+   */
+  static _normalizeCount(count) {
+    if (!Number.isFinite(count)) throw new RangeError("Count must be finite");
+    const normalized = Math.trunc(count);
+    if (normalized < 0) throw new RangeError("Count must be non-negative");
+    return normalized;
+  }
+  /**
+   * 空のストリームを生成する
+   * @returns 空のストリーム
+   */
+  static empty() {
+    return new _BigFloatStream(() => [][Symbol.iterator]());
+  }
+  /**
    * 反復可能オブジェクトからBigFloatStreamを作成する
    * @param iterable - BigFloatの反復可能オブジェクト
    * @param precision - 変換時の精度
@@ -3187,6 +3206,213 @@ var BigFloatStream = class _BigFloatStream {
    */
   static of(...values) {
     return this.from(values);
+  }
+  /**
+   * 等差数列を生成する
+   * @param start - 初項
+   * @param step - 公差
+   * @param count - 要素数
+   * @param precision - 精度
+   * @returns BigFloatStreamインスタンス
+   */
+  static arithmetic(start, step, count, precision) {
+    const normalizedCount = this._normalizeCount(count);
+    if (normalizedCount === 0) return this.empty();
+    const resolvedPrecision = this._resolvePrecision([start, step], precision);
+    return new _BigFloatStream(function* () {
+      let current = _BigFloatStream._toBigFloat(start, resolvedPrecision);
+      const stepValue = _BigFloatStream._toBigFloat(step, resolvedPrecision);
+      for (let i = 0; i < normalizedCount; i++) {
+        yield current;
+        if (i + 1 < normalizedCount) current = current.add(stepValue);
+      }
+    });
+  }
+  /**
+   * 等比数列を生成する
+   * @param start - 初項
+   * @param ratio - 公比
+   * @param count - 要素数
+   * @param precision - 精度
+   * @returns BigFloatStreamインスタンス
+   */
+  static geometric(start, ratio, count, precision) {
+    const normalizedCount = this._normalizeCount(count);
+    if (normalizedCount === 0) return this.empty();
+    const resolvedPrecision = this._resolvePrecision([start, ratio], precision);
+    return new _BigFloatStream(function* () {
+      let current = _BigFloatStream._toBigFloat(start, resolvedPrecision);
+      const ratioValue = _BigFloatStream._toBigFloat(ratio, resolvedPrecision);
+      for (let i = 0; i < normalizedCount; i++) {
+        yield current;
+        if (i + 1 < normalizedCount) current = current.mul(ratioValue);
+      }
+    });
+  }
+  /**
+   * 指定個数で等間隔な値を生成する
+   * @param start - 開始値
+   * @param end - 終了値
+   * @param count - 要素数
+   * @param precision - 精度
+   * @returns BigFloatStreamインスタンス
+   */
+  static linspace(start, end, count, precision) {
+    const normalizedCount = this._normalizeCount(count);
+    if (normalizedCount === 0) return this.empty();
+    const resolvedPrecision = this._resolvePrecision([start, end], precision);
+    return new _BigFloatStream(function* () {
+      const startValue = _BigFloatStream._toBigFloat(start, resolvedPrecision);
+      if (normalizedCount === 1) {
+        yield startValue;
+        return;
+      }
+      const endValue = _BigFloatStream._toBigFloat(end, resolvedPrecision);
+      const stepValue = endValue.sub(startValue).div(normalizedCount - 1);
+      let current = startValue;
+      for (let i = 0; i < normalizedCount; i++) {
+        if (i === normalizedCount - 1) {
+          yield endValue;
+        } else {
+          yield current;
+          current = current.add(stepValue);
+        }
+      }
+    });
+  }
+  /**
+   * 10を底とする対数間隔の値を生成する
+   * @param start - 開始指数
+   * @param end - 終了指数
+   * @param count - 要素数
+   * @param precision - 精度
+   * @returns BigFloatStreamインスタンス
+   */
+  static logspace(start, end, count, precision) {
+    const normalizedCount = this._normalizeCount(count);
+    if (normalizedCount === 0) return this.empty();
+    const resolvedPrecision = this._resolvePrecision([start, end], precision);
+    return new _BigFloatStream(function* () {
+      const base = new BigFloat(10, resolvedPrecision);
+      const startValue = _BigFloatStream._toBigFloat(start, resolvedPrecision);
+      let current = base.pow(startValue);
+      if (normalizedCount === 1) {
+        yield current;
+        return;
+      }
+      const endValue = _BigFloatStream._toBigFloat(end, resolvedPrecision);
+      const endTerm = base.pow(endValue);
+      const stepExponent = endValue.sub(startValue).div(normalizedCount - 1);
+      const ratio = base.pow(stepExponent);
+      for (let i = 0; i < normalizedCount; i++) {
+        if (i === normalizedCount - 1) {
+          yield endTerm;
+        } else {
+          yield current;
+          current = current.mul(ratio);
+        }
+      }
+    });
+  }
+  /**
+   * 調和級数を生成する
+   * @param count - 要素数
+   * @param precision - 精度
+   * @returns BigFloatStreamインスタンス
+   */
+  static harmonic(count, precision) {
+    const normalizedCount = this._normalizeCount(count);
+    if (normalizedCount === 0) return this.empty();
+    const resolvedPrecision = precision === void 0 ? 20n : BigInt(precision);
+    return new _BigFloatStream(function* () {
+      const one = new BigFloat(1, resolvedPrecision);
+      for (let i = 1; i <= normalizedCount; i++) {
+        yield one.div(i);
+      }
+    });
+  }
+  /**
+   * 乱数列を生成する
+   * @param count - 要素数
+   * @param options - 生成オプション
+   * @returns BigFloatStreamインスタンス
+   */
+  static random(count, options = {}) {
+    const normalizedCount = this._normalizeCount(count);
+    if (normalizedCount === 0) return this.empty();
+    const min = options.min ?? 0;
+    const max = options.max ?? 1;
+    const resolvedPrecision = this._resolvePrecision([min, max], options.precision);
+    return new _BigFloatStream(function* () {
+      const minValue = _BigFloatStream._toBigFloat(min, resolvedPrecision);
+      const maxValue = _BigFloatStream._toBigFloat(max, resolvedPrecision);
+      const span = maxValue.sub(minValue);
+      if (span.lt(0)) throw new RangeError("Random range requires max >= min");
+      if (span.isZero()) {
+        yield* _BigFloatStream.repeat(minValue, normalizedCount, resolvedPrecision);
+        return;
+      }
+      for (let i = 0; i < normalizedCount; i++) {
+        yield minValue.add(span.mul(BigFloat.random(resolvedPrecision)));
+      }
+    });
+  }
+  /**
+   * 同じ値を繰り返す
+   * @param value - 繰り返す値
+   * @param count - 要素数
+   * @param precision - 精度
+   * @returns BigFloatStreamインスタンス
+   */
+  static repeat(value, count, precision) {
+    const normalizedCount = this._normalizeCount(count);
+    if (normalizedCount === 0) return this.empty();
+    const resolvedPrecision = this._resolvePrecision([value], precision);
+    return new _BigFloatStream(function* () {
+      const baseValue = _BigFloatStream._toBigFloat(value, resolvedPrecision);
+      for (let i = 0; i < normalizedCount; i++) {
+        yield baseValue.clone();
+      }
+    });
+  }
+  /**
+   * フィボナッチ数列を生成する
+   * @param count - 要素数
+   * @param precision - 精度
+   * @returns BigFloatStreamインスタンス
+   */
+  static fibonacci(count, precision) {
+    const normalizedCount = this._normalizeCount(count);
+    if (normalizedCount === 0) return this.empty();
+    const resolvedPrecision = precision === void 0 ? 20n : BigInt(precision);
+    return new _BigFloatStream(function* () {
+      let a = new BigFloat(0, resolvedPrecision);
+      let b = new BigFloat(1, resolvedPrecision);
+      for (let i = 0; i < normalizedCount; i++) {
+        yield a;
+        const next = a.add(b);
+        a = b;
+        b = next;
+      }
+    });
+  }
+  /**
+   * 階乗列を生成する
+   * @param count - 要素数
+   * @param precision - 精度
+   * @returns BigFloatStreamインスタンス
+   */
+  static factorial(count, precision) {
+    const normalizedCount = this._normalizeCount(count);
+    if (normalizedCount === 0) return this.empty();
+    const resolvedPrecision = precision === void 0 ? 20n : BigInt(precision);
+    return new _BigFloatStream(function* () {
+      let current = new BigFloat(1, resolvedPrecision);
+      for (let i = 0; i < normalizedCount; i++) {
+        yield current;
+        current = current.mul(i + 1);
+      }
+    });
   }
   /**
    * 範囲を生成する
