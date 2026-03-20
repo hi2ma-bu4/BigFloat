@@ -21,20 +21,6 @@ export enum RoundingMode {
 }
 
 /**
- * 円周率の計算アルゴリズム
- */
-export enum PiAlgorithm {
-	/** デフォルト */
-	MATH_DEFAULT = 0,
-	/** Gregory-Leibniz法 (超高速・超低収束) */
-	LEIBNIZ = 1,
-	/** ニュートン法 (高速・低収束) */
-	NEWTON = 2,
-	/** Chudnovsky法 (低速・高収束) */
-	CHUDNOVSKY = 3,
-}
-
-/**
  * BigFloat configuration options
  */
 export interface BigFloatOptions {
@@ -42,7 +28,6 @@ export interface BigFloatOptions {
 	mutateResult?: boolean;
 	roundingMode?: RoundingMode;
 	extraPrecision?: bigint;
-	piAlgorithm?: PiAlgorithm;
 	trigFuncsMaxSteps?: bigint;
 	lnMaxSteps?: bigint;
 }

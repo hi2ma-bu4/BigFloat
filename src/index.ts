@@ -1,3 +1,3 @@
 export { bigFloat, BigFloat, BigFloatConfig } from "./bigFloat";
 export { BigFloatStream } from "./bigFloatStream";
-export { PiAlgorithm, RoundingMode, type BigFloatOptions, type BigFloatStreamValue, type BigFloatValue } from "./types";
+export { RoundingMode, type BigFloatOptions, type BigFloatStreamValue, type BigFloatValue } from "./types";

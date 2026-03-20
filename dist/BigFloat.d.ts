@@ -20,19 +20,6 @@ export declare enum RoundingMode {
 	HALF_DOWN = 5
 }
 /**
- * 円周率の計算アルゴリズム
- */
-export declare enum PiAlgorithm {
-	/** デフォルト */
-	MATH_DEFAULT = 0,
-	/** Gregory-Leibniz法 (超高速・超低収束) */
-	LEIBNIZ = 1,
-	/** ニュートン法 (高速・低収束) */
-	NEWTON = 2,
-	/** Chudnovsky法 (低速・高収束) */
-	CHUDNOVSKY = 3
-}
-/**
  * BigFloat configuration options
  */
 export interface BigFloatOptions {
@@ -40,7 +27,6 @@ export interface BigFloatOptions {
 	mutateResult?: boolean;
 	roundingMode?: RoundingMode;
 	extraPrecision?: bigint;
-	piAlgorithm?: PiAlgorithm;
 	trigFuncsMaxSteps?: bigint;
 	lnMaxSteps?: bigint;
 }
@@ -62,9 +48,6 @@ export type BigFloatCacheEntry = {
 	exactValue: bigint;
 	precision: bigint;
 };
-export type BigFloatPiCacheEntry = BigFloatCacheEntry & {
-	priority: number;
-};
 /**
  * BigFloat settings
  */
@@ -77,8 +60,6 @@ export declare class BigFloatConfig {
 	roundingMode: RoundingMode;
 	/** 計算時に追加する精度 */
 	extraPrecision: bigint;
-	/** 円周率の計算アルゴリズム */
-	piAlgorithm: PiAlgorithm;
 	/** 三角関数の最大ステップ数 */
 	trigFuncsMaxSteps: bigint;
 	/** 対数計算の最大ステップ数 */
@@ -86,7 +67,7 @@ export declare class BigFloatConfig {
 	/**
 	 * @param options - 設定オプション
 	 */
-	constructor({ allowPrecisionMismatch, mutateResult, roundingMode, extraPrecision, piAlgorithm, trigFuncsMaxSteps, lnMaxSteps }?: BigFloatOptions);
+	constructor({ allowPrecisionMismatch, mutateResult, roundingMode, extraPrecision, trigFuncsMaxSteps, lnMaxSteps }?: BigFloatOptions);
 	/**
 	 * 設定オブジェクトを複製する
 	 * @returns 複製された設定オブジェクト
@@ -834,19 +815,6 @@ export declare class BigFloat {
 	 */
 	static e(precision?: number | bigint): BigFloat;
 	/**
-	 * ライプニッツの公式で円周率を計算する (内部用)
-	 * @param precision - 精度
-	 * @param mulPrecision - 反復回数の倍率
-	 * @returns 円周率
-	 */
-	protected static _piLeibniz(precision?: bigint, mulPrecision?: bigint): bigint;
-	/**
-	 * ニュートン法(マチンの公式)で円周率を計算する (内部用)
-	 * @param precision - 精度
-	 * @returns 円周率
-	 */
-	protected static _piNewton(precision?: bigint): bigint;
-	/**
 	 * チュドノフスキー法で円周率を計算する (内部用)
 	 * @param precision - 精度
 	 * @returns 円周率
@@ -1075,10 +1043,9 @@ export declare class BigFloat {
 	/**
 	 * 円周率キャッシュが存在するか確認する (内部用)
 	 * @param precision - 必要精度
-	 * @param priority - アルゴリズム優先度
 	 * @returns 存在する場合はtrue
 	 */
-	protected static _getCheckPiCache(precision: bigint, priority?: number): boolean;
+	protected static _getCheckPiCache(precision: bigint): boolean;
 	/**
 	 * 円周率キャッシュを取得する (内部用)
 	 * @param precision - 必要精度
@@ -1090,16 +1057,8 @@ export declare class BigFloat {
 	 * 円周率キャッシュを更新する (内部用)
 	 * @param value - 値
 	 * @param precision - 精度
-	 * @param priority - アルゴリズム優先度
 	 */
-	protected static _updatePiCache(value: bigint, precision: bigint, priority?: number): void;
-	/**
-	 * 円周率の低精度キャッシュを取得する (内部用)
-	 * @param precision - 必要精度
-	 * @param priority - アルゴリズム優先度
-	 * @returns 低精度キャッシュ
-	 */
-	protected static _getPiSeedCache(precision: bigint, priority?: number): BigFloatPiCacheEntry | null;
+	protected static _updatePiCache(value: bigint, precision: bigint): void;
 	/**
 	 * eキャッシュが存在するか確認する (内部用)
 	 * @param precision - 必要精度
@@ -1119,6 +1078,12 @@ export declare class BigFloat {
 	 * @param precision - 精度
 	 */
 	protected static _updateECache(value: bigint, precision: bigint): void;
+	/**
+	 * 円周率の低精度キャッシュを取得する (内部用)
+	 * @param precision - 必要精度
+	 * @returns 低精度キャッシュ
+	 */
+	protected static _getPiSeedCache(precision: bigint): BigFloatCacheEntry | null;
 	/**
 	 * 対数キャッシュが存在するか確認する (内部用)
 	 * @param key - キャッシュキー
@@ -1157,7 +1122,7 @@ export declare class BigFloat {
 	 */
 	protected static _rescaleInternalValue(value: bigint, fromPrecision: bigint, toPrecision: bigint): bigint;
 	/**
-	 * キャッシュされたpiを高精度へ補正する
+	 * キャッシュされたpiを高精度へ補正する (Newton法を使用)
 	 * @param seed - 低精度キャッシュ
 	 * @param precision - 必要精度
 	 * @returns 高精度化したpi

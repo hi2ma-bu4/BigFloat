@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.2.6
+ * BigFloat 1.2.7
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -16,13 +16,6 @@ var RoundingMode = /* @__PURE__ */ ((RoundingMode2) => {
   RoundingMode2[RoundingMode2["HALF_DOWN"] = 5] = "HALF_DOWN";
   return RoundingMode2;
 })(RoundingMode || {});
-var PiAlgorithm = /* @__PURE__ */ ((PiAlgorithm2) => {
-  PiAlgorithm2[PiAlgorithm2["MATH_DEFAULT"] = 0] = "MATH_DEFAULT";
-  PiAlgorithm2[PiAlgorithm2["LEIBNIZ"] = 1] = "LEIBNIZ";
-  PiAlgorithm2[PiAlgorithm2["NEWTON"] = 2] = "NEWTON";
-  PiAlgorithm2[PiAlgorithm2["CHUDNOVSKY"] = 3] = "CHUDNOVSKY";
-  return PiAlgorithm2;
-})(PiAlgorithm || {});
 
 // src/bigFloat.ts
 var BigFloatConfig = class _BigFloatConfig {
@@ -34,8 +27,6 @@ var BigFloatConfig = class _BigFloatConfig {
   roundingMode;
   /** 計算時に追加する精度 */
   extraPrecision;
-  /** 円周率の計算アルゴリズム */
-  piAlgorithm;
   /** 三角関数の最大ステップ数 */
   trigFuncsMaxSteps;
   /** 対数計算の最大ステップ数 */
@@ -43,12 +34,11 @@ var BigFloatConfig = class _BigFloatConfig {
   /**
    * @param options - 設定オプション
    */
-  constructor({ allowPrecisionMismatch = false, mutateResult = false, roundingMode = 0 /* TRUNCATE */, extraPrecision = 6n, piAlgorithm = 3 /* CHUDNOVSKY */, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n } = {}) {
+  constructor({ allowPrecisionMismatch = false, mutateResult = false, roundingMode = 0 /* TRUNCATE */, extraPrecision = 6n, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n } = {}) {
     this.allowPrecisionMismatch = allowPrecisionMismatch;
     this.mutateResult = mutateResult;
     this.roundingMode = roundingMode;
     this.extraPrecision = extraPrecision;
-    this.piAlgorithm = piAlgorithm;
     this.trigFuncsMaxSteps = trigFuncsMaxSteps;
     this.lnMaxSteps = lnMaxSteps;
   }
@@ -62,7 +52,6 @@ var BigFloatConfig = class _BigFloatConfig {
       mutateResult: this.mutateResult,
       roundingMode: this.roundingMode,
       extraPrecision: this.extraPrecision,
-      piAlgorithm: this.piAlgorithm,
       trigFuncsMaxSteps: this.trigFuncsMaxSteps,
       lnMaxSteps: this.lnMaxSteps
     });
@@ -2364,42 +2353,6 @@ var BigFloat = class _BigFloat {
   // * 定数（π, τ）
   // ====================================================================================================
   /**
-   * ライプニッツの公式で円周率を計算する (内部用)
-   * @param precision - 精度
-   * @param mulPrecision - 反復回数の倍率
-   * @returns 円周率
-   */
-  static _piLeibniz(precision = 20n, mulPrecision = 100n) {
-    const scale = this._getPow10(precision);
-    const iterations = precision * mulPrecision;
-    let sum = 0n;
-    const scale_4 = scale * 4n;
-    const ZERO = 0n;
-    const ONE = 1n;
-    const TWO = 2n;
-    let lastTerm = 0n;
-    for (let i = 0n; i < iterations; i++) {
-      const term = scale_4 / (TWO * i + ONE);
-      if (term === lastTerm) break;
-      lastTerm = term;
-      sum += i % TWO === ZERO ? term : -term;
-    }
-    return sum;
-  }
-  /**
-   * ニュートン法(マチンの公式)で円周率を計算する (内部用)
-   * @param precision - 精度
-   * @returns 円周率
-   */
-  static _piNewton(precision = 20n) {
-    const EXTRA = 10n;
-    const prec = precision + EXTRA;
-    const atan1_5 = this._atanMachine(5n, prec);
-    const atan1_239 = this._atanMachine(239n, prec);
-    const value = 16n * atan1_5 - 4n * atan1_239;
-    return value / this._getPow10(EXTRA);
-  }
-  /**
    * チュドノフスキー法で円周率を計算する (内部用)
    * @param precision - 精度
    * @returns 円周率
@@ -2432,33 +2385,17 @@ var BigFloat = class _BigFloat {
    * @returns 円周率
    */
   static _pi(precision) {
-    const piAlgorithm = this.config.piAlgorithm;
-    if (this._getCheckPiCache(precision, piAlgorithm)) {
+    if (this._getCheckPiCache(precision)) {
       return this._getPiCache(precision);
     }
-    const seed = this._getPiSeedCache(precision, piAlgorithm);
+    const seed = this._getPiSeedCache(precision);
     if (seed) {
       const refined = this._refinePiFromCache(seed, precision);
-      this._updatePiCache(refined, precision, piAlgorithm);
+      this._updatePiCache(refined, precision);
       return refined;
     }
-    let piRet;
-    switch (piAlgorithm) {
-      case 3 /* CHUDNOVSKY */:
-        piRet = this._piChudnovsky(precision);
-        break;
-      case 2 /* NEWTON */:
-        piRet = this._piNewton(precision);
-        break;
-      case 1 /* LEIBNIZ */:
-        piRet = this._piLeibniz(precision);
-        break;
-      case 0 /* MATH_DEFAULT */:
-      default:
-        this._checkPrecision(precision);
-        return new this(`${Math.PI}`, precision)._getInternalValue(precision);
-    }
-    this._updatePiCache(piRet, precision, piAlgorithm);
+    const piRet = this._piChudnovsky(precision);
+    this._updatePiCache(piRet, precision);
     return piRet;
   }
   /**
@@ -3085,12 +3022,11 @@ var BigFloat = class _BigFloat {
   /**
    * 円周率キャッシュが存在するか確認する (内部用)
    * @param precision - 必要精度
-   * @param priority - アルゴリズム優先度
    * @returns 存在する場合はtrue
    */
-  static _getCheckPiCache(precision, priority = 0) {
+  static _getCheckPiCache(precision) {
     const cachedData = this._piCache;
-    return !!(cachedData && cachedData.precision >= precision && cachedData.priority >= priority);
+    return !!(cachedData && cachedData.precision >= precision);
   }
   /**
    * 円周率キャッシュを取得する (内部用)
@@ -3109,27 +3045,13 @@ var BigFloat = class _BigFloat {
    * 円周率キャッシュを更新する (内部用)
    * @param value - 値
    * @param precision - 精度
-   * @param priority - アルゴリズム優先度
    */
-  static _updatePiCache(value, precision, priority = 0) {
+  static _updatePiCache(value, precision) {
     const cachedData = this._piCache;
-    if (cachedData && cachedData.precision >= precision && cachedData.priority >= priority) {
+    if (cachedData && cachedData.precision >= precision) {
       return;
     }
-    this._piCache = { exactValue: value, precision, priority };
-  }
-  /**
-   * 円周率の低精度キャッシュを取得する (内部用)
-   * @param precision - 必要精度
-   * @param priority - アルゴリズム優先度
-   * @returns 低精度キャッシュ
-   */
-  static _getPiSeedCache(precision, priority = 0) {
-    const cachedData = this._piCache;
-    if (!cachedData || cachedData.priority < priority || cachedData.precision >= precision) {
-      return null;
-    }
-    return cachedData;
+    this._piCache = { exactValue: value, precision };
   }
   /**
    * eキャッシュが存在するか確認する (内部用)
@@ -3164,6 +3086,18 @@ var BigFloat = class _BigFloat {
       return;
     }
     this._eCache = { exactValue: value, precision };
+  }
+  /**
+   * 円周率の低精度キャッシュを取得する (内部用)
+   * @param precision - 必要精度
+   * @returns 低精度キャッシュ
+   */
+  static _getPiSeedCache(precision) {
+    const cachedData = this._piCache;
+    if (!cachedData || cachedData.precision >= precision) {
+      return null;
+    }
+    return cachedData;
   }
   /**
    * 対数キャッシュが存在するか確認する (内部用)
@@ -3230,7 +3164,7 @@ var BigFloat = class _BigFloat {
     return this._roundManual(value, this._getPow10(fromPrecision - toPrecision));
   }
   /**
-   * キャッシュされたpiを高精度へ補正する
+   * キャッシュされたpiを高精度へ補正する (Newton法を使用)
    * @param seed - 低精度キャッシュ
    * @param precision - 必要精度
    * @returns 高精度化したpi
@@ -4310,7 +4244,6 @@ export {
   BigFloat,
   BigFloatConfig,
   BigFloatStream,
-  PiAlgorithm,
   RoundingMode,
   bigFloat
 };
