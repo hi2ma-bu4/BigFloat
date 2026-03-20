@@ -501,14 +501,6 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * ストリームを分岐させる
-	 * @returns 複製されたストリーム
-	 */
-	public branch(): BigFloatStream {
-		return this.clone();
-	}
-
-	/**
 	 * 現在の状態を引き継いだストリームを生成する
 	 * @param sourceFactory - ソースファクトリ
 	 * @param previousStream - 直前のストリーム
@@ -590,11 +582,16 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 */
 	public sorted(compareFn: (a: BigFloat, b: BigFloat) => number = (a, b) => a.compare(b)): this {
 		const current = this.clone();
-		return this._fork(function* () {
-			const arr = current.toArray();
-			arr.sort(compareFn);
-			yield* arr;
-		}, null, null, null);
+		return this._fork(
+			function* () {
+				const arr = current.toArray();
+				arr.sort(compareFn);
+				yield* arr;
+			},
+			null,
+			null,
+			null,
+		);
 	}
 
 	/**
@@ -662,12 +659,17 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 */
 	public concat(...iterables: Iterable<BigFloatStreamValue>[]): this {
 		const current = this.clone();
-		return this._fork(function* () {
-			yield* current;
-			for (const iterable of iterables) {
-				yield* BigFloatStream._toIterator(iterable);
-			}
-		}, null, null, null);
+		return this._fork(
+			function* () {
+				yield* current;
+				for (const iterable of iterables) {
+					yield* BigFloatStream._toIterator(iterable);
+				}
+			},
+			null,
+			null,
+			null,
+		);
 	}
 
 	// ==================================================

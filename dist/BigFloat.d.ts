@@ -568,11 +568,6 @@ export declare class BigFloat {
 	 */
 	nthRoot(n: number | bigint): BigFloat;
 	/**
-	 * 末尾のゼロを削除して精度を最適化する
-	 * @returns 最適化されたインスタンス
-	 */
-	scale(): BigFloat;
-	/**
 	 * 正弦(sin)を計算する (内部用)
 	 * @param x - 角度(ラジアン)
 	 * @param precision - 精度
@@ -1297,11 +1292,6 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns 複製されたストリーム
 	 */
 	clone(): BigFloatStream;
-	/**
-	 * ストリームを分岐させる
-	 * @returns 複製されたストリーム
-	 */
-	branch(): BigFloatStream;
 	/**
 	 * 現在の状態を引き継いだストリームを生成する
 	 * @param sourceFactory - ソースファクトリ

@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.2.1
+ * BigFloat 1.2.2
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -1483,15 +1483,6 @@ var BigFloat = class _BigFloat {
     res.softNormalize();
     res._applyPrecision();
     return this._makeResultFromInstance(res);
-  }
-  /**
-   * 末尾のゼロを削除して精度を最適化する
-   * @returns 最適化されたインスタンス
-   */
-  scale() {
-    const res = this.clone();
-    res.lazyNormalize();
-    return res;
   }
   // ====================================================================================================
   // * 三角関数
@@ -3452,13 +3443,6 @@ var BigFloatStream = class _BigFloatStream {
     return this._fork();
   }
   /**
-   * ストリームを分岐させる
-   * @returns 複製されたストリーム
-   */
-  branch() {
-    return this.clone();
-  }
-  /**
    * 現在の状態を引き継いだストリームを生成する
    * @param sourceFactory - ソースファクトリ
    * @param previousStream - 直前のストリーム
@@ -3532,11 +3516,16 @@ var BigFloatStream = class _BigFloatStream {
    */
   sorted(compareFn = (a, b) => a.compare(b)) {
     const current = this.clone();
-    return this._fork(function* () {
-      const arr = current.toArray();
-      arr.sort(compareFn);
-      yield* arr;
-    }, null, null, null);
+    return this._fork(
+      function* () {
+        const arr = current.toArray();
+        arr.sort(compareFn);
+        yield* arr;
+      },
+      null,
+      null,
+      null
+    );
   }
   /**
    * 各要素に対してアクションを実行する (ストリームは維持)
@@ -3597,12 +3586,17 @@ var BigFloatStream = class _BigFloatStream {
    */
   concat(...iterables) {
     const current = this.clone();
-    return this._fork(function* () {
-      yield* current;
-      for (const iterable of iterables) {
-        yield* _BigFloatStream._toIterator(iterable);
-      }
-    }, null, null, null);
+    return this._fork(
+      function* () {
+        yield* current;
+        for (const iterable of iterables) {
+          yield* _BigFloatStream._toIterator(iterable);
+        }
+      },
+      null,
+      null,
+      null
+    );
   }
   // ==================================================
   // Iterator
