@@ -50,6 +50,12 @@ test("BigFloat Precision and Identity Tests", async (t) => {
 					const oneDivOne = new BigFloat(1, 1000).div(1);
 					// Check internal representation (mantissa should be 1 after lazy normalization)
 					assert.strictEqual(oneDivOne.mantissa, 1n, "1/1 mantissa should be 1 after lazy normalization");
+
+					const oneDivFive = new BigFloat(1, 1000).div(5);
+					assert.strictEqual(oneDivFive.toString(10, 1000), "0.2");
+					assert.strictEqual(oneDivFive.mantissa, 1n, "1/5 mantissa should stay exact");
+					assert.strictEqual(oneDivFive._exp2, 0n, "1/5 exp2 should stay exact");
+					assert.strictEqual(oneDivFive._exp5, -1n, "1/5 exp5 should stay exact");
 				}
 			});
 

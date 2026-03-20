@@ -235,6 +235,17 @@ export declare class BigFloat {
 	 */
 	protected static _lazyNormalizeRaw(value: BigFloatRawValue): BigFloatRawValue;
 	/**
+	 * mantissa から符号・2の指数・5の指数を抽出する
+	 * @param mantissa - 対象
+	 * @returns 分解結果
+	 */
+	protected static _extractPowerFactors(mantissa: bigint): {
+		sign: bigint;
+		mantissa: bigint;
+		exp2: bigint;
+		exp5: bigint;
+	};
+	/**
 	 * 精度を合わせる
 	 * @param other - 合わせる対象
 	 * @param mutateA - 自身を破壊的に変更するかどうか

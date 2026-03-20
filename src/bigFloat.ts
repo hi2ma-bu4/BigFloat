@@ -633,6 +633,38 @@ export class BigFloat {
 	}
 
 	/**
+	 * mantissa から符号・2の指数・5の指数を抽出する
+	 * @param mantissa - 対象
+	 * @returns 分解結果
+	 */
+	protected static _extractPowerFactors(mantissa: bigint): { sign: bigint; mantissa: bigint; exp2: bigint; exp5: bigint } {
+		if (mantissa === 0n) {
+			return { sign: 0n, mantissa: 0n, exp2: 0n, exp5: 0n };
+		}
+
+		let sign = 1n;
+		let value = mantissa;
+		if (value < 0n) {
+			sign = -1n;
+			value = -value;
+		}
+
+		let exp2 = 0n;
+		while ((value & 1n) === 0n) {
+			value >>= 1n;
+			exp2++;
+		}
+
+		let exp5 = 0n;
+		while (value % 5n === 0n) {
+			value /= 5n;
+			exp5++;
+		}
+
+		return { sign, mantissa: value, exp2, exp5 };
+	}
+
+	/**
 	 * 精度を合わせる
 	 * @param other - 合わせる対象
 	 * @param mutateA - 自身を破壊的に変更するかどうか
@@ -1146,6 +1178,29 @@ export class BigFloat {
 			const valB = bfB.toNumber();
 			const divRes = valA / valB;
 			return res.copyFrom(new construct(divRes, res._precision));
+		}
+
+		if (res.mantissa % bfB.mantissa === 0n) {
+			res.mantissa /= bfB.mantissa;
+			res._exp2 -= bfB._exp2;
+			res._exp5 -= bfB._exp5;
+			res.softNormalize();
+			res._applyPrecision(res._precision);
+			res.lazyNormalize();
+			return res;
+		}
+
+		const divisorFactors = construct._extractPowerFactors(bfB.mantissa);
+		if (divisorFactors.mantissa === 1n) {
+			if (divisorFactors.sign < 0n) {
+				res.mantissa = -res.mantissa;
+			}
+			res._exp2 -= bfB._exp2 + divisorFactors.exp2;
+			res._exp5 -= bfB._exp5 + divisorFactors.exp5;
+			res.softNormalize();
+			res._applyPrecision(res._precision);
+			res.lazyNormalize();
+			return res;
 		}
 
 		// V = (Ma * 2^E2a * 5^E5a) / (Mb * 2^E2b * 5^E5b)
