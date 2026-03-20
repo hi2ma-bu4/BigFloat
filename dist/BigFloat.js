@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.2.5
+ * BigFloat 1.2.6
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -87,22 +87,28 @@ var BigFloat = class _BigFloat {
   static LAZY_NORMALIZE_SMALL_THRESHOLD = 32n;
   /** 設定 */
   static config = new BigFloatConfig();
-  /** キャッシュ */
-  static _cached = /* @__PURE__ */ Object.create(null);
+  /** 円周率キャッシュ */
+  static _piCache = null;
+  /** eキャッシュ */
+  static _eCache = null;
+  /** 対数キャッシュ */
+  static _lnCache = /* @__PURE__ */ Object.create(null);
   /** 5の累乗キャッシュ */
   static _pow5Cache = [1n];
   /** 2の累乗キャッシュ */
   static _pow2Cache = [1n];
   /** Bernoulli numbers cache */
-  static _bernoulliCache = {};
+  static _bernoulliCache = /* @__PURE__ */ Object.create(null);
   /**
    * キャッシュをクリアする
    */
   static clearCache() {
-    this._cached = /* @__PURE__ */ Object.create(null);
+    this._piCache = null;
+    this._eCache = null;
+    this._lnCache = /* @__PURE__ */ Object.create(null);
     this._pow5Cache = [1n];
     this._pow2Cache = [1n];
-    this._bernoulliCache = {};
+    this._bernoulliCache = /* @__PURE__ */ Object.create(null);
   }
   /** 内部的な値 (mantissa × 2^exp2 × 5^exp5) */
   mantissa = 0n;
@@ -2078,14 +2084,14 @@ var BigFloat = class _BigFloat {
     if (value % scale === 0n) {
       const intVal = value / scale;
       if (intVal === 1n) return 0n;
-      const key = `ln(${intVal})`;
-      if (this._getCheckCache(key, precision)) {
-        return this._getCache(key, precision);
+      const key = intVal.toString();
+      if (this._getCheckLnCache(key, precision)) {
+        return this._getLnCache(key, precision);
       }
-      const seed = this._getSeedCache(key, precision);
+      const seed = this._getLnSeedCache(key, precision);
       if (seed) {
         const refined = this._refineLogConstantFromCache(value, seed, precision);
-        this._updateCache(key, refined, precision);
+        this._updateLnCache(key, refined, precision);
         return refined;
       }
       if (intVal === 10n) return this._ln10(precision, maxSteps);
@@ -2115,7 +2121,7 @@ var BigFloat = class _BigFloat {
     const LN10 = this._ln10(precision, maxSteps);
     const finalLn = 2n * result + k * LN10;
     if (value % scale === 0n) {
-      this._updateCache(`ln(${value / scale})`, finalLn, precision);
+      this._updateLnCache((value / scale).toString(), finalLn, precision);
     }
     return finalLn;
   }
@@ -2265,15 +2271,15 @@ var BigFloat = class _BigFloat {
    * @returns ln(10)
    */
   static _ln10(precision, maxSteps = 10000n) {
-    const key = "ln10";
-    if (this._getCheckCache(key, precision)) {
-      return this._getCache(key, precision);
+    const key = "10";
+    if (this._getCheckLnCache(key, precision)) {
+      return this._getLnCache(key, precision);
     }
-    const seed = this._getSeedCache(key, precision);
+    const seed = this._getLnSeedCache(key, precision);
     if (seed) {
       const scale2 = this._getPow10(precision);
       const refined = this._refineLogConstantFromCache(10n * scale2, seed, precision);
-      this._updateCache(key, refined, precision);
+      this._updateLnCache(key, refined, precision);
       return refined;
     }
     const scale = this._getPow10(precision);
@@ -2290,7 +2296,7 @@ var BigFloat = class _BigFloat {
       result += addend;
     }
     const res = 2n * result;
-    this._updateCache(key, res, precision);
+    this._updateLnCache(key, res, precision);
     return res;
   }
   /**
@@ -2300,15 +2306,15 @@ var BigFloat = class _BigFloat {
    * @returns ln(2)
    */
   static _ln2(precision, maxSteps) {
-    const key = "ln2";
-    if (this._getCheckCache(key, precision)) {
-      return this._getCache(key, precision);
+    const key = "2";
+    if (this._getCheckLnCache(key, precision)) {
+      return this._getLnCache(key, precision);
     }
-    const seed = this._getSeedCache(key, precision);
+    const seed = this._getLnSeedCache(key, precision);
     if (seed) {
       const scale2 = this._getPow10(precision);
       const refined = this._refineLogConstantFromCache(2n * scale2, seed, precision);
-      this._updateCache(key, refined, precision);
+      this._updateLnCache(key, refined, precision);
       return refined;
     }
     const scale = this._getPow10(precision);
@@ -2325,7 +2331,7 @@ var BigFloat = class _BigFloat {
       result += addend;
     }
     const res = 2n * result;
-    this._updateCache(key, res, precision);
+    this._updateLnCache(key, res, precision);
     return res;
   }
   /**
@@ -2334,12 +2340,12 @@ var BigFloat = class _BigFloat {
    * @returns e
    */
   static _e(precision) {
-    if (this._getCheckCache("e", precision)) {
-      return this._getCache("e", precision);
+    if (this._getCheckECache(precision)) {
+      return this._getECache(precision);
     }
     const scale = this._getPow10(precision);
     const eInt = this._exp(scale, precision);
-    this._updateCache("e", eInt, precision);
+    this._updateECache(eInt, precision);
     return eInt;
   }
   /**
@@ -2427,13 +2433,13 @@ var BigFloat = class _BigFloat {
    */
   static _pi(precision) {
     const piAlgorithm = this.config.piAlgorithm;
-    if (this._getCheckCache("pi", precision, piAlgorithm)) {
-      return this._getCache("pi", precision);
+    if (this._getCheckPiCache(precision, piAlgorithm)) {
+      return this._getPiCache(precision);
     }
-    const seed = this._getSeedCache("pi", precision, piAlgorithm);
+    const seed = this._getPiSeedCache(precision, piAlgorithm);
     if (seed) {
       const refined = this._refinePiFromCache(seed, precision);
-      this._updateCache("pi", refined, precision, piAlgorithm);
+      this._updatePiCache(refined, precision, piAlgorithm);
       return refined;
     }
     let piRet;
@@ -2452,7 +2458,7 @@ var BigFloat = class _BigFloat {
         this._checkPrecision(precision);
         return new this(`${Math.PI}`, precision)._getInternalValue(precision);
     }
-    this._updateCache("pi", piRet, precision, piAlgorithm);
+    this._updatePiCache(piRet, precision, piAlgorithm);
     return piRet;
   }
   /**
@@ -2731,19 +2737,20 @@ var BigFloat = class _BigFloat {
    * @returns ln(2 * pi)
    */
   static _ln2pi(precision) {
-    if (this._getCheckCache("ln2pi", precision)) {
-      return this._getCache("ln2pi", precision);
+    const key = "2pi";
+    if (this._getCheckLnCache(key, precision)) {
+      return this._getLnCache(key, precision);
     }
     const pi = this._pi(precision);
     const twoPi = 2n * pi;
-    const seed = this._getSeedCache("ln2pi", precision);
+    const seed = this._getLnSeedCache(key, precision);
     if (seed) {
       const refined = this._refineLogConstantFromCache(twoPi, seed, precision);
-      this._updateCache("ln2pi", refined, precision);
+      this._updateLnCache(key, refined, precision);
       return refined;
     }
     const ln2pi = this._ln(twoPi, precision, this.config.lnMaxSteps);
-    this._updateCache("ln2pi", ln2pi, precision);
+    this._updateLnCache(key, ln2pi, precision);
     return ln2pi;
   }
   /**
@@ -3076,43 +3083,137 @@ var BigFloat = class _BigFloat {
   // * キャッシュ管理
   // ====================================================================================================
   /**
-   * キャッシュが存在するか確認する (内部用)
-   * @param key - キャッシュキー
+   * 円周率キャッシュが存在するか確認する (内部用)
    * @param precision - 必要精度
    * @param priority - アルゴリズム優先度
    * @returns 存在する場合はtrue
    */
-  static _getCheckCache(key, precision, priority = 0) {
-    const cachedData = this._cached[key];
+  static _getCheckPiCache(precision, priority = 0) {
+    const cachedData = this._piCache;
     return !!(cachedData && cachedData.precision >= precision && cachedData.priority >= priority);
   }
   /**
-   * キャッシュを取得する (内部用)
+   * 円周率キャッシュを取得する (内部用)
+   * @param precision - 必要精度
+   * @returns キャッシュされた値
+   * @throws {Error} キャッシュが存在しない場合
+   */
+  static _getPiCache(precision) {
+    const cachedData = this._piCache;
+    if (cachedData) {
+      return this._rescaleInternalValue(cachedData.exactValue, cachedData.precision, precision);
+    }
+    throw new Error(`use _getCheckPiCache first`);
+  }
+  /**
+   * 円周率キャッシュを更新する (内部用)
+   * @param value - 値
+   * @param precision - 精度
+   * @param priority - アルゴリズム優先度
+   */
+  static _updatePiCache(value, precision, priority = 0) {
+    const cachedData = this._piCache;
+    if (cachedData && cachedData.precision >= precision && cachedData.priority >= priority) {
+      return;
+    }
+    this._piCache = { exactValue: value, precision, priority };
+  }
+  /**
+   * 円周率の低精度キャッシュを取得する (内部用)
+   * @param precision - 必要精度
+   * @param priority - アルゴリズム優先度
+   * @returns 低精度キャッシュ
+   */
+  static _getPiSeedCache(precision, priority = 0) {
+    const cachedData = this._piCache;
+    if (!cachedData || cachedData.priority < priority || cachedData.precision >= precision) {
+      return null;
+    }
+    return cachedData;
+  }
+  /**
+   * eキャッシュが存在するか確認する (内部用)
+   * @param precision - 必要精度
+   * @returns 存在する場合はtrue
+   */
+  static _getCheckECache(precision) {
+    const cachedData = this._eCache;
+    return !!(cachedData && cachedData.precision >= precision);
+  }
+  /**
+   * eキャッシュを取得する (内部用)
+   * @param precision - 必要精度
+   * @returns キャッシュされた値
+   * @throws {Error} キャッシュが存在しない場合
+   */
+  static _getECache(precision) {
+    const cachedData = this._eCache;
+    if (cachedData) {
+      return this._rescaleInternalValue(cachedData.exactValue, cachedData.precision, precision);
+    }
+    throw new Error(`use _getCheckECache first`);
+  }
+  /**
+   * eキャッシュを更新する (内部用)
+   * @param value - 値
+   * @param precision - 精度
+   */
+  static _updateECache(value, precision) {
+    const cachedData = this._eCache;
+    if (cachedData && cachedData.precision >= precision) {
+      return;
+    }
+    this._eCache = { exactValue: value, precision };
+  }
+  /**
+   * 対数キャッシュが存在するか確認する (内部用)
+   * @param key - キャッシュキー
+   * @param precision - 必要精度
+   * @returns 存在する場合はtrue
+   */
+  static _getCheckLnCache(key, precision) {
+    const cachedData = this._lnCache[key];
+    return !!(cachedData && cachedData.precision >= precision);
+  }
+  /**
+   * 対数キャッシュを取得する (内部用)
    * @param key - キャッシュキー
    * @param precision - 必要精度
    * @returns キャッシュされた値
    * @throws {Error} キャッシュが存在しない場合
    */
-  static _getCache(key, precision) {
-    const cachedData = this._cached[key];
+  static _getLnCache(key, precision) {
+    const cachedData = this._lnCache[key];
     if (cachedData) {
       return this._rescaleInternalValue(cachedData.exactValue, cachedData.precision, precision);
     }
-    throw new Error(`use _getCheckCache first`);
+    throw new Error(`use _getCheckLnCache first`);
   }
   /**
-   * キャッシュを更新する (内部用)
+   * 対数キャッシュを更新する (内部用)
    * @param key - キャッシュキー
    * @param value - 値
    * @param precision - 精度
-   * @param priority - アルゴリズム優先度
    */
-  static _updateCache(key, value, precision, priority = 0) {
-    const cachedData = this._cached[key];
-    if (cachedData && cachedData.precision >= precision && cachedData.priority >= priority) {
+  static _updateLnCache(key, value, precision) {
+    const cachedData = this._lnCache[key];
+    if (cachedData && cachedData.precision >= precision) {
       return;
     }
-    this._cached[key] = { exactValue: value, precision, priority };
+    this._lnCache[key] = { exactValue: value, precision };
+  }
+  /**
+   * 対数の低精度キャッシュを取得する (内部用)
+   * @param key - キャッシュキー
+   * @param precision - 必要精度
+   * @returns 低精度キャッシュ
+   */
+  static _getLnSeedCache(key, precision) {
+    const cachedData = this._lnCache[key];
+    if (!cachedData || cachedData.precision >= precision) {
+      return null;
+    }
+    return cachedData;
   }
   /**
    * キャッシュ値を別精度へ変換する
@@ -3127,20 +3228,6 @@ var BigFloat = class _BigFloat {
       return value * this._getPow10(toPrecision - fromPrecision);
     }
     return this._roundManual(value, this._getPow10(fromPrecision - toPrecision));
-  }
-  /**
-   * 低精度キャッシュを取得する
-   * @param key - キャッシュキー
-   * @param precision - 必要精度
-   * @param priority - アルゴリズム優先度
-   * @returns 低精度キャッシュ
-   */
-  static _getSeedCache(key, precision, priority = 0) {
-    const cachedData = this._cached[key];
-    if (!cachedData || cachedData.priority < priority || cachedData.precision >= precision) {
-      return null;
-    }
-    return cachedData;
   }
   /**
    * キャッシュされたpiを高精度へ補正する

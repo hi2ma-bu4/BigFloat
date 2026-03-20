@@ -61,6 +61,8 @@ export type BigFloatRawValue = {
 export type BigFloatCacheEntry = {
 	exactValue: bigint;
 	precision: bigint;
+};
+export type BigFloatPiCacheEntry = BigFloatCacheEntry & {
 	priority: number;
 };
 /**
@@ -109,8 +111,12 @@ export declare class BigFloat {
 	static LAZY_NORMALIZE_SMALL_THRESHOLD: bigint;
 	/** 設定 */
 	static config: BigFloatConfig;
-	/** キャッシュ */
-	private static _cached;
+	/** 円周率キャッシュ */
+	private static _piCache;
+	/** eキャッシュ */
+	private static _eCache;
+	/** 対数キャッシュ */
+	private static _lnCache;
 	/** 5の累乗キャッシュ */
 	private static _pow5Cache;
 	/** 2の累乗キャッシュ */
@@ -1067,29 +1073,81 @@ export declare class BigFloat {
 	 */
 	protected static _binomial(n: bigint, k: bigint): bigint;
 	/**
-	 * キャッシュが存在するか確認する (内部用)
-	 * @param key - キャッシュキー
+	 * 円周率キャッシュが存在するか確認する (内部用)
 	 * @param precision - 必要精度
 	 * @param priority - アルゴリズム優先度
 	 * @returns 存在する場合はtrue
 	 */
-	protected static _getCheckCache(key: string, precision: bigint, priority?: number): boolean;
+	protected static _getCheckPiCache(precision: bigint, priority?: number): boolean;
 	/**
-	 * キャッシュを取得する (内部用)
+	 * 円周率キャッシュを取得する (内部用)
+	 * @param precision - 必要精度
+	 * @returns キャッシュされた値
+	 * @throws {Error} キャッシュが存在しない場合
+	 */
+	protected static _getPiCache(precision: bigint): bigint;
+	/**
+	 * 円周率キャッシュを更新する (内部用)
+	 * @param value - 値
+	 * @param precision - 精度
+	 * @param priority - アルゴリズム優先度
+	 */
+	protected static _updatePiCache(value: bigint, precision: bigint, priority?: number): void;
+	/**
+	 * 円周率の低精度キャッシュを取得する (内部用)
+	 * @param precision - 必要精度
+	 * @param priority - アルゴリズム優先度
+	 * @returns 低精度キャッシュ
+	 */
+	protected static _getPiSeedCache(precision: bigint, priority?: number): BigFloatPiCacheEntry | null;
+	/**
+	 * eキャッシュが存在するか確認する (内部用)
+	 * @param precision - 必要精度
+	 * @returns 存在する場合はtrue
+	 */
+	protected static _getCheckECache(precision: bigint): boolean;
+	/**
+	 * eキャッシュを取得する (内部用)
+	 * @param precision - 必要精度
+	 * @returns キャッシュされた値
+	 * @throws {Error} キャッシュが存在しない場合
+	 */
+	protected static _getECache(precision: bigint): bigint;
+	/**
+	 * eキャッシュを更新する (内部用)
+	 * @param value - 値
+	 * @param precision - 精度
+	 */
+	protected static _updateECache(value: bigint, precision: bigint): void;
+	/**
+	 * 対数キャッシュが存在するか確認する (内部用)
+	 * @param key - キャッシュキー
+	 * @param precision - 必要精度
+	 * @returns 存在する場合はtrue
+	 */
+	protected static _getCheckLnCache(key: string, precision: bigint): boolean;
+	/**
+	 * 対数キャッシュを取得する (内部用)
 	 * @param key - キャッシュキー
 	 * @param precision - 必要精度
 	 * @returns キャッシュされた値
 	 * @throws {Error} キャッシュが存在しない場合
 	 */
-	protected static _getCache(key: string, precision: bigint): bigint;
+	protected static _getLnCache(key: string, precision: bigint): bigint;
 	/**
-	 * キャッシュを更新する (内部用)
+	 * 対数キャッシュを更新する (内部用)
 	 * @param key - キャッシュキー
 	 * @param value - 値
 	 * @param precision - 精度
-	 * @param priority - アルゴリズム優先度
 	 */
-	protected static _updateCache(key: string, value: bigint, precision: bigint, priority?: number): void;
+	protected static _updateLnCache(key: string, value: bigint, precision: bigint): void;
+	/**
+	 * 対数の低精度キャッシュを取得する (内部用)
+	 * @param key - キャッシュキー
+	 * @param precision - 必要精度
+	 * @returns 低精度キャッシュ
+	 */
+	protected static _getLnSeedCache(key: string, precision: bigint): BigFloatCacheEntry | null;
 	/**
 	 * キャッシュ値を別精度へ変換する
 	 * @param value - 値
@@ -1098,14 +1156,6 @@ export declare class BigFloat {
 	 * @returns 変換後の値
 	 */
 	protected static _rescaleInternalValue(value: bigint, fromPrecision: bigint, toPrecision: bigint): bigint;
-	/**
-	 * 低精度キャッシュを取得する
-	 * @param key - キャッシュキー
-	 * @param precision - 必要精度
-	 * @param priority - アルゴリズム優先度
-	 * @returns 低精度キャッシュ
-	 */
-	protected static _getSeedCache(key: string, precision: bigint, priority?: number): BigFloatCacheEntry | null;
 	/**
 	 * キャッシュされたpiを高精度へ補正する
 	 * @param seed - 低精度キャッシュ
