@@ -34,6 +34,7 @@ const baselineRequire = vm.runInNewContext(
 );
 const JavaLibraryScript = baselineRequire(16);
 const OldBigFloat = JavaLibraryScript.math.BigFloat;
+OldBigFloat.config.extraPrecision = 6n;
 const OldBigFloatStream = JavaLibraryScript.util.stream.BigFloatStream;
 const identity = <T>(value: T): T => value;
 const alwaysTrue = (): boolean => true;

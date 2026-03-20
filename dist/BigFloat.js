@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.2.2
+ * BigFloat 1.2.3
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -43,7 +43,7 @@ var BigFloatConfig = class _BigFloatConfig {
   /**
    * @param options - 設定オプション
    */
-  constructor({ allowPrecisionMismatch = false, mutateResult = false, roundingMode = 0 /* TRUNCATE */, extraPrecision = 2n, piAlgorithm = 3 /* CHUDNOVSKY */, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n } = {}) {
+  constructor({ allowPrecisionMismatch = false, mutateResult = false, roundingMode = 0 /* TRUNCATE */, extraPrecision = 6n, piAlgorithm = 3 /* CHUDNOVSKY */, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n } = {}) {
     this.allowPrecisionMismatch = allowPrecisionMismatch;
     this.mutateResult = mutateResult;
     this.roundingMode = roundingMode;

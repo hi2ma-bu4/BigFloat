@@ -39,6 +39,15 @@ const JavaLibraryScript = baselineRequire(16);
 type ComparableBigFloat = InstanceType<typeof CurrentBigFloat>;
 type ComparableBigFloatCtor = {
 	new (value?: BigFloatValue, precision?: number | bigint): ComparableBigFloat;
+	config: {
+		allowPrecisionMismatch: boolean;
+		mutateResult: boolean;
+		roundingMode: number;
+		extraPrecision: bigint;
+		piAlgorithm: number;
+		trigFuncsMaxSteps: bigint;
+		lnMaxSteps: bigint;
+	};
 	clearCache?: () => void;
 	pi(precision: number | bigint): ComparableBigFloat;
 	e(precision: number | bigint): ComparableBigFloat;
@@ -53,6 +62,7 @@ type BenchmarkCase = {
 };
 
 const BaselineBigFloat = JavaLibraryScript.math.BigFloat as ComparableBigFloatCtor;
+BaselineBigFloat.config.extraPrecision = 6n;
 const TypedCurrentBigFloat: ComparableBigFloatCtor = CurrentBigFloat;
 
 /**
