@@ -47,10 +47,9 @@ test("BigFloat zeta special values", () => {
 });
 
 test("BigFloat zeta positive even integers match closed forms", async (t) => {
-	for (const p of [20, 50, 100]) {
+	for (const p of [20, 50, 100, 500]) {
 		await t.test(`precision=${p}`, () => {
-			const workingPrecision = p + 12;
-			const pi = BigFloat.pi(workingPrecision);
+			const pi = BigFloat.pi(p);
 			assertClose(new BigFloat(2, p).zeta(), pi.pow(2).div(6).changePrecision(p), p, "zeta(2)");
 			assertClose(new BigFloat(4, p).zeta(), pi.pow(4).div(90).changePrecision(p), p, "zeta(4)");
 			assertClose(new BigFloat(6, p).zeta(), pi.pow(6).div(945).changePrecision(p), p, "zeta(6)");

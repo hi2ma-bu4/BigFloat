@@ -58,7 +58,7 @@ export type BigFloatRawValue = {
 	exp2: bigint;
 	exp5: bigint;
 };
-export type BigFloatCacheEntry = BigFloatRawValue & {
+export type BigFloatCacheEntry = {
 	exactValue: bigint;
 	precision: bigint;
 	priority: number;
@@ -597,37 +597,6 @@ export declare class BigFloat {
 	 */
 	protected static _cos(x: bigint, precision: bigint, maxSteps: bigint): bigint;
 	/**
-	 * キャッシュ値を別精度へ変換する
-	 * @param value - 値
-	 * @param fromPrecision - 元の精度
-	 * @param toPrecision - 変換先の精度
-	 * @returns 変換後の値
-	 */
-	protected static _rescaleInternalValue(value: bigint, fromPrecision: bigint, toPrecision: bigint): bigint;
-	/**
-	 * 低精度キャッシュを取得する
-	 * @param key - キャッシュキー
-	 * @param precision - 必要精度
-	 * @param priority - アルゴリズム優先度
-	 * @returns 低精度キャッシュ
-	 */
-	protected static _getSeedCache(key: string, precision: bigint, priority?: number): BigFloatCacheEntry | null;
-	/**
-	 * キャッシュされたpiを高精度へ補正する
-	 * @param seed - 低精度キャッシュ
-	 * @param precision - 必要精度
-	 * @returns 高精度化したpi
-	 */
-	protected static _refinePiFromCache(seed: BigFloatCacheEntry, precision: bigint): bigint;
-	/**
-	 * キャッシュされた対数定数を高精度へ補正する
-	 * @param value - 対数を取る対象
-	 * @param seed - 低精度キャッシュ
-	 * @param precision - 必要精度
-	 * @returns 高精度化した対数定数
-	 */
-	protected static _refineLogConstantFromCache(value: bigint, seed: BigFloatCacheEntry, precision: bigint): bigint;
-	/**
 	 * 余弦(cos)を計算する
 	 * @returns 余弦
 	 */
@@ -976,6 +945,15 @@ export declare class BigFloat {
 	 */
 	protected static _integral(f: (k: bigint) => bigint, a: bigint, b: bigint, n: bigint, precision: bigint): bigint;
 	/**
+	 * 連続する整数の冪乗を計算する (内部用)
+	 * (n * scale)^-s を n=1..N について計算する
+	 * @param s - 指数
+	 * @param N - 最大の整数
+	 * @param precision - 精度
+	 * @returns 冪乗の結果の配列 (1-indexed)
+	 */
+	protected static _computePowers(s: bigint, N: number, precision: bigint): bigint[];
+	/**
 	 * ベルヌーイ数を生成する (内部用)
 	 * @param n - 最大次数
 	 * @param precision - 精度
@@ -1112,6 +1090,37 @@ export declare class BigFloat {
 	 * @param priority - アルゴリズム優先度
 	 */
 	protected static _updateCache(key: string, value: bigint, precision: bigint, priority?: number): void;
+	/**
+	 * キャッシュ値を別精度へ変換する
+	 * @param value - 値
+	 * @param fromPrecision - 元の精度
+	 * @param toPrecision - 変換先の精度
+	 * @returns 変換後の値
+	 */
+	protected static _rescaleInternalValue(value: bigint, fromPrecision: bigint, toPrecision: bigint): bigint;
+	/**
+	 * 低精度キャッシュを取得する
+	 * @param key - キャッシュキー
+	 * @param precision - 必要精度
+	 * @param priority - アルゴリズム優先度
+	 * @returns 低精度キャッシュ
+	 */
+	protected static _getSeedCache(key: string, precision: bigint, priority?: number): BigFloatCacheEntry | null;
+	/**
+	 * キャッシュされたpiを高精度へ補正する
+	 * @param seed - 低精度キャッシュ
+	 * @param precision - 必要精度
+	 * @returns 高精度化したpi
+	 */
+	protected static _refinePiFromCache(seed: BigFloatCacheEntry, precision: bigint): bigint;
+	/**
+	 * キャッシュされた対数定数を高精度へ補正する
+	 * @param value - 対数を取る対象
+	 * @param seed - 低精度キャッシュ
+	 * @param precision - 必要精度
+	 * @returns 高精度化した対数定数
+	 */
+	protected static _refineLogConstantFromCache(value: bigint, seed: BigFloatCacheEntry, precision: bigint): bigint;
 	/**
 	 * 5の累乗を取得する (キャッシュ付き)
 	 * @param n - 指数
