@@ -35,6 +35,25 @@ function zetaSeriesBounds(s: BigFloat, terms: number, precision: number): { lowe
 	};
 }
 
+function captureZetaInternalPrecision(construct: typeof BigFloat, value: string, precision: number | bigint): bigint {
+	const originalZeta = (construct as typeof BigFloat & { _zeta: (s: bigint, internalPrecision: bigint) => bigint })._zeta;
+	let capturedPrecision: bigint | null = null;
+	(construct as typeof BigFloat & { _zeta: (s: bigint, internalPrecision: bigint) => bigint })._zeta = function (s: bigint, internalPrecision: bigint): bigint {
+		capturedPrecision = internalPrecision;
+		return originalZeta.call(this, s, internalPrecision);
+	};
+	try {
+		new construct(value, precision).zeta();
+		assert.notStrictEqual(capturedPrecision, null);
+		if (capturedPrecision === null) {
+			throw new Error("internal zeta precision was not captured");
+		}
+		return capturedPrecision;
+	} finally {
+		(construct as typeof BigFloat & { _zeta: (s: bigint, internalPrecision: bigint) => bigint })._zeta = originalZeta;
+	}
+}
+
 test("BigFloat zeta special values", () => {
 	const p = 80;
 	assert.strictEqual(new BigFloat(0, p).zeta().toString(10, p), "-0.5");
@@ -90,4 +109,16 @@ test("BigFloat zeta is stable around the pole at s = 1", () => {
 	const principalPartGap = new BigFloat(2, p).div(delta);
 	const residual = right.sub(left).sub(principalPartGap).abs();
 	assert.ok(residual.lt(delta.mul(10)), `pole stability residual too large: ${residual.toString(10, p)}`);
+});
+
+test("BigFloat zeta uses config.extraPrecision for pole guard digits", () => {
+	const lowPrecisionClass = BigFloat.clone();
+	const highPrecisionClass = BigFloat.clone();
+	lowPrecisionClass.config.extraPrecision = 2n;
+	highPrecisionClass.config.extraPrecision = 9n;
+
+	const lowPrecision = captureZetaInternalPrecision(lowPrecisionClass, "1.00000001", 20);
+	const highPrecision = captureZetaInternalPrecision(highPrecisionClass, "1.00000001", 20);
+
+	assert.equal(highPrecision - lowPrecision, 14n);
 });

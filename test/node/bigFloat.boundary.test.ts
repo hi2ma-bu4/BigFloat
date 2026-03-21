@@ -16,6 +16,54 @@ function assertClose(actual: BigFloat, expected: BigFloat, precision: number | b
 	assert.ok(diff.lt(tolerance(precision, guardDigits)), `${label}: got ${actual.toString(10, precision)}, expected ${expected.toString(10, precision)}, diff ${diff.toString(10, precision)}`);
 }
 
+function captureDivisionTargetPrecision(construct: typeof BigFloat, precision: number | bigint): bigint {
+	const numerator = new construct(1, precision);
+	const denominator = new construct(3, precision);
+	const prototype = construct.prototype as BigFloat & { _applyPrecision: (precision?: bigint) => void };
+	const originalApplyPrecision = prototype._applyPrecision;
+	let capturedPrecision: bigint | null = null;
+	prototype._applyPrecision = function (targetPrecision?: bigint): void {
+		if (capturedPrecision === null && this._exp2 === this._exp5 && this._exp2 < 0n) {
+			capturedPrecision = -this._exp2;
+		}
+		return originalApplyPrecision.call(this, targetPrecision);
+	};
+	try {
+		numerator.div(denominator);
+		assert.notStrictEqual(capturedPrecision, null);
+		if (capturedPrecision === null) {
+			throw new Error("division target precision was not captured");
+		}
+		return capturedPrecision;
+	} finally {
+		prototype._applyPrecision = originalApplyPrecision;
+	}
+}
+
+function capturePiRefineWorkPrecision(construct: typeof BigFloat, seedPrecision: number | bigint, precision: number | bigint): bigint {
+	construct.clearCache();
+	construct.pi(seedPrecision);
+	const originalSinSeries = (construct as typeof BigFloat & { _sinSeries: (value: bigint, precision: bigint, maxSteps: bigint) => bigint })._sinSeries;
+	let capturedPrecision: bigint | null = null;
+	(construct as typeof BigFloat & { _sinSeries: (value: bigint, precision: bigint, maxSteps: bigint) => bigint })._sinSeries = function (value: bigint, workPrecision: bigint, maxSteps: bigint): bigint {
+		if (capturedPrecision === null) {
+			capturedPrecision = workPrecision;
+		}
+		return originalSinSeries.call(this, value, workPrecision, maxSteps);
+	};
+	try {
+		construct.pi(precision);
+		assert.notStrictEqual(capturedPrecision, null);
+		if (capturedPrecision === null) {
+			throw new Error("pi refine work precision was not captured");
+		}
+		return capturedPrecision;
+	} finally {
+		(construct as typeof BigFloat & { _sinSeries: (value: bigint, precision: bigint, maxSteps: bigint) => bigint })._sinSeries = originalSinSeries;
+		construct.clearCache();
+	}
+}
+
 test("BigFloatConfig clones and toggles every option", () => {
 	const config = new BigFloatConfig({
 		allowPrecisionMismatch: true,
@@ -87,6 +135,21 @@ test("BigFloat class cloning isolates configuration, instance cloning, and copy 
 
 	cloned.add(1);
 	assert.equal(original.toString(), "1.25");
+});
+
+test("BigFloat extraPrecision drives division and pi cache refinement work precision", () => {
+	const lowPrecisionClass = BigFloat.clone();
+	const highPrecisionClass = BigFloat.clone();
+	lowPrecisionClass.config.extraPrecision = 2n;
+	highPrecisionClass.config.extraPrecision = 9n;
+
+	const lowDivisionPrecision = captureDivisionTargetPrecision(lowPrecisionClass, 20);
+	const highDivisionPrecision = captureDivisionTargetPrecision(highPrecisionClass, 20);
+	assert.equal(highDivisionPrecision - lowDivisionPrecision, 7n);
+
+	const lowPiPrecision = capturePiRefineWorkPrecision(lowPrecisionClass, 8, 20);
+	const highPiPrecision = capturePiRefineWorkPrecision(highPrecisionClass, 8, 20);
+	assert.equal(highPiPrecision - lowPiPrecision, 7n);
 });
 
 test("BigFloat construction, parsing, normalization, and formatting handle boundaries", () => {
@@ -222,12 +285,16 @@ test("BigFloat arithmetic, reciprocal, and root methods hit exact edge cases", (
 	const farB = new BigFloat(`0.${"0".repeat(59)}9`, 60);
 	const sum = farA.add(farB);
 	const reduced = new BigFloat(6, ULTRA_PRECISION).div(15);
+	const lowPrecisionDivisor = new BigFloat("0.1", 1);
+	const lowPrecisionQuotient = new BigFloat("1.25", 1).div(lowPrecisionDivisor);
 
 	assert.equal(sum.toString(10, 60), `1.${"0".repeat(58)}1`);
 	assert.equal(reduced.toString(10, ULTRA_PRECISION), "0.4");
 	assert.equal(reduced.mantissa, 1n);
 	assert.equal(reduced.exponent2(), 1n);
 	assert.equal(reduced.exponent5(), -1n);
+	assert.equal(lowPrecisionDivisor.mantissa, 1n);
+	assert.equal(lowPrecisionQuotient.toString(10, 1), "12");
 	assert.equal(new BigFloat("10.5", HIGH_PRECISION).mod("0.6").toString(10, 1), "0.3");
 	assert.equal(new BigFloat("-12.5", HIGH_PRECISION).neg().toString(), "12.5");
 	assert.equal(new BigFloat("-12.5", HIGH_PRECISION).abs().toString(), "12.5");

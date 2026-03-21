@@ -1439,6 +1439,15 @@ var BigFloat = class _BigFloat {
     const mutate = construct.config.mutateResult;
     const res = mutate ? this : this.clone();
     res._precision = resultPrecision;
+    if (bfB.mantissa === 1n || bfB.mantissa === -1n) {
+      if (bfB.mantissa < 0n) res.mantissa = -res.mantissa;
+      res._exp2 -= bfB._exp2;
+      res._exp5 -= bfB._exp5;
+      res.softNormalize();
+      res._applyPrecision(res._precision);
+      res.lazyNormalize();
+      return res;
+    }
     if (res._precision <= 15n) {
       const valA = this.toNumber();
       const valB = bfB.toNumber();
@@ -1458,7 +1467,7 @@ var BigFloat = class _BigFloat {
       res.lazyNormalize();
       return res;
     }
-    const targetP = res._precision + 10n;
+    const targetP = res._precision + construct.config.extraPrecision;
     const e2 = res._exp2 - bfB._exp2 + targetP;
     const e5 = res._exp5 - bfB._exp5 + targetP;
     let m = res.mantissa;
@@ -4070,7 +4079,7 @@ var BigFloat = class _BigFloat {
     if (exactInteger === 0n) return this._makeExactResult(-1n, -1n);
     const currentPrecisionValue = this._getInternalValue(this._precision);
     const extraCancellationDigits = construct._zetaPoleCancellationDigits(currentPrecisionValue, this._precision);
-    const totalPr = this._precision + construct.config.extraPrecision + extraCancellationDigits + 6n;
+    const totalPr = this._precision + extraCancellationDigits + (construct.config.extraPrecision << 1n);
     const val = this._getInternalValue(totalPr);
     const raw = construct._zeta(val, totalPr);
     return this._makeResult(raw, this._precision, totalPr);
@@ -4291,7 +4300,7 @@ var BigFloat = class _BigFloat {
     while (currentPrecision < precision) {
       const grownPrecision = currentPrecision > 0n ? currentPrecision * 2n : 1n;
       const nextPrecision = grownPrecision > precision ? precision : grownPrecision;
-      const workPrecision = nextPrecision + 8n;
+      const workPrecision = nextPrecision + this.config.extraPrecision;
       const scale = this._getPow10(workPrecision);
       let estimate = this._rescaleInternalValue(current, currentPrecision, workPrecision);
       for (let i = 0; i < 2; i++) {

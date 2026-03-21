@@ -1606,6 +1606,16 @@ export class BigFloat {
 
 		res._precision = resultPrecision;
 
+		if (bfB.mantissa === 1n || bfB.mantissa === -1n) {
+			if (bfB.mantissa < 0n) res.mantissa = -res.mantissa;
+			res._exp2 -= bfB._exp2;
+			res._exp5 -= bfB._exp5;
+			res.softNormalize();
+			res._applyPrecision(res._precision);
+			res.lazyNormalize();
+			return res;
+		}
+
 		// ハイブリッド方式
 		if (res._precision <= 15n) {
 			const valA = this.toNumber();
@@ -1633,7 +1643,7 @@ export class BigFloat {
 		// 精度 P まで求めるためには、10^P = 2^P * 5^P 倍して丸める
 		// (Ma * 2^(E2a - E2b + P) * 5^(E5a - E5b + P) / Mb) / 10^P
 
-		const targetP = res._precision + 10n;
+		const targetP = res._precision + construct.config.extraPrecision;
 		const e2 = res._exp2 - bfB._exp2 + targetP;
 		const e5 = res._exp5 - bfB._exp5 + targetP;
 
@@ -4518,7 +4528,7 @@ export class BigFloat {
 
 		const currentPrecisionValue = this._getInternalValue(this._precision);
 		const extraCancellationDigits = construct._zetaPoleCancellationDigits(currentPrecisionValue, this._precision);
-		const totalPr = this._precision + construct.config.extraPrecision + extraCancellationDigits + 6n;
+		const totalPr = this._precision + extraCancellationDigits + (construct.config.extraPrecision << 1n);
 		const val = this._getInternalValue(totalPr);
 		const raw = construct._zeta(val, totalPr);
 		return this._makeResult(raw, this._precision, totalPr);
@@ -4758,7 +4768,7 @@ export class BigFloat {
 		while (currentPrecision < precision) {
 			const grownPrecision = currentPrecision > 0n ? currentPrecision * 2n : 1n;
 			const nextPrecision = grownPrecision > precision ? precision : grownPrecision;
-			const workPrecision = nextPrecision + 8n;
+			const workPrecision = nextPrecision + this.config.extraPrecision;
 			const scale = this._getPow10(workPrecision);
 			let estimate = this._rescaleInternalValue(current, currentPrecision, workPrecision);
 
