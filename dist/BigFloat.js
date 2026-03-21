@@ -1800,6 +1800,7 @@ var BigFloat = class _BigFloat {
       if (this._specialState === 3 /* NAN */) return this._specialResult(3 /* NAN */);
       return this._specialResult(this._specialState, this._precision);
     }
+    if (this.isZero()) return this._makeExactResult(0n);
     return this.nthRoot(3n);
   }
   /**
@@ -1858,35 +1859,12 @@ var BigFloat = class _BigFloat {
       if (construct.config.allowSpecialValues) return this._specialResult(3 /* NAN */);
       throw new Error("Even root of negative number");
     }
-    const res = this.clone();
-    const targetP = res._precision;
-    let m = res.mantissa;
-    let e2 = res._exp2 + bn * targetP;
-    let e5 = res._exp5 + bn * targetP;
-    if (e2 > 0n) m <<= e2;
-    if (e5 > 0n) m *= construct._getPow5(e5);
-    const div2 = e2 < 0n ? construct._getPow2(-e2) : 1n;
-    const div5 = e5 < 0n ? construct._getPow5(-e5) : 1n;
-    const divisor = div2 * div5;
-    m /= divisor;
-    let x = m > 0n ? m > 1n ? m / bn : 1n : 0n;
-    if (m < 0n) x = -(-m / bn);
-    if (x !== 0n) {
-      let lastX;
-      while (true) {
-        lastX = x;
-        let xPow = 1n;
-        for (let i = 0n; i < bn - 1n; i++) xPow *= x;
-        x = ((bn - 1n) * x + m / xPow) / bn;
-        if (x === lastX || (x > lastX ? x - lastX : lastX - x) < 1n) break;
-      }
-    }
-    res.mantissa = x;
-    res._exp2 = -targetP;
-    res._exp5 = -targetP;
-    res.softNormalize();
-    res._applyPrecision();
-    return this._makeResultFromInstance(res);
+    if (this.isZero()) return this._makeExactResult(0n);
+    if (bn === 1n) return this.clone();
+    const totalPr = this._precision + construct.config.extraPrecision;
+    const val = this._getInternalValue(totalPr);
+    const raw = construct._nthRoot(val, bn, totalPr);
+    return this._makeResult(raw, this._precision, totalPr);
   }
   // ====================================================================================================
   // * 三角関数
