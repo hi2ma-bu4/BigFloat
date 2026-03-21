@@ -20,16 +20,41 @@ export declare enum RoundingMode {
 	HALF_DOWN = 5
 }
 /**
- * BigFloat configuration options
+ * BigFloat の特別な値の状態
+ */
+export declare enum SpecialValueState {
+	/** 有限の値 */
+	FINITE = 0,
+	/** 正の無限大 */
+	POSITIVE_INFINITY = 1,
+	/** 負の無限大 */
+	NEGATIVE_INFINITY = 2,
+	/** 非数 (NaN) */
+	NAN = 3
+}
+/**
+ * BigFloat 構成オプション
  */
 export interface BigFloatOptions {
+	/** 精度の不一致を許容するかどうか */
 	allowPrecisionMismatch?: boolean;
+	/** 破壊的な計算(自身の上書き)をするかどうか */
 	mutateResult?: boolean;
+	/** Infinity/NaN の特殊値を許容するかどうか */
+	allowSpecialValues?: boolean;
+	/** 丸めモード */
 	roundingMode?: RoundingMode;
+	/** 計算時に追加する精度 */
 	extraPrecision?: bigint;
+	/** 三角関数の最大ステップ数 */
 	trigFuncsMaxSteps?: bigint;
+	/** 対数計算の最大ステップ数 */
 	lnMaxSteps?: bigint;
 }
+/**
+ * 精度を表す値
+ */
+export type PrecisionValue = number | bigint;
 /**
  * BigFloatに変換可能な値
  */
@@ -56,6 +81,8 @@ export declare class BigFloatConfig {
 	allowPrecisionMismatch: boolean;
 	/** 破壊的な計算(自身の上書き)をするかどうか */
 	mutateResult: boolean;
+	/** Infinity/NaN の特殊値を許容するかどうか */
+	allowSpecialValues: boolean;
 	/** 丸めモード */
 	roundingMode: RoundingMode;
 	/** 計算時に追加する精度 */
@@ -67,7 +94,7 @@ export declare class BigFloatConfig {
 	/**
 	 * @param options - 設定オプション
 	 */
-	constructor({ allowPrecisionMismatch, mutateResult, roundingMode, extraPrecision, trigFuncsMaxSteps, lnMaxSteps }?: BigFloatOptions);
+	constructor({ allowPrecisionMismatch, mutateResult, allowSpecialValues, roundingMode, extraPrecision, trigFuncsMaxSteps, lnMaxSteps }?: BigFloatOptions);
 	/**
 	 * 設定オブジェクトを複製する
 	 * @returns 複製された設定オブジェクト
@@ -120,12 +147,96 @@ export declare class BigFloat {
 	exponent5(): bigint;
 	/** 精度 (小数点以下の最大桁数) */
 	_precision: bigint;
+	/** 特殊値の状態 */
+	_specialState: SpecialValueState;
+	/**
+	 * 特殊値状態を表示用の文字列に変換する
+	 * @param state - 特殊値状態
+	 * @returns 表示用の文字列
+	 */
+	protected static _specialStateLabel(state: SpecialValueState): string;
+	/**
+	 * 文字列から特殊値状態を判定する
+	 * @param value - 判定対象の文字列
+	 * @returns 対応する特殊値状態。通常の数値文字列の場合はnull
+	 */
+	protected static _stateFromString(value: string): SpecialValueState | null;
+	/**
+	 * number値から特殊値状態を判定する
+	 * @param value - 判定対象の値
+	 * @returns 対応する特殊値状態。有限値の場合はnull
+	 */
+	protected static _stateFromNumber(value: number): SpecialValueState | null;
+	/**
+	 * 特殊値状態のインスタンスを生成する
+	 * @param state - 特殊値状態
+	 * @param precision - 結果の精度
+	 * @returns 生成された特殊値インスタンス
+	 * @throws {Error} 特殊値が無効な場合
+	 */
+	protected static _createSpecialValue(state: SpecialValueState, precision: bigint): BigFloat;
+	/**
+	 * 自身または新しいインスタンスに特殊値状態を設定する
+	 * @param state - 特殊値状態
+	 * @param precision - 結果の精度
+	 * @returns 特殊値状態を持つ結果
+	 * @throws {Error} 特殊値が無効な場合
+	 */
+	protected _specialResult(state: SpecialValueState, precision?: bigint): BigFloat;
+	/**
+	 * 有限値かどうかを判定する
+	 * @returns 有限値の場合はtrue
+	 */
+	protected _isFiniteState(): boolean;
+	/**
+	 * NaN状態かどうかを判定する
+	 * @returns NaN状態の場合はtrue
+	 */
+	protected _isNaNState(): boolean;
+	/**
+	 * 無限大状態かどうかを判定する
+	 * @returns 正または負の無限大の場合はtrue
+	 */
+	protected _isInfinityState(): boolean;
+	/**
+	 * 符号を取得する
+	 * @returns 正なら1、負なら-1、ゼロまたはNaNなら0
+	 */
+	protected _signum(): number;
+	/**
+	 * 特殊値が無効な設定で特殊値を扱っていないかを検証する
+	 * @param values - 検証対象の値
+	 * @throws {Error} 特殊値が無効で対象に特殊値が含まれる場合
+	 */
+	protected _ensureSpecialValuesEnabled(...values: BigFloat[]): void;
+	/**
+	 * 特殊値を考慮してnumberへ変換する
+	 * @returns 変換後のnumber値
+	 * @throws {Error} 特殊値が無効な場合
+	 */
+	protected _specialAwareNumber(): number;
+	/**
+	 * number値から特殊値を考慮した結果を生成する
+	 * @param value - 変換元のnumber値
+	 * @param precision - 結果の精度
+	 * @returns 変換後のBigFloat
+	 */
+	protected _fromSpecialAwareNumber(value: number, precision?: bigint): BigFloat;
+	/**
+	 * 指定精度の厳密値結果を生成する
+	 * @param mantissa - 仮数
+	 * @param precision - 結果の精度
+	 * @param exp2 - 2の指数
+	 * @param exp5 - 5の指数
+	 * @returns 厳密値の結果
+	 */
+	protected _makeExactResultWithPrecision(mantissa: bigint, precision: bigint, exp2?: bigint, exp5?: bigint): BigFloat;
 	/**
 	 * @param value - 初期値
 	 * @param precision - 精度
 	 * @throws {RangeError} 精度が不正な場合
 	 */
-	constructor(value?: BigFloatValue, precision?: number | bigint);
+	constructor(value?: BigFloatValue, precision?: PrecisionValue);
 	/**
 	 * クラスを複製する (設定複製用)
 	 * @returns 複製されたクラス
@@ -194,7 +305,7 @@ export declare class BigFloat {
 	 * @throws {RangeError} 基数が2から36の範囲外の場合
 	 * @throws {Error} 不正な文字が含まれている場合
 	 */
-	static parseFloat(str: BigFloatValue, precision?: number | bigint, base?: number): BigFloat;
+	static parseFloat(str: BigFloatValue, precision?: PrecisionValue, base?: number): BigFloat;
 	/**
 	 * 文字列を解析して数値を取得
 	 * @param str - 解析する文字列
@@ -301,7 +412,7 @@ export declare class BigFloat {
 	 * @param precision - 新しい精度
 	 * @returns 精度が変更されたインスタンス
 	 */
-	changePrecision(precision: number | bigint): this;
+	changePrecision(precision: PrecisionValue): this;
 	/**
 	 * どこまで精度が一致しているかを判定する
 	 * @param other - 比較対象
@@ -396,7 +507,7 @@ export declare class BigFloat {
 	 * @returns 変換された文字列
 	 * @throws {RangeError} 基数が2から36の範囲外の場合
 	 */
-	toString(base?: number, precision?: number | bigint): string;
+	toString(base?: number, precision?: PrecisionValue): string;
 	/**
 	 * JSON用の文字列表現を取得する
 	 * @returns JSON文字列
@@ -412,7 +523,7 @@ export declare class BigFloat {
 	 * @param digits - 小数点以下の桁数
 	 * @returns 固定小数点形式の文字列
 	 */
-	toFixed(digits: number | bigint): string;
+	toFixed(digits: PrecisionValue): string;
 	/**
 	 * 指数形式の文字列を取得する
 	 * @param digits - 有効桁数
@@ -813,7 +924,7 @@ export declare class BigFloat {
 	 * @param precision - 精度
 	 * @returns e
 	 */
-	static e(precision?: number | bigint): BigFloat;
+	static e(precision?: PrecisionValue): BigFloat;
 	/**
 	 * チュドノフスキー法で円周率を計算する (内部用)
 	 * @param precision - 精度
@@ -831,7 +942,7 @@ export declare class BigFloat {
 	 * @param precision - 精度
 	 * @returns pi
 	 */
-	static pi(precision?: number | bigint): BigFloat;
+	static pi(precision?: PrecisionValue): BigFloat;
 	/**
 	 * タウ(tau = 2*pi)を計算する (内部用)
 	 * @param precision - 精度
@@ -843,7 +954,7 @@ export declare class BigFloat {
 	 * @param precision - 精度
 	 * @returns tau
 	 */
-	static tau(precision?: number | bigint): BigFloat;
+	static tau(precision?: PrecisionValue): BigFloat;
 	/**
 	 * 引数の中で最大値を返す
 	 * @param args - 数値のリスト
@@ -907,7 +1018,7 @@ export declare class BigFloat {
 	 * @param precision - 精度
 	 * @returns ランダムなBigFloat
 	 */
-	static random(precision?: number | bigint): BigFloat;
+	static random(precision?: PrecisionValue): BigFloat;
 	/**
 	 * 数値積分を計算する (内部用)
 	 * @param f - 関数
@@ -1155,23 +1266,92 @@ export declare class BigFloat {
 	 */
 	protected static _getPow10(n: bigint): bigint;
 	/**
+	 * 定数 NaN を取得する
+	 * @param precision - 精度
+	 * @returns NaN
+	 * @throws {Error} 特殊値が無効な場合
+	 */
+	static nan(precision?: PrecisionValue): BigFloat;
+	/**
+	 * 定数 Infinity を取得する
+	 * @param precision - 精度
+	 * @returns Infinity
+	 * @throws {Error} 特殊値が無効な場合
+	 */
+	static infinity(precision?: PrecisionValue): BigFloat;
+	/**
+	 * 定数 -Infinity を取得する
+	 * @param precision - 精度
+	 * @returns -Infinity
+	 * @throws {Error} 特殊値が無効な場合
+	 */
+	static negativeInfinity(precision?: PrecisionValue): BigFloat;
+	/**
+	 * 定数 -10 を取得する
+	 * @param precision - 精度
+	 * @returns -10
+	 */
+	static minusTen(precision?: PrecisionValue): BigFloat;
+	/**
+	 * 定数 -2 を取得する
+	 * @param precision - 精度
+	 * @returns -2
+	 */
+	static minusTwo(precision?: PrecisionValue): BigFloat;
+	/**
 	 * 定数 -1 を取得する
 	 * @param precision - 精度
 	 * @returns -1
 	 */
-	static minusOne(precision?: number | bigint): BigFloat;
+	static minusOne(precision?: PrecisionValue): BigFloat;
 	/**
 	 * 定数 0 を取得する
 	 * @param precision - 精度
 	 * @returns 0
 	 */
-	static zero(precision?: number | bigint): BigFloat;
+	static zero(precision?: PrecisionValue): BigFloat;
+	/**
+	 * 定数 0.25 を取得する
+	 * @param precision - 精度
+	 * @returns 0.25
+	 */
+	static quarter(precision?: PrecisionValue): BigFloat;
+	/**
+	 * 定数 0.5 を取得する
+	 * @param precision - 精度
+	 * @returns 0.5
+	 */
+	static half(precision?: PrecisionValue): BigFloat;
 	/**
 	 * 定数 1 を取得する
 	 * @param precision - 精度
 	 * @returns 1
 	 */
-	static one(precision?: number | bigint): BigFloat;
+	static one(precision?: PrecisionValue): BigFloat;
+	/**
+	 * 定数 2 を取得する
+	 * @param precision - 精度
+	 * @returns 2
+	 */
+	static two(precision?: PrecisionValue): BigFloat;
+	/**
+	 * 定数 10 を取得する
+	 * @param precision - 精度
+	 * @returns 10
+	 */
+	static ten(precision?: PrecisionValue): BigFloat;
+	/**
+	 * 定数 100 を取得する
+	 * @param precision - 精度
+	 * @returns 100
+	 */
+	static hundred(precision?: PrecisionValue): BigFloat;
+	/**
+	 * 定数 1000 を取得する
+	 * @param precision - 精度
+	 * @returns 1000
+	 */
+	static thousand(precision?: PrecisionValue): BigFloat;
 }
 /**
  * BigFloat を作成する
@@ -1179,7 +1359,7 @@ export declare class BigFloat {
  * @param precision - 精度
  * @returns BigFloat インスタンス
  */
-export declare function bigFloat(value: BigFloatValue, precision?: number | bigint): BigFloat;
+export declare function bigFloat(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
 export type BigFloatStreamFactory = () => Iterator<BigFloat>;
 export type BigFloatStreamStageSignal = BigFloat | typeof BIGFLOAT_STREAM_SKIP;
 export type BigFloatStreamStageContext = {
@@ -1197,7 +1377,7 @@ export type BigFloatStreamStage = {
 export type BigFloatStreamRandomOptions = {
 	min?: BigFloatStreamValue;
 	max?: BigFloatStreamValue;
-	precision?: number | bigint;
+	precision?: PrecisionValue;
 };
 declare const BIGFLOAT_STREAM_SKIP: unique symbol;
 /**
@@ -1259,7 +1439,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 明示精度
 	 * @returns 精度
 	 */
-	protected static _resolvePrecision(values: BigFloatStreamValue[], precision?: number | bigint): bigint;
+	protected static _resolvePrecision(values: BigFloatStreamValue[], precision?: PrecisionValue): bigint;
 	/**
 	 * 要素数を正規化する
 	 * @param count - 要素数
@@ -1278,7 +1458,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 変換時の精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	static from(iterable: Iterable<BigFloatStreamValue>, precision?: number | bigint): BigFloatStream;
+	static from(iterable: Iterable<BigFloatStreamValue>, precision?: PrecisionValue): BigFloatStream;
 	/**
 	 * 値のリストからBigFloatStreamを作成する
 	 * @param values - 値のリスト
@@ -1293,7 +1473,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	static arithmetic(start: BigFloatStreamValue, step: BigFloatStreamValue, count: number, precision?: number | bigint): BigFloatStream;
+	static arithmetic(start: BigFloatStreamValue, step: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream;
 	/**
 	 * 等比数列を生成する
 	 * @param start - 初項
@@ -1302,7 +1482,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	static geometric(start: BigFloatStreamValue, ratio: BigFloatStreamValue, count: number, precision?: number | bigint): BigFloatStream;
+	static geometric(start: BigFloatStreamValue, ratio: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream;
 	/**
 	 * 指定個数で等間隔な値を生成する
 	 * @param start - 開始値
@@ -1311,7 +1491,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	static linspace(start: BigFloatStreamValue, end: BigFloatStreamValue, count: number, precision?: number | bigint): BigFloatStream;
+	static linspace(start: BigFloatStreamValue, end: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream;
 	/**
 	 * 10を底とする対数間隔の値を生成する
 	 * @param start - 開始指数
@@ -1320,14 +1500,14 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	static logspace(start: BigFloatStreamValue, end: BigFloatStreamValue, count: number, precision?: number | bigint): BigFloatStream;
+	static logspace(start: BigFloatStreamValue, end: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream;
 	/**
 	 * 調和級数を生成する
 	 * @param count - 要素数
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	static harmonic(count: number, precision?: number | bigint): BigFloatStream;
+	static harmonic(count: number, precision?: PrecisionValue): BigFloatStream;
 	/**
 	 * 乱数列を生成する
 	 * @param count - 要素数
@@ -1342,21 +1522,21 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	static repeat(value: BigFloatStreamValue, count: number, precision?: number | bigint): BigFloatStream;
+	static repeat(value: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream;
 	/**
 	 * フィボナッチ数列を生成する
 	 * @param count - 要素数
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	static fibonacci(count: number, precision?: number | bigint): BigFloatStream;
+	static fibonacci(count: number, precision?: PrecisionValue): BigFloatStream;
 	/**
 	 * 階乗列を生成する
 	 * @param count - 要素数
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	static factorial(count: number, precision?: number | bigint): BigFloatStream;
+	static factorial(count: number, precision?: PrecisionValue): BigFloatStream;
 	/**
 	 * 範囲を生成する
 	 * @param start - 開始値
@@ -1365,7 +1545,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	static range(start: BigFloatStreamValue, end?: BigFloatStreamValue, step?: BigFloatStreamValue, precision?: number | bigint): BigFloatStream;
+	static range(start: BigFloatStreamValue, end?: BigFloatStreamValue, step?: BigFloatStreamValue, precision?: PrecisionValue): BigFloatStream;
 	/**
 	 * ストリームを複製する
 	 * @returns 複製されたストリーム
@@ -1539,7 +1719,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 新しい精度
 	 * @returns 精度が変更されたストリーム
 	 */
-	changePrecision(precision: number | bigint): this;
+	changePrecision(precision: PrecisionValue): this;
 	/**
 	 * 各要素に加算する
 	 * @param other - 加算する値

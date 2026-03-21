@@ -23,6 +23,7 @@ test("BigFloatConfig clones and toggles every option", () => {
 	const config = new BigFloatConfig({
 		allowPrecisionMismatch: true,
 		mutateResult: true,
+		allowSpecialValues: false,
 		roundingMode: RoundingMode.HALF_DOWN,
 		extraPrecision: 11n,
 		trigFuncsMaxSteps: 22n,
@@ -35,6 +36,7 @@ test("BigFloatConfig clones and toggles every option", () => {
 		{
 			allowPrecisionMismatch: clone.allowPrecisionMismatch,
 			mutateResult: clone.mutateResult,
+			allowSpecialValues: clone.allowSpecialValues,
 			roundingMode: clone.roundingMode,
 			extraPrecision: clone.extraPrecision,
 			trigFuncsMaxSteps: clone.trigFuncsMaxSteps,
@@ -43,6 +45,7 @@ test("BigFloatConfig clones and toggles every option", () => {
 		{
 			allowPrecisionMismatch: true,
 			mutateResult: true,
+			allowSpecialValues: false,
 			roundingMode: RoundingMode.HALF_DOWN,
 			extraPrecision: 11n,
 			trigFuncsMaxSteps: 22n,
@@ -62,6 +65,7 @@ test("BigFloat class cloning isolates configuration, instance cloning, and copy 
 	const Derived = BigFloat.clone();
 	Derived.config.allowPrecisionMismatch = true;
 	Derived.config.mutateResult = true;
+	Derived.config.allowSpecialValues = false;
 	Derived.config.roundingMode = RoundingMode.UP;
 	Derived.config.extraPrecision = 3n;
 	Derived.config.trigFuncsMaxSteps = 7n;
@@ -69,6 +73,7 @@ test("BigFloat class cloning isolates configuration, instance cloning, and copy 
 
 	assert.equal(BigFloat.config.allowPrecisionMismatch, false);
 	assert.equal(BigFloat.config.mutateResult, false);
+	assert.equal(BigFloat.config.allowSpecialValues, true);
 	assert.equal(BigFloat.config.roundingMode, RoundingMode.TRUNCATE);
 	assert.equal(BigFloat.config.extraPrecision, 6n);
 	assert.equal(BigFloat.config.trigFuncsMaxSteps, 5000n);
@@ -229,8 +234,8 @@ test("BigFloat arithmetic, reciprocal, and root methods hit exact edge cases", (
 	assert.equal(new BigFloat(144, HIGH_PRECISION).sqrt().toString(), "12");
 	assert.equal(new BigFloat("-27", HIGH_PRECISION).cbrt().toString(), "-3");
 	assert.equal(new BigFloat(81, HIGH_PRECISION).nthRoot(4).toString(), "3");
-	assert.throws(() => new BigFloat(-1, HIGH_PRECISION).sqrt(), /negative number/);
-	assert.throws(() => new BigFloat(-16, HIGH_PRECISION).nthRoot(2), /Even root/);
+	assert.equal(new BigFloat(-1, HIGH_PRECISION).sqrt().toString(), "NaN");
+	assert.equal(new BigFloat(-16, HIGH_PRECISION).nthRoot(2).toString(), "NaN");
 	assert.throws(() => new BigFloat(16, HIGH_PRECISION).nthRoot(0), /positive integer/);
 });
 
@@ -248,7 +253,7 @@ test("BigFloat trigonometric methods satisfy high-precision boundary identities"
 	assertClose(new BigFloat(1, ULTRA_PRECISION).atan(), pi.div(4), ULTRA_PRECISION, "atan(1)");
 	assertClose(new BigFloat(1, ULTRA_PRECISION).atan2(-1), pi.mul(3).div(4), ULTRA_PRECISION, "atan2(1, -1)");
 	assert.throws(() => pi.div(2).tan(), /undefined|unstable/);
-	assert.throws(() => new BigFloat("1.1", ULTRA_PRECISION).asin(), /out of range/);
+	assert.equal(new BigFloat("1.1", ULTRA_PRECISION).asin().toString(), "NaN");
 });
 
 test("BigFloat exponential and logarithmic methods preserve inverse relationships at high precision", () => {
@@ -266,8 +271,8 @@ test("BigFloat exponential and logarithmic methods preserve inverse relationship
 	assertClose(x.ln().exp(), x, ULTRA_PRECISION, "exp(ln(x))", 7);
 	assertClose(tiny.expm1().log1p(), tiny, ULTRA_PRECISION, "log1p(expm1(x))", 7);
 	assertClose(new BigFloat(2, ULTRA_PRECISION).exp2().log2(), new BigFloat(2, ULTRA_PRECISION), ULTRA_PRECISION, "log2(exp2(2))");
-	assert.throws(() => new BigFloat(-1, ULTRA_PRECISION).ln(), /undefined/);
-	assert.throws(() => new BigFloat(10, ULTRA_PRECISION).log(1), /base cannot be 1 or 0/);
+	assert.equal(new BigFloat(-1, ULTRA_PRECISION).ln().toString(), "NaN");
+	assert.equal(new BigFloat(10, ULTRA_PRECISION).log(1).toString(), "NaN");
 });
 
 test("BigFloat constants, aggregates, random, gamma, zeta, and factorial helpers cover public APIs", () => {
@@ -308,7 +313,15 @@ test("BigFloat constants, aggregates, random, gamma, zeta, and factorial helpers
 
 	assert.equal(BigFloat.minusOne(ULTRA_PRECISION).toString(), "-1");
 	assert.equal(BigFloat.zero(ULTRA_PRECISION).toString(), "0");
+	assert.equal(BigFloat.quarter(ULTRA_PRECISION).toString(), "0.25");
+	assert.equal(BigFloat.half(ULTRA_PRECISION).toString(), "0.5");
 	assert.equal(BigFloat.one(ULTRA_PRECISION).toString(), "1");
+	assert.equal(BigFloat.two(ULTRA_PRECISION).toString(), "2");
+	assert.equal(BigFloat.ten(ULTRA_PRECISION).toString(), "10");
+	assert.equal(BigFloat.hundred(ULTRA_PRECISION).toString(), "100");
+	assert.equal(BigFloat.thousand(ULTRA_PRECISION).toString(), "1000");
+	assert.equal(BigFloat.minusTwo(ULTRA_PRECISION).toString(), "-2");
+	assert.equal(BigFloat.minusTen(ULTRA_PRECISION).toString(), "-10");
 	assertClose(new BigFloat("0.5", ULTRA_PRECISION).gamma(), piA.sqrt(), ULTRA_PRECISION, "gamma(1/2)", 22);
 	assert.equal(new BigFloat(0, ULTRA_PRECISION).factorial().toString(), "1");
 	assertClose(new BigFloat("0.5", ULTRA_PRECISION).factorial(), piA.sqrt().div(2), ULTRA_PRECISION, "factorial(1/2)", 22);

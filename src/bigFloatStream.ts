@@ -1,5 +1,5 @@
 import { BigFloat } from "./bigFloat";
-import type { BigFloatStreamValue, BigFloatValue } from "./types";
+import type { BigFloatStreamValue, BigFloatValue, PrecisionValue } from "./types";
 
 type BigFloatStreamFactory = () => Iterator<BigFloat>;
 type BigFloatStreamFrame = { iterator: Iterator<BigFloat>; stageIndex: number };
@@ -19,7 +19,7 @@ type BigFloatStreamStage = {
 type BigFloatStreamRandomOptions = {
 	min?: BigFloatStreamValue;
 	max?: BigFloatStreamValue;
-	precision?: number | bigint;
+	precision?: PrecisionValue;
 };
 
 const BIGFLOAT_STREAM_SKIP = Symbol("BIGFLOAT_STREAM_SKIP");
@@ -165,7 +165,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 明示精度
 	 * @returns 精度
 	 */
-	protected static _resolvePrecision(values: BigFloatStreamValue[], precision?: number | bigint): bigint {
+	protected static _resolvePrecision(values: BigFloatStreamValue[], precision?: PrecisionValue): bigint {
 		if (precision !== undefined) return BigInt(precision);
 		let resolved = 20n;
 		for (const value of values) {
@@ -203,7 +203,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 変換時の精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	public static from(iterable: Iterable<BigFloatStreamValue>, precision?: number | bigint): BigFloatStream {
+	public static from(iterable: Iterable<BigFloatStreamValue>, precision?: PrecisionValue): BigFloatStream {
 		if (precision === undefined) {
 			return new BigFloatStream(function* () {
 				for (const item of iterable) {
@@ -237,7 +237,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	public static arithmetic(start: BigFloatStreamValue, step: BigFloatStreamValue, count: number, precision?: number | bigint): BigFloatStream {
+	public static arithmetic(start: BigFloatStreamValue, step: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
 		if (normalizedCount === 0) return this.empty();
 		const resolvedPrecision = this._resolvePrecision([start, step], precision);
@@ -260,7 +260,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	public static geometric(start: BigFloatStreamValue, ratio: BigFloatStreamValue, count: number, precision?: number | bigint): BigFloatStream {
+	public static geometric(start: BigFloatStreamValue, ratio: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
 		if (normalizedCount === 0) return this.empty();
 		const resolvedPrecision = this._resolvePrecision([start, ratio], precision);
@@ -283,7 +283,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	public static linspace(start: BigFloatStreamValue, end: BigFloatStreamValue, count: number, precision?: number | bigint): BigFloatStream {
+	public static linspace(start: BigFloatStreamValue, end: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
 		if (normalizedCount === 0) return this.empty();
 		const resolvedPrecision = this._resolvePrecision([start, end], precision);
@@ -318,7 +318,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	public static logspace(start: BigFloatStreamValue, end: BigFloatStreamValue, count: number, precision?: number | bigint): BigFloatStream {
+	public static logspace(start: BigFloatStreamValue, end: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
 		if (normalizedCount === 0) return this.empty();
 		const resolvedPrecision = this._resolvePrecision([start, end], precision);
@@ -354,7 +354,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	public static harmonic(count: number, precision?: number | bigint): BigFloatStream {
+	public static harmonic(count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
 		if (normalizedCount === 0) return this.empty();
 		const resolvedPrecision = precision === undefined ? 20n : BigInt(precision);
@@ -403,7 +403,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	public static repeat(value: BigFloatStreamValue, count: number, precision?: number | bigint): BigFloatStream {
+	public static repeat(value: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
 		if (normalizedCount === 0) return this.empty();
 		const resolvedPrecision = this._resolvePrecision([value], precision);
@@ -422,7 +422,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	public static fibonacci(count: number, precision?: number | bigint): BigFloatStream {
+	public static fibonacci(count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
 		if (normalizedCount === 0) return this.empty();
 		const resolvedPrecision = precision === undefined ? 20n : BigInt(precision);
@@ -445,7 +445,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	public static factorial(count: number, precision?: number | bigint): BigFloatStream {
+	public static factorial(count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
 		if (normalizedCount === 0) return this.empty();
 		const resolvedPrecision = precision === undefined ? 20n : BigInt(precision);
@@ -467,7 +467,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
 	 */
-	public static range(start: BigFloatStreamValue, end?: BigFloatStreamValue, step: BigFloatStreamValue = 1, precision?: number | bigint): BigFloatStream {
+	public static range(start: BigFloatStreamValue, end?: BigFloatStreamValue, step: BigFloatStreamValue = 1, precision?: PrecisionValue): BigFloatStream {
 		const actualStart = end === undefined ? 0 : start;
 		const actualEnd = end === undefined ? start : end;
 		const resolvedPrecision = this._resolvePrecision([actualStart, actualEnd, step], precision);
@@ -863,7 +863,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 新しい精度
 	 * @returns 精度が変更されたストリーム
 	 */
-	public changePrecision(precision: number | bigint): this {
+	public changePrecision(precision: PrecisionValue): this {
 		const precisionBig = BigInt(precision);
 		return this.map((x) => x.clone().changePrecision(precisionBig));
 	}

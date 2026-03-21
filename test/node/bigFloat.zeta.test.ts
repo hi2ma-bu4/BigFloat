@@ -43,7 +43,7 @@ test("BigFloat zeta special values", () => {
 
 	assertClose(new BigFloat(-1, p).zeta(), new BigFloat(-1, p).div(12), p, "zeta(-1)");
 	assertClose(new BigFloat(-3, p).zeta(), new BigFloat(1, p).div(120), p, "zeta(-3)");
-	assert.throws(() => new BigFloat(1, p).zeta(), /pole/);
+	assert.strictEqual(new BigFloat(1, p).zeta().toString(), "Infinity");
 });
 
 test("BigFloat zeta positive even integers match closed forms", async (t) => {

@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.2.9
+ * BigFloat 1.2.10
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -16,6 +16,13 @@ var RoundingMode = /* @__PURE__ */ ((RoundingMode2) => {
   RoundingMode2[RoundingMode2["HALF_DOWN"] = 5] = "HALF_DOWN";
   return RoundingMode2;
 })(RoundingMode || {});
+var SpecialValueState = /* @__PURE__ */ ((SpecialValueState2) => {
+  SpecialValueState2[SpecialValueState2["FINITE"] = 0] = "FINITE";
+  SpecialValueState2[SpecialValueState2["POSITIVE_INFINITY"] = 1] = "POSITIVE_INFINITY";
+  SpecialValueState2[SpecialValueState2["NEGATIVE_INFINITY"] = 2] = "NEGATIVE_INFINITY";
+  SpecialValueState2[SpecialValueState2["NAN"] = 3] = "NAN";
+  return SpecialValueState2;
+})(SpecialValueState || {});
 
 // src/bigFloat.ts
 var BigFloatConfig = class _BigFloatConfig {
@@ -23,6 +30,8 @@ var BigFloatConfig = class _BigFloatConfig {
   allowPrecisionMismatch;
   /** 破壊的な計算(自身の上書き)をするかどうか */
   mutateResult;
+  /** Infinity/NaN の特殊値を許容するかどうか */
+  allowSpecialValues;
   /** 丸めモード */
   roundingMode;
   /** 計算時に追加する精度 */
@@ -34,9 +43,10 @@ var BigFloatConfig = class _BigFloatConfig {
   /**
    * @param options - 設定オプション
    */
-  constructor({ allowPrecisionMismatch = false, mutateResult = false, roundingMode = 0 /* TRUNCATE */, extraPrecision = 6n, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n } = {}) {
+  constructor({ allowPrecisionMismatch = false, mutateResult = false, allowSpecialValues = true, roundingMode = 0 /* TRUNCATE */, extraPrecision = 6n, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n } = {}) {
     this.allowPrecisionMismatch = allowPrecisionMismatch;
     this.mutateResult = mutateResult;
+    this.allowSpecialValues = allowSpecialValues;
     this.roundingMode = roundingMode;
     this.extraPrecision = extraPrecision;
     this.trigFuncsMaxSteps = trigFuncsMaxSteps;
@@ -50,6 +60,7 @@ var BigFloatConfig = class _BigFloatConfig {
     return new _BigFloatConfig({
       allowPrecisionMismatch: this.allowPrecisionMismatch,
       mutateResult: this.mutateResult,
+      allowSpecialValues: this.allowSpecialValues,
       roundingMode: this.roundingMode,
       extraPrecision: this.extraPrecision,
       trigFuncsMaxSteps: this.trigFuncsMaxSteps,
@@ -115,6 +126,188 @@ var BigFloat = class _BigFloat {
   }
   /** 精度 (小数点以下の最大桁数) */
   _precision = 20n;
+  /** 特殊値の状態 */
+  _specialState = 0 /* FINITE */;
+  /**
+   * 特殊値状態を表示用の文字列に変換する
+   * @param state - 特殊値状態
+   * @returns 表示用の文字列
+   */
+  static _specialStateLabel(state) {
+    switch (state) {
+      case 1 /* POSITIVE_INFINITY */:
+        return "Infinity";
+      case 2 /* NEGATIVE_INFINITY */:
+        return "-Infinity";
+      case 3 /* NAN */:
+        return "NaN";
+      default:
+        return "";
+    }
+  }
+  /**
+   * 文字列から特殊値状態を判定する
+   * @param value - 判定対象の文字列
+   * @returns 対応する特殊値状態。通常の数値文字列の場合はnull
+   */
+  static _stateFromString(value) {
+    const trimmed = value.trim();
+    if (/^[+]?(?:infinity|inf)$/i.test(trimmed)) return 1 /* POSITIVE_INFINITY */;
+    if (/^-(?:infinity|inf)$/i.test(trimmed)) return 2 /* NEGATIVE_INFINITY */;
+    if (/^nan$/i.test(trimmed)) return 3 /* NAN */;
+    return null;
+  }
+  /**
+   * number値から特殊値状態を判定する
+   * @param value - 判定対象の値
+   * @returns 対応する特殊値状態。有限値の場合はnull
+   */
+  static _stateFromNumber(value) {
+    if (Number.isNaN(value)) return 3 /* NAN */;
+    if (value === Number.POSITIVE_INFINITY) return 1 /* POSITIVE_INFINITY */;
+    if (value === Number.NEGATIVE_INFINITY) return 2 /* NEGATIVE_INFINITY */;
+    return null;
+  }
+  /**
+   * 特殊値状態のインスタンスを生成する
+   * @param state - 特殊値状態
+   * @param precision - 結果の精度
+   * @returns 生成された特殊値インスタンス
+   * @throws {Error} 特殊値が無効な場合
+   */
+  static _createSpecialValue(state, precision) {
+    if (!this.config.allowSpecialValues) {
+      throw new Error("Special values are disabled");
+    }
+    const result = new this(0n, precision);
+    result._specialState = state;
+    result.mantissa = 0n;
+    result._exp2 = 0n;
+    result._exp5 = 0n;
+    return result;
+  }
+  /**
+   * 自身または新しいインスタンスに特殊値状態を設定する
+   * @param state - 特殊値状態
+   * @param precision - 結果の精度
+   * @returns 特殊値状態を持つ結果
+   * @throws {Error} 特殊値が無効な場合
+   */
+  _specialResult(state, precision = this._precision) {
+    const construct = this.constructor;
+    if (!construct.config.allowSpecialValues) {
+      throw new Error("Special values are disabled");
+    }
+    const result = construct.config.mutateResult ? this : new construct(0n, precision);
+    result._precision = precision;
+    result._specialState = state;
+    result.mantissa = 0n;
+    result._exp2 = 0n;
+    result._exp5 = 0n;
+    return result;
+  }
+  /**
+   * 有限値かどうかを判定する
+   * @returns 有限値の場合はtrue
+   */
+  _isFiniteState() {
+    return this._specialState === 0 /* FINITE */;
+  }
+  /**
+   * NaN状態かどうかを判定する
+   * @returns NaN状態の場合はtrue
+   */
+  _isNaNState() {
+    return this._specialState === 3 /* NAN */;
+  }
+  /**
+   * 無限大状態かどうかを判定する
+   * @returns 正または負の無限大の場合はtrue
+   */
+  _isInfinityState() {
+    return this._specialState === 1 /* POSITIVE_INFINITY */ || this._specialState === 2 /* NEGATIVE_INFINITY */;
+  }
+  /**
+   * 符号を取得する
+   * @returns 正なら1、負なら-1、ゼロまたはNaNなら0
+   */
+  _signum() {
+    if (this._specialState === 1 /* POSITIVE_INFINITY */) return 1;
+    if (this._specialState === 2 /* NEGATIVE_INFINITY */) return -1;
+    if (this.mantissa > 0n) return 1;
+    if (this.mantissa < 0n) return -1;
+    return 0;
+  }
+  /**
+   * 特殊値が無効な設定で特殊値を扱っていないかを検証する
+   * @param values - 検証対象の値
+   * @throws {Error} 特殊値が無効で対象に特殊値が含まれる場合
+   */
+  _ensureSpecialValuesEnabled(...values) {
+    const construct = this.constructor;
+    if (construct.config.allowSpecialValues) return;
+    for (const value of values) {
+      if (!value._isFiniteState()) {
+        throw new Error("Special values are disabled");
+      }
+    }
+  }
+  /**
+   * 特殊値を考慮してnumberへ変換する
+   * @returns 変換後のnumber値
+   * @throws {Error} 特殊値が無効な場合
+   */
+  _specialAwareNumber() {
+    this._ensureSpecialValuesEnabled(this);
+    switch (this._specialState) {
+      case 1 /* POSITIVE_INFINITY */:
+        return Number.POSITIVE_INFINITY;
+      case 2 /* NEGATIVE_INFINITY */:
+        return Number.NEGATIVE_INFINITY;
+      case 3 /* NAN */:
+        return Number.NaN;
+      default:
+        return Number(this.mantissa) * Math.pow(2, Number(this._exp2)) * Math.pow(5, Number(this._exp5));
+    }
+  }
+  /**
+   * number値から特殊値を考慮した結果を生成する
+   * @param value - 変換元のnumber値
+   * @param precision - 結果の精度
+   * @returns 変換後のBigFloat
+   */
+  _fromSpecialAwareNumber(value, precision = this._precision) {
+    const construct = this.constructor;
+    const specialState = construct._stateFromNumber(value);
+    if (specialState !== null) {
+      return this._specialResult(specialState, precision);
+    }
+    const result = construct.config.mutateResult ? this : new construct(value, precision);
+    if (construct.config.mutateResult) {
+      result.copyFrom(new construct(value, precision));
+    }
+    return result;
+  }
+  /**
+   * 指定精度の厳密値結果を生成する
+   * @param mantissa - 仮数
+   * @param precision - 結果の精度
+   * @param exp2 - 2の指数
+   * @param exp5 - 5の指数
+   * @returns 厳密値の結果
+   */
+  _makeExactResultWithPrecision(mantissa, precision, exp2 = 0n, exp5 = 0n) {
+    const construct = this.constructor;
+    const mutate = construct.config.mutateResult;
+    const result = mutate ? this : new construct();
+    result._precision = precision;
+    result.mantissa = mantissa;
+    result._exp2 = exp2;
+    result._exp5 = exp5;
+    result._specialState = 0 /* FINITE */;
+    result.softNormalize();
+    return result;
+  }
   /**
    * @param value - 初期値
    * @param precision - 精度
@@ -127,6 +320,7 @@ var BigFloat = class _BigFloat {
       this._exp2 = value._exp2;
       this._exp5 = value._exp5;
       this._precision = value._precision;
+      this._specialState = value._specialState;
       return;
     }
     this._precision = BigInt(precision);
@@ -135,7 +329,30 @@ var BigFloat = class _BigFloat {
       this.mantissa = 0n;
       this._exp2 = 0n;
       this._exp5 = 0n;
+      this._specialState = 0 /* FINITE */;
       return;
+    }
+    if (typeof value === "number") {
+      const specialState = construct._stateFromNumber(value);
+      if (specialState !== null) {
+        if (!construct.config.allowSpecialValues) throw new Error("Special values are disabled");
+        this._specialState = specialState;
+        this.mantissa = 0n;
+        this._exp2 = 0n;
+        this._exp5 = 0n;
+        return;
+      }
+    }
+    if (typeof value === "string") {
+      const specialState = construct._stateFromString(value);
+      if (specialState !== null) {
+        if (!construct.config.allowSpecialValues) throw new Error("Special values are disabled");
+        this._specialState = specialState;
+        this.mantissa = 0n;
+        this._exp2 = 0n;
+        this._exp5 = 0n;
+        return;
+      }
     }
     if (typeof value === "number" && Number.isInteger(value)) {
       this.mantissa = BigInt(value);
@@ -148,6 +365,7 @@ var BigFloat = class _BigFloat {
       this._exp2 = -len;
       this._exp5 = -len;
     }
+    this._specialState = 0 /* FINITE */;
     this.lazyNormalize();
     this._applyPrecision();
   }
@@ -175,6 +393,7 @@ var BigFloat = class _BigFloat {
     instance.mantissa = this.mantissa;
     instance._exp2 = this._exp2;
     instance._exp5 = this._exp5;
+    instance._specialState = this._specialState;
     return instance;
   }
   /**
@@ -187,6 +406,7 @@ var BigFloat = class _BigFloat {
     this._exp2 = other._exp2;
     this._exp5 = other._exp5;
     this._precision = other._precision;
+    this._specialState = other._specialState;
     return this;
   }
   /**
@@ -204,6 +424,7 @@ var BigFloat = class _BigFloat {
     result.mantissa = mantissa;
     result._exp2 = exp2;
     result._exp5 = exp5;
+    result._specialState = 0 /* FINITE */;
     result.softNormalize();
     return result;
   }
@@ -257,6 +478,7 @@ var BigFloat = class _BigFloat {
    * ソフト正規化 (2の累乗を外に出す)
    */
   softNormalize() {
+    if (!this._isFiniteState()) return;
     if (this.mantissa === 0n) {
       this._exp2 = 0n;
       this._exp5 = 0n;
@@ -278,6 +500,7 @@ var BigFloat = class _BigFloat {
    * レイジー正規化 (5の累乗を外に出す)
    */
   lazyNormalize() {
+    if (!this._isFiniteState()) return;
     this.softNormalize();
     if (this.mantissa === 0n) return;
     let m = this.mantissa;
@@ -315,6 +538,7 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度 (省略時は自身の _precision)
    */
   _applyPrecision(precision = this._precision) {
+    if (!this._isFiniteState()) return;
     if (this.mantissa === 0n) {
       this._exp2 = 0n;
       this._exp5 = 0n;
@@ -751,6 +975,9 @@ var BigFloat = class _BigFloat {
    */
   matchingPrecision(other) {
     const bfB = other instanceof _BigFloat ? other : new this.constructor(other, this._precision);
+    if (!this._isFiniteState() || !bfB._isFiniteState()) {
+      return this.compare(bfB) === 0 ? this._precision > bfB._precision ? this._precision : bfB._precision : 0n;
+    }
     const diff = this.sub(bfB).abs();
     const maxP = this._precision > bfB._precision ? this._precision : bfB._precision;
     if (diff.isZero()) return maxP;
@@ -774,6 +1001,17 @@ var BigFloat = class _BigFloat {
    * @returns 比較結果 (-1, 0, 1)
    */
   compare(other) {
+    const construct = this.constructor;
+    const bfB = other instanceof _BigFloat ? other : new construct(other, this._precision);
+    if (!construct.config.allowSpecialValues && (!this._isFiniteState() || !bfB._isFiniteState())) {
+      throw new Error("Special values are disabled");
+    }
+    if (this._isNaNState() || bfB._isNaNState()) return Number.NaN;
+    if (this._specialState === bfB._specialState && !this._isFiniteState()) return 0;
+    if (!this._isFiniteState() || !bfB._isFiniteState()) {
+      if (this._specialState === 1 /* POSITIVE_INFINITY */ || bfB._specialState === 2 /* NEGATIVE_INFINITY */) return 1;
+      if (this._specialState === 2 /* NEGATIVE_INFINITY */ || bfB._specialState === 1 /* POSITIVE_INFINITY */) return -1;
+    }
     const [a, b] = this._align(other);
     if (a.mantissa < b.mantissa) return -1;
     if (a.mantissa > b.mantissa) return 1;
@@ -840,21 +1078,21 @@ var BigFloat = class _BigFloat {
    * @returns ゼロの場合はtrue
    */
   isZero() {
-    return this.mantissa === 0n;
+    return this._isFiniteState() && this.mantissa === 0n;
   }
   /**
    * 正の数かどうかを判定する
    * @returns 正の数の場合はtrue
    */
   isPositive() {
-    return this.mantissa > 0n;
+    return this._specialState === 1 /* POSITIVE_INFINITY */ || this._isFiniteState() && this.mantissa > 0n;
   }
   /**
    * 負の数かどうかを判定する
    * @returns 負の数の場合はtrue
    */
   isNegative() {
-    return this.mantissa < 0n;
+    return this._specialState === 2 /* NEGATIVE_INFINITY */ || this._isFiniteState() && this.mantissa < 0n;
   }
   /**
    * 相対差を計算する
@@ -876,6 +1114,10 @@ var BigFloat = class _BigFloat {
    * @returns 絶対差
    */
   absoluteDiff(other) {
+    const bfB = other instanceof _BigFloat ? other : new this.constructor(other, this._precision);
+    if (!this._isFiniteState() || !bfB._isFiniteState()) {
+      return this.sub(bfB).abs();
+    }
     const [a, b] = this._align(other);
     const res = a.clone();
     res.mantissa = a.mantissa > b.mantissa ? a.mantissa - b.mantissa : b.mantissa - a.mantissa;
@@ -907,8 +1149,12 @@ var BigFloat = class _BigFloat {
    */
   toString(base = 10, precision = this._precision) {
     if (base < 2 || base > 36) throw new RangeError("Base must be between 2 and 36");
-    const prec = BigInt(precision);
     const construct = this.constructor;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      return construct._specialStateLabel(this._specialState);
+    }
+    const prec = BigInt(precision);
     const raw = { mantissa: this.mantissa, exp2: this._exp2, exp5: this._exp5 };
     construct._lazyNormalizeRaw(raw);
     construct._applyRawPrecision(raw, prec);
@@ -974,7 +1220,7 @@ var BigFloat = class _BigFloat {
    * @returns 変換された数値
    */
   toNumber() {
-    return Number(this.mantissa) * Math.pow(2, Number(this._exp2)) * Math.pow(5, Number(this._exp5));
+    return this._specialAwareNumber();
   }
   /**
    * 指定した桁数で固定した文字列を取得する
@@ -1025,7 +1271,19 @@ var BigFloat = class _BigFloat {
    * @returns 加算結果
    */
   add(other) {
-    const mutate = this.constructor.config.mutateResult;
+    const construct = this.constructor;
+    const bfB = other instanceof _BigFloat ? other : new construct(other, this._precision);
+    const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
+    if (!this._isFiniteState() || !bfB._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this, bfB);
+      if (this._isNaNState() || bfB._isNaNState()) return this._specialResult(3 /* NAN */, resultPrecision);
+      if (this._isInfinityState() && bfB._isInfinityState()) {
+        if (this._specialState !== bfB._specialState) return this._specialResult(3 /* NAN */, resultPrecision);
+        return this._specialResult(this._specialState, resultPrecision);
+      }
+      return this._specialResult(this._isInfinityState() ? this._specialState : bfB._specialState, resultPrecision);
+    }
+    const mutate = construct.config.mutateResult;
     const [a, b] = this._align(other, mutate);
     a.mantissa += b.mantissa;
     a.softNormalize();
@@ -1038,7 +1296,20 @@ var BigFloat = class _BigFloat {
    * @returns 減算結果
    */
   sub(other) {
-    const mutate = this.constructor.config.mutateResult;
+    const construct = this.constructor;
+    const bfB = other instanceof _BigFloat ? other : new construct(other, this._precision);
+    const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
+    if (!this._isFiniteState() || !bfB._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this, bfB);
+      if (this._isNaNState() || bfB._isNaNState()) return this._specialResult(3 /* NAN */, resultPrecision);
+      if (this._isInfinityState() && bfB._isInfinityState()) {
+        if (this._specialState === bfB._specialState) return this._specialResult(3 /* NAN */, resultPrecision);
+        return this._specialResult(this._specialState, resultPrecision);
+      }
+      if (this._isInfinityState()) return this._specialResult(this._specialState, resultPrecision);
+      return this._specialResult(bfB._specialState === 1 /* POSITIVE_INFINITY */ ? 2 /* NEGATIVE_INFINITY */ : 1 /* POSITIVE_INFINITY */, resultPrecision);
+    }
+    const mutate = construct.config.mutateResult;
     const [a, b] = this._align(other, mutate);
     a.mantissa -= b.mantissa;
     a.softNormalize();
@@ -1056,9 +1327,22 @@ var BigFloat = class _BigFloat {
       other = new construct(other, this._precision);
     }
     const bfB = other;
+    const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
+    if (!this._isFiniteState() || !bfB._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this, bfB);
+      if (this._isNaNState() || bfB._isNaNState()) return this._specialResult(3 /* NAN */, resultPrecision);
+      const lhsInfinite = this._isInfinityState();
+      const rhsInfinite = bfB._isInfinityState();
+      if (lhsInfinite && bfB.isZero() || rhsInfinite && this.isZero()) {
+        return this._specialResult(3 /* NAN */, resultPrecision);
+      }
+      const sign = this._signum() * bfB._signum();
+      if (sign === 0) return this._specialResult(3 /* NAN */, resultPrecision);
+      return this._specialResult(sign < 0 ? 2 /* NEGATIVE_INFINITY */ : 1 /* POSITIVE_INFINITY */, resultPrecision);
+    }
     const mutate = construct.config.mutateResult;
     const res = mutate ? this : this.clone();
-    res._precision = this._precision > bfB._precision ? this._precision : bfB._precision;
+    res._precision = resultPrecision;
     res.mantissa *= bfB.mantissa;
     res._exp2 += bfB._exp2;
     res._exp5 += bfB._exp5;
@@ -1078,10 +1362,27 @@ var BigFloat = class _BigFloat {
       other = new construct(other, this._precision);
     }
     const bfB = other;
+    const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
+    if (!this._isFiniteState() || !bfB._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this, bfB);
+      if (this._isNaNState() || bfB._isNaNState()) return this._specialResult(3 /* NAN */, resultPrecision);
+      if (this._isInfinityState() && bfB._isInfinityState()) return this._specialResult(3 /* NAN */, resultPrecision);
+      if (this._isInfinityState()) {
+        const sign = this._signum() * (bfB.isZero() ? 1 : bfB._signum());
+        return this._specialResult(sign < 0 ? 2 /* NEGATIVE_INFINITY */ : 1 /* POSITIVE_INFINITY */, resultPrecision);
+      }
+      if (bfB._isInfinityState()) {
+        return this._makeExactResultWithPrecision(0n, resultPrecision);
+      }
+    }
+    if (construct.config.allowSpecialValues && bfB.isZero()) {
+      if (this.isZero()) return this._specialResult(3 /* NAN */, resultPrecision);
+      return this._specialResult(this._signum() < 0 ? 2 /* NEGATIVE_INFINITY */ : 1 /* POSITIVE_INFINITY */, resultPrecision);
+    }
     if (bfB.mantissa === 0n) throw new Error("Division by zero");
     const mutate = construct.config.mutateResult;
     const res = mutate ? this : this.clone();
-    res._precision = this._precision > bfB._precision ? this._precision : bfB._precision;
+    res._precision = resultPrecision;
     if (res._precision <= 15n) {
       const valA = this.toNumber();
       const valB = bfB.toNumber();
@@ -1130,6 +1431,7 @@ var BigFloat = class _BigFloat {
       this._exp2 = instance._exp2;
       this._exp5 = instance._exp5;
       this._precision = instance._precision;
+      this._specialState = instance._specialState;
       return this;
     }
     return instance;
@@ -1162,6 +1464,17 @@ var BigFloat = class _BigFloat {
    */
   mod(other) {
     const construct = this.constructor;
+    const bfB = other instanceof _BigFloat ? other : new construct(other, this._precision);
+    const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
+    if (!this._isFiniteState() || !bfB._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this, bfB);
+      if (this._isNaNState() || bfB._isNaNState()) return this._specialResult(3 /* NAN */, resultPrecision);
+      if (this._isInfinityState()) return this._specialResult(3 /* NAN */, resultPrecision);
+      if (bfB._isInfinityState()) return this._makeExactResultWithPrecision(this.mantissa, resultPrecision, this._exp2, this._exp5);
+    }
+    if (construct.config.allowSpecialValues && bfB.isZero()) {
+      return this._specialResult(3 /* NAN */, resultPrecision);
+    }
     const mutate = construct.config.mutateResult;
     const [a, b] = this._align(other, mutate);
     const result = construct._mod(a.mantissa, b.mantissa);
@@ -1176,6 +1489,11 @@ var BigFloat = class _BigFloat {
    */
   neg() {
     const construct = this.constructor;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 3 /* NAN */) return this._specialResult(3 /* NAN */);
+      return this._specialResult(this._specialState === 1 /* POSITIVE_INFINITY */ ? 2 /* NEGATIVE_INFINITY */ : 1 /* POSITIVE_INFINITY */);
+    }
     const mutate = construct.config.mutateResult;
     const res = mutate ? this : this.clone();
     res.mantissa = -res.mantissa;
@@ -1187,6 +1505,11 @@ var BigFloat = class _BigFloat {
    */
   abs() {
     const construct = this.constructor;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 3 /* NAN */) return this._specialResult(3 /* NAN */);
+      return this._specialResult(1 /* POSITIVE_INFINITY */);
+    }
     const mutate = construct.config.mutateResult;
     const res = mutate ? this : this.clone();
     res.mantissa = res.mantissa < 0n ? -res.mantissa : res.mantissa;
@@ -1198,13 +1521,26 @@ var BigFloat = class _BigFloat {
    * @throws {Error} ゼロの場合
    */
   reciprocal() {
-    return new this.constructor(1n, this._precision).div(this);
+    const construct = this.constructor;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._isNaNState()) return this._specialResult(3 /* NAN */);
+      return this._makeExactResultWithPrecision(0n, this._precision);
+    }
+    if (construct.config.allowSpecialValues && this.isZero()) {
+      return this._specialResult(1 /* POSITIVE_INFINITY */);
+    }
+    return new construct(1n, this._precision).div(this);
   }
   /**
    * 床関数 (負の無限大方向への丸め)
    * @returns 丸められた結果
    */
   floor() {
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      return this.clone();
+    }
     const temp = this.clone();
     const config = this.constructor.config;
     const originalMode = config.roundingMode;
@@ -1218,6 +1554,10 @@ var BigFloat = class _BigFloat {
    * @returns 丸められた結果
    */
   ceil() {
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      return this.clone();
+    }
     const temp = this.clone();
     const config = this.constructor.config;
     const originalMode = config.roundingMode;
@@ -1231,6 +1571,10 @@ var BigFloat = class _BigFloat {
    * @returns 四捨五入された結果
    */
   round() {
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      return this.clone();
+    }
     const temp = this.clone();
     const config = this.constructor.config;
     const originalMode = config.roundingMode;
@@ -1244,6 +1588,10 @@ var BigFloat = class _BigFloat {
    * @returns 切り捨てられた結果
    */
   trunc() {
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      return this.clone();
+    }
     const temp = this.clone();
     const config = this.constructor.config;
     const originalMode = config.roundingMode;
@@ -1299,7 +1647,46 @@ var BigFloat = class _BigFloat {
   pow(exponent) {
     const construct = this.constructor;
     const bfB = exponent instanceof _BigFloat ? exponent : new construct(exponent, this._precision);
-    if (bfB.isZero()) return new construct(1, this._precision);
+    const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
+    if (bfB.isZero()) return new construct(1, resultPrecision);
+    if (!this._isFiniteState() || !bfB._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this, bfB);
+      if (this._isNaNState() || bfB._isNaNState()) return this._specialResult(3 /* NAN */, resultPrecision);
+      if (bfB._isInfinityState()) {
+        if (!this._isFiniteState()) {
+          if (this._specialState === 1 /* POSITIVE_INFINITY */) {
+            return bfB._specialState === 1 /* POSITIVE_INFINITY */ ? this._specialResult(1 /* POSITIVE_INFINITY */, resultPrecision) : this._makeExactResultWithPrecision(0n, resultPrecision);
+          }
+          return this._specialResult(3 /* NAN */, resultPrecision);
+        }
+        if (this.isZero()) {
+          return bfB._specialState === 1 /* POSITIVE_INFINITY */ ? this._makeExactResultWithPrecision(0n, resultPrecision) : this._specialResult(1 /* POSITIVE_INFINITY */, resultPrecision);
+        }
+        const exactBase = this._getExactInteger();
+        if (exactBase === 1n) return this._makeExactResultWithPrecision(1n, resultPrecision);
+        if (exactBase === -1n || this.mantissa < 0n) return this._specialResult(3 /* NAN */, resultPrecision);
+        const absCmp = this.abs().compare(1);
+        const tendsToInfinity = absCmp === 1 && bfB._specialState === 1 /* POSITIVE_INFINITY */ || absCmp === -1 && bfB._specialState === 2 /* NEGATIVE_INFINITY */;
+        return tendsToInfinity ? this._specialResult(1 /* POSITIVE_INFINITY */, resultPrecision) : this._makeExactResultWithPrecision(0n, resultPrecision);
+      }
+      if (this._isInfinityState()) {
+        if (bfB.isPositive()) {
+          if (this._specialState === 1 /* POSITIVE_INFINITY */) {
+            return this._specialResult(1 /* POSITIVE_INFINITY */, resultPrecision);
+          }
+          const exactExponent = bfB._getExactInteger();
+          if (exactExponent === null) return this._specialResult(3 /* NAN */, resultPrecision);
+          return this._specialResult(exactExponent % 2n === 0n ? 1 /* POSITIVE_INFINITY */ : 2 /* NEGATIVE_INFINITY */, resultPrecision);
+        }
+        if (bfB.isNegative()) return this._makeExactResultWithPrecision(0n, resultPrecision);
+      }
+    }
+    if (this.mantissa < 0n && !(bfB._exp2 >= 0n && bfB._exp5 >= 0n)) {
+      if (construct.config.allowSpecialValues) {
+        return this._specialResult(3 /* NAN */, resultPrecision);
+      }
+      throw new Error("Fractional power of negative number is not real");
+    }
     if (bfB._exp2 >= 0n && bfB._exp5 >= 0n) {
       let expVal = bfB.mantissa;
       if (bfB._exp2 > 0n) expVal <<= bfB._exp2;
@@ -1347,8 +1734,16 @@ var BigFloat = class _BigFloat {
    * @returns 平方根
    */
   sqrt() {
-    if (this.mantissa < 0n) throw new Error("Cannot compute square root of negative number");
     const construct = this.constructor;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 1 /* POSITIVE_INFINITY */) return this._specialResult(1 /* POSITIVE_INFINITY */);
+      return this._specialResult(3 /* NAN */);
+    }
+    if (this.mantissa < 0n) {
+      if (construct.config.allowSpecialValues) return this._specialResult(3 /* NAN */);
+      throw new Error("Cannot compute square root of negative number");
+    }
     if (this.mantissa === 0n) return new construct(0n, this._precision);
     const mutate = construct.config.mutateResult;
     const res = mutate ? this : this.clone();
@@ -1400,6 +1795,11 @@ var BigFloat = class _BigFloat {
    * @returns 立方根
    */
   cbrt() {
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 3 /* NAN */) return this._specialResult(3 /* NAN */);
+      return this._specialResult(this._specialState, this._precision);
+    }
     return this.nthRoot(3n);
   }
   /**
@@ -1446,10 +1846,20 @@ var BigFloat = class _BigFloat {
   nthRoot(n) {
     const bn = BigInt(n);
     if (bn <= 0n) throw new Error("n must be a positive integer");
-    if (this.mantissa < 0n && bn % 2n === 0n) throw new Error("Even root of negative number");
+    const construct = this.constructor;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 3 /* NAN */) return this._specialResult(3 /* NAN */);
+      if (this._specialState === 1 /* POSITIVE_INFINITY */) return this._specialResult(1 /* POSITIVE_INFINITY */);
+      if (bn % 2n === 0n) return this._specialResult(3 /* NAN */);
+      return this._specialResult(2 /* NEGATIVE_INFINITY */);
+    }
+    if (this.mantissa < 0n && bn % 2n === 0n) {
+      if (construct.config.allowSpecialValues) return this._specialResult(3 /* NAN */);
+      throw new Error("Even root of negative number");
+    }
     const res = this.clone();
     const targetP = res._precision;
-    const construct = this.constructor;
     let m = res.mantissa;
     let e2 = res._exp2 + bn * targetP;
     let e5 = res._exp5 + bn * targetP;
@@ -1547,6 +1957,10 @@ var BigFloat = class _BigFloat {
   sin() {
     const construct = this.constructor;
     const config = construct.config;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      return this._specialResult(3 /* NAN */);
+    }
     if (this.mantissa === 0n) return this._makeExactResult(0n);
     if (this._precision <= 15n) {
       const res = Math.sin(this.toNumber());
@@ -1602,6 +2016,10 @@ var BigFloat = class _BigFloat {
   cos() {
     const construct = this.constructor;
     const config = construct.config;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      return this._specialResult(3 /* NAN */);
+    }
     if (this.mantissa === 0n) return this._makeExactResult(1n);
     if (this._precision <= 15n) {
       const res = Math.cos(this.toNumber());
@@ -1651,6 +2069,10 @@ var BigFloat = class _BigFloat {
   tan() {
     const construct = this.constructor;
     const config = construct.config;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      return this._specialResult(3 /* NAN */);
+    }
     if (this.mantissa === 0n) return this._makeExactResult(0n);
     if (this._precision <= 15n) {
       const res = Math.tan(this.toNumber());
@@ -1701,6 +2123,13 @@ var BigFloat = class _BigFloat {
   asin() {
     const construct = this.constructor;
     const config = construct.config;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      return this._specialResult(3 /* NAN */);
+    }
+    if ((this.gt(1) || this.lt(-1)) && construct.config.allowSpecialValues) {
+      return this._specialResult(3 /* NAN */);
+    }
     if (this.mantissa === 0n) return this._makeExactResult(0n);
     if (this._precision <= 15n) {
       const res = Math.asin(this.toNumber());
@@ -1746,6 +2175,13 @@ var BigFloat = class _BigFloat {
   acos() {
     const construct = this.constructor;
     const config = construct.config;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      return this._specialResult(3 /* NAN */);
+    }
+    if ((this.gt(1) || this.lt(-1)) && construct.config.allowSpecialValues) {
+      return this._specialResult(3 /* NAN */);
+    }
     if (this._getExactInteger() === 1n) return this._makeExactResult(0n);
     if (this._precision <= 15n) {
       const res = Math.acos(this.toNumber());
@@ -1804,6 +2240,12 @@ var BigFloat = class _BigFloat {
   atan() {
     const construct = this.constructor;
     const config = construct.config;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 3 /* NAN */) return this._specialResult(3 /* NAN */);
+      const halfPi = construct.pi(this._precision).div(2);
+      return this._specialState === 1 /* POSITIVE_INFINITY */ ? halfPi : halfPi.neg();
+    }
     if (this.mantissa === 0n) return this._makeExactResult(0n);
     if (this._precision <= 15n) {
       const res = Math.atan(this.toNumber());
@@ -1859,6 +2301,27 @@ var BigFloat = class _BigFloat {
     const construct = this.constructor;
     const bfB = x instanceof _BigFloat ? x : new construct(x, this._precision);
     const config = construct.config;
+    const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
+    if (!this._isFiniteState() || !bfB._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this, bfB);
+      if (this._isNaNState() || bfB._isNaNState()) return this._specialResult(3 /* NAN */, resultPrecision);
+      const pi = construct.pi(resultPrecision);
+      const halfPi = pi.div(2);
+      const quarterPi = pi.div(4);
+      if (this._isInfinityState()) {
+        if (bfB._isInfinityState()) {
+          if (this._specialState === 1 /* POSITIVE_INFINITY */) {
+            return bfB._specialState === 1 /* POSITIVE_INFINITY */ ? quarterPi : pi.sub(quarterPi);
+          }
+          return bfB._specialState === 1 /* POSITIVE_INFINITY */ ? quarterPi.neg() : pi.sub(quarterPi).neg();
+        }
+        return this._specialState === 1 /* POSITIVE_INFINITY */ ? halfPi : halfPi.neg();
+      }
+      if (bfB._specialState === 1 /* POSITIVE_INFINITY */) {
+        return this._makeExactResultWithPrecision(0n, resultPrecision);
+      }
+      return this.isNegative() ? pi.neg() : pi;
+    }
     if (this.mantissa === 0n && bfB.mantissa >= 0n) return this._makeExactResult(0n);
     if (this._precision <= 15n) {
       const res = Math.atan2(this.toNumber(), bfB.toNumber());
@@ -1973,6 +2436,12 @@ var BigFloat = class _BigFloat {
   exp() {
     const construct = this.constructor;
     const config = construct.config;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 3 /* NAN */) return this._specialResult(3 /* NAN */);
+      if (this._specialState === 1 /* POSITIVE_INFINITY */) return this._specialResult(1 /* POSITIVE_INFINITY */);
+      return this._makeExactResultWithPrecision(0n, this._precision);
+    }
     if (this.mantissa === 0n) return this._makeExactResult(1n);
     if (this._precision <= 15n) {
       const val2 = this.toNumber();
@@ -2011,6 +2480,12 @@ var BigFloat = class _BigFloat {
   exp2() {
     const construct = this.constructor;
     const config = construct.config;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 3 /* NAN */) return this._specialResult(3 /* NAN */);
+      if (this._specialState === 1 /* POSITIVE_INFINITY */) return this._specialResult(1 /* POSITIVE_INFINITY */);
+      return this._makeExactResultWithPrecision(0n, this._precision);
+    }
     if (this.mantissa === 0n) return this._makeExactResult(1n);
     const exactInteger = this._getExactInteger();
     if (exactInteger !== null) return this._makeExactResult(1n, exactInteger, 0n);
@@ -2052,6 +2527,12 @@ var BigFloat = class _BigFloat {
    */
   expm1() {
     const construct = this.constructor;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 3 /* NAN */) return this._specialResult(3 /* NAN */);
+      if (this._specialState === 1 /* POSITIVE_INFINITY */) return this._specialResult(1 /* POSITIVE_INFINITY */);
+      return this._makeExactResultWithPrecision(-1n, this._precision);
+    }
     if (this.mantissa === 0n) return this._makeExactResult(0n);
     const totalPr = this._precision + construct.config.extraPrecision;
     const val = this._getInternalValue(totalPr);
@@ -2121,6 +2602,19 @@ var BigFloat = class _BigFloat {
     const construct = this.constructor;
     const config = construct.config;
     const maxSteps = config.lnMaxSteps;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 1 /* POSITIVE_INFINITY */) return this._specialResult(1 /* POSITIVE_INFINITY */);
+      return this._specialResult(3 /* NAN */);
+    }
+    if (this.isZero()) {
+      if (config.allowSpecialValues) return this._specialResult(2 /* NEGATIVE_INFINITY */);
+      throw new Error("ln(x) is undefined for x <= 0");
+    }
+    if (this.mantissa < 0n) {
+      if (config.allowSpecialValues) return this._specialResult(3 /* NAN */);
+      throw new Error("ln(x) is undefined for x <= 0");
+    }
     if (this._getExactInteger() === 1n) return this._makeExactResult(0n);
     if (this._precision <= 15n) {
       const val2 = this.toNumber();
@@ -2167,12 +2661,38 @@ var BigFloat = class _BigFloat {
     const construct = this.constructor;
     const bfB = base instanceof _BigFloat ? base : new construct(base, this._precision);
     const maxSteps = construct.config.lnMaxSteps;
+    const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
+    if (!this._isFiniteState() || !bfB._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this, bfB);
+      if (this._isNaNState() || bfB._isNaNState()) return this._specialResult(3 /* NAN */, resultPrecision);
+      if (bfB._isInfinityState()) {
+        if (bfB._specialState === 2 /* NEGATIVE_INFINITY */) return this._specialResult(3 /* NAN */, resultPrecision);
+        if (this._isInfinityState()) return this._specialResult(3 /* NAN */, resultPrecision);
+        if (this.mantissa <= 0n) return this._specialResult(3 /* NAN */, resultPrecision);
+        if (this._getExactInteger() === 1n) return this._makeExactResultWithPrecision(0n, resultPrecision);
+        return this._makeExactResultWithPrecision(0n, resultPrecision);
+      }
+      if (this._specialState === 2 /* NEGATIVE_INFINITY */) return this._specialResult(3 /* NAN */, resultPrecision);
+      if (bfB.mantissa <= 0n || bfB._getExactInteger() === 1n) return this._specialResult(3 /* NAN */, resultPrecision);
+      if (bfB.gt(1)) return this._specialResult(1 /* POSITIVE_INFINITY */, resultPrecision);
+      return this._specialResult(2 /* NEGATIVE_INFINITY */, resultPrecision);
+    }
+    const baseExactInteger = bfB._getExactInteger();
+    if (baseExactInteger === 1n && construct.config.allowSpecialValues) {
+      return this._specialResult(3 /* NAN */, resultPrecision);
+    }
+    if ((this.mantissa <= 0n || bfB.mantissa <= 0n) && construct.config.allowSpecialValues) {
+      if (this.mantissa < 0n || bfB.mantissa < 0n || bfB.isZero()) return this._specialResult(3 /* NAN */, resultPrecision);
+      if (this.isZero()) {
+        return bfB.gt(1) ? this._specialResult(2 /* NEGATIVE_INFINITY */, resultPrecision) : this._specialResult(1 /* POSITIVE_INFINITY */, resultPrecision);
+      }
+    }
     if (this._getExactInteger() === 1n) return this._makeExactResult(0n);
-    const totalPr = this._precision + construct.config.extraPrecision;
+    const totalPr = resultPrecision + construct.config.extraPrecision;
     const valA = this._getInternalValue(totalPr);
     const valB = bfB._getInternalValue(totalPr);
     const raw = construct._log(valA, valB, totalPr, maxSteps);
-    return this._makeResult(raw, this._precision, totalPr);
+    return this._makeResult(raw, resultPrecision, totalPr);
   }
   /**
    * 2を底とする対数(log2)を計算する (内部用)
@@ -2192,6 +2712,19 @@ var BigFloat = class _BigFloat {
    */
   log2() {
     const construct = this.constructor;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 1 /* POSITIVE_INFINITY */) return this._specialResult(1 /* POSITIVE_INFINITY */);
+      return this._specialResult(3 /* NAN */);
+    }
+    if (this.isZero()) {
+      if (construct.config.allowSpecialValues) return this._specialResult(2 /* NEGATIVE_INFINITY */);
+      throw new Error("ln(x) is undefined for x <= 0");
+    }
+    if (this.mantissa < 0n) {
+      if (construct.config.allowSpecialValues) return this._specialResult(3 /* NAN */);
+      throw new Error("ln(x) is undefined for x <= 0");
+    }
     if (this._getExactInteger() === 1n) return this._makeExactResult(0n);
     const exactPower = this._getExactPowerOf2Exponent();
     if (exactPower !== null) return this._makeExactResult(exactPower);
@@ -2218,6 +2751,19 @@ var BigFloat = class _BigFloat {
    */
   log10() {
     const construct = this.constructor;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 1 /* POSITIVE_INFINITY */) return this._specialResult(1 /* POSITIVE_INFINITY */);
+      return this._specialResult(3 /* NAN */);
+    }
+    if (this.isZero()) {
+      if (construct.config.allowSpecialValues) return this._specialResult(2 /* NEGATIVE_INFINITY */);
+      throw new Error("ln(x) is undefined for x <= 0");
+    }
+    if (this.mantissa < 0n) {
+      if (construct.config.allowSpecialValues) return this._specialResult(3 /* NAN */);
+      throw new Error("ln(x) is undefined for x <= 0");
+    }
     if (this._getExactInteger() === 1n) return this._makeExactResult(0n);
     const exactPower = this._getExactPowerOf10Exponent();
     if (exactPower !== null) return this._makeExactResult(exactPower);
@@ -2245,6 +2791,18 @@ var BigFloat = class _BigFloat {
    */
   log1p() {
     const construct = this.constructor;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 1 /* POSITIVE_INFINITY */) return this._specialResult(1 /* POSITIVE_INFINITY */);
+      return this._specialResult(3 /* NAN */);
+    }
+    if (this._getExactInteger() === -1n) {
+      if (construct.config.allowSpecialValues) return this._specialResult(2 /* NEGATIVE_INFINITY */);
+      throw new Error("ln(x) is undefined for x <= 0");
+    }
+    if (this.lt(-1) && construct.config.allowSpecialValues) {
+      return this._specialResult(3 /* NAN */);
+    }
     if (this.mantissa === 0n) return this._makeExactResult(0n);
     const maxSteps = construct.config.lnMaxSteps;
     const totalPr = this._precision + construct.config.extraPrecision;
@@ -2946,6 +3504,11 @@ var BigFloat = class _BigFloat {
    */
   gamma() {
     const construct = this.constructor;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 1 /* POSITIVE_INFINITY */) return this._specialResult(1 /* POSITIVE_INFINITY */);
+      return this._specialResult(3 /* NAN */);
+    }
     const totalPr = this._precision + construct.config.extraPrecision;
     const val = this._getInternalValue(totalPr);
     const raw = construct._gammaLanczos(val, totalPr);
@@ -2957,8 +3520,16 @@ var BigFloat = class _BigFloat {
    */
   zeta() {
     const construct = this.constructor;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 1 /* POSITIVE_INFINITY */) return this._makeExactResult(1n);
+      return this._specialResult(3 /* NAN */);
+    }
     const exactInteger = this._getExactInteger();
-    if (exactInteger === 1n) throw new Error("zeta(s) has a pole at s = 1");
+    if (exactInteger === 1n) {
+      if (construct.config.allowSpecialValues) return this._specialResult(1 /* POSITIVE_INFINITY */);
+      throw new Error("zeta(s) has a pole at s = 1");
+    }
     if (exactInteger === 0n) return this._makeExactResult(-1n, -1n);
     const currentPrecisionValue = this._getInternalValue(this._precision);
     const extraCancellationDigits = construct._zetaPoleCancellationDigits(currentPrecisionValue, this._precision);
@@ -2993,6 +3564,11 @@ var BigFloat = class _BigFloat {
    */
   factorial() {
     const construct = this.constructor;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 1 /* POSITIVE_INFINITY */) return this._specialResult(1 /* POSITIVE_INFINITY */);
+      return this._specialResult(3 /* NAN */);
+    }
     const totalPr = this._precision + construct.config.extraPrecision;
     const val = this._getInternalValue(totalPr);
     const scale = construct._getPow10(totalPr);
@@ -3263,6 +3839,49 @@ var BigFloat = class _BigFloat {
   // * 定数オブジェクト
   // ====================================================================================================
   /**
+   * 定数 NaN を取得する
+   * @param precision - 精度
+   * @returns NaN
+   * @throws {Error} 特殊値が無効な場合
+   */
+  static nan(precision = 20n) {
+    return this._createSpecialValue(3 /* NAN */, BigInt(precision));
+  }
+  /**
+   * 定数 Infinity を取得する
+   * @param precision - 精度
+   * @returns Infinity
+   * @throws {Error} 特殊値が無効な場合
+   */
+  static infinity(precision = 20n) {
+    return this._createSpecialValue(1 /* POSITIVE_INFINITY */, BigInt(precision));
+  }
+  /**
+   * 定数 -Infinity を取得する
+   * @param precision - 精度
+   * @returns -Infinity
+   * @throws {Error} 特殊値が無効な場合
+   */
+  static negativeInfinity(precision = 20n) {
+    return this._createSpecialValue(2 /* NEGATIVE_INFINITY */, BigInt(precision));
+  }
+  /**
+   * 定数 -10 を取得する
+   * @param precision - 精度
+   * @returns -10
+   */
+  static minusTen(precision = 20n) {
+    return new this(-10n, precision);
+  }
+  /**
+   * 定数 -2 を取得する
+   * @param precision - 精度
+   * @returns -2
+   */
+  static minusTwo(precision = 20n) {
+    return new this(-2n, precision);
+  }
+  /**
    * 定数 -1 を取得する
    * @param precision - 精度
    * @returns -1
@@ -3279,12 +3898,60 @@ var BigFloat = class _BigFloat {
     return new this(0n, precision);
   }
   /**
+   * 定数 0.25 を取得する
+   * @param precision - 精度
+   * @returns 0.25
+   */
+  static quarter(precision = 20n) {
+    return new this("0.25", precision);
+  }
+  /**
+   * 定数 0.5 を取得する
+   * @param precision - 精度
+   * @returns 0.5
+   */
+  static half(precision = 20n) {
+    return new this("0.5", precision);
+  }
+  /**
    * 定数 1 を取得する
    * @param precision - 精度
    * @returns 1
    */
   static one(precision = 20n) {
     return new this(1n, precision);
+  }
+  /**
+   * 定数 2 を取得する
+   * @param precision - 精度
+   * @returns 2
+   */
+  static two(precision = 20n) {
+    return new this(2n, precision);
+  }
+  /**
+   * 定数 10 を取得する
+   * @param precision - 精度
+   * @returns 10
+   */
+  static ten(precision = 20n) {
+    return new this(10n, precision);
+  }
+  /**
+   * 定数 100 を取得する
+   * @param precision - 精度
+   * @returns 100
+   */
+  static hundred(precision = 20n) {
+    return new this(100n, precision);
+  }
+  /**
+   * 定数 1000 を取得する
+   * @param precision - 精度
+   * @returns 1000
+   */
+  static thousand(precision = 20n) {
+    return new this(1000n, precision);
   }
 };
 function bigFloat(value, precision) {
@@ -4248,6 +4915,7 @@ export {
   BigFloatConfig,
   BigFloatStream,
   RoundingMode,
+  SpecialValueState,
   bigFloat
 };
 //# sourceMappingURL=BigFloat.js.map
