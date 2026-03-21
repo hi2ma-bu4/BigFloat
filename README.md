@@ -18,6 +18,8 @@ JavaScript / TypeScript で高精度な浮動小数点演算を扱うための�
 - `Infinity` / `-Infinity` / `NaN` を状態として扱う特殊値対応
 - `BigFloatStream` による連続計算・集計 API を利用可能
 
+[API一覧(自動生成)](./API.md)
+
 ## CDN
 
 ```txt
@@ -27,7 +29,7 @@ https://cdn.jsdelivr.net/gh/hi2ma-bu4/BigFloat/dist/BigFloat.js
 ## 基本例
 
 ```ts
-import { bigFloat, BigFloat, BigFloatStream } from "bigfloat";
+import { bigFloat, BigFloat, BigFloatStream } from "BigFloat";
 
 const value = bigFloat("1.234567890123456789", 80n)
 	.mul("3.5")
