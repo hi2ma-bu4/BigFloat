@@ -137,6 +137,13 @@ test("BigFloat class cloning isolates configuration, instance cloning, and copy 
 	assert.equal(original.toString(), "1.25");
 });
 
+test("BigFloat changePrecision validates precision bounds", () => {
+	const value = new BigFloat("1.25", HIGH_PRECISION);
+
+	assert.throws(() => value.clone().changePrecision(-1), /Precision must be greater than 0/);
+	assert.throws(() => value.clone().changePrecision(BigFloat.MAX_PRECISION + 1n), /Precision exceeds BigFloat\.MAX_PRECISION/);
+});
+
 test("BigFloat extraPrecision drives division and pi cache refinement work precision", () => {
 	const lowPrecisionClass = BigFloat.clone();
 	const highPrecisionClass = BigFloat.clone();

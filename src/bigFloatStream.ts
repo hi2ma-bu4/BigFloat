@@ -683,6 +683,9 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 */
 	public [Symbol.iterator](): Iterator<BigFloat, void, undefined> {
 		const stages = this._collectPipelineStages();
+		if (stages.length === 0) {
+			return this._sourceFactory();
+		}
 		const states = stages.map((stage) => stage.definition.createState(stage.data));
 		const stack: BigFloatStreamFrame[] = [{ iterator: this._sourceFactory(), stageIndex: 0 }];
 		let shouldStop = false;
@@ -745,7 +748,9 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns 要素の配列
 	 */
 	public toArray(): BigFloat[] {
-		return Array.from(this);
+		const values: BigFloat[] = [];
+		for (const item of this) values.push(item);
+		return values;
 	}
 
 	/**

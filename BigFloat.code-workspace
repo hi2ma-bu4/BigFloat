@@ -9,6 +9,7 @@
 			"acosh",
 			"asinh",
 			"atanh",
+			"BIGFLOAT",
 			"cbrt",
 			"CHUDNOVSKY",
 			"coeffs",

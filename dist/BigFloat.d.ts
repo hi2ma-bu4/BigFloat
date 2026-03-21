@@ -432,6 +432,14 @@ export declare class BigFloat {
 	 */
 	protected _makeResult(val: bigint, precision: bigint, valPrecision?: bigint, okMutate?: boolean): BigFloat;
 	/**
+	 * 正の整数 n の degree 乗根の初期値を概算する
+	 * @param value - 対象の正の整数
+	 * @param degree - 乗根の次数
+	 * @param decimalShift - 値に追加で掛かっている 10 の指数
+	 * @returns ニュートン法用の初期値
+	 */
+	protected static _estimatePositiveRoot(value: bigint, degree: bigint, decimalShift?: bigint): bigint;
+	/**
 	 * 精度をチェックする
 	 * @param precision - チェックする精度
 	 * @throws {RangeError} 精度が範囲外の場合

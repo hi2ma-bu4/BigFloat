@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.2.14
+ * BigFloat 1.2.15
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -943,19 +943,18 @@ var BigFloat = class _BigFloat {
       throw new PrecisionMismatchError(`Precision mismatch: ${this._precision} !== ${bfB._precision}`);
     }
     const resA = mutateA ? this : this.clone();
-    const resB = bfB._precision === resA._precision ? bfB : bfB.clone().changePrecision(resA._precision);
-    if (resA._exp2 === resB._exp2 && resA._exp5 === resB._exp5) {
-      return [resA, resB];
+    let finalB = bfB._precision === resA._precision ? bfB : bfB.clone().changePrecision(resA._precision);
+    if (resA._exp2 === finalB._exp2 && resA._exp5 === finalB._exp5) {
+      return [resA, finalB];
     }
-    const minExp2 = resA._exp2 < resB._exp2 ? resA._exp2 : resB._exp2;
-    const minExp5 = resA._exp5 < resB._exp5 ? resA._exp5 : resB._exp5;
+    const minExp2 = resA._exp2 < finalB._exp2 ? resA._exp2 : finalB._exp2;
+    const minExp5 = resA._exp5 < finalB._exp5 ? resA._exp5 : finalB._exp5;
     if (resA._exp2 > minExp2) {
       resA.mantissa <<= BigInt(resA._exp2 - minExp2);
       resA._exp2 = minExp2;
     }
-    let finalB = resB;
-    if (resB._exp2 > minExp2 || resB._exp5 > minExp5) {
-      finalB = resB.clone();
+    if (finalB._exp2 > minExp2 || finalB._exp5 > minExp5) {
+      if (finalB === bfB) finalB = finalB.clone();
       if (finalB._exp2 > minExp2) {
         finalB.mantissa <<= BigInt(finalB._exp2 - minExp2);
         finalB._exp2 = minExp2;
@@ -1001,6 +1000,33 @@ var BigFloat = class _BigFloat {
     return this._makeResultFromInstance(res);
   }
   /**
+   * 正の整数 n の degree 乗根の初期値を概算する
+   * @param value - 対象の正の整数
+   * @param degree - 乗根の次数
+   * @param decimalShift - 値に追加で掛かっている 10 の指数
+   * @returns ニュートン法用の初期値
+   */
+  static _estimatePositiveRoot(value, degree, decimalShift = 0n) {
+    if (degree <= 0n) throw new RangeError("degree must be a positive integer");
+    if (value <= 0n) return 0n;
+    if (value === 1n && decimalShift === 0n) return 1n;
+    const degreeNumber = Number(degree);
+    if (!Number.isFinite(degreeNumber) || degreeNumber <= 0) {
+      return 1n;
+    }
+    const digits = value.toString();
+    const prefixLength = Math.min(15, digits.length);
+    const prefix = Number(digits.slice(0, prefixLength));
+    const totalShift = BigInt(digits.length - prefixLength) + decimalShift;
+    const pow10Exponent = totalShift / degree;
+    const fractionalRemainder = totalShift % degree;
+    let leading = Math.floor(Math.pow(prefix, 1 / degreeNumber) * Math.pow(10, Number(fractionalRemainder) / degreeNumber));
+    if (!Number.isFinite(leading) || leading < 1) {
+      leading = 1;
+    }
+    return BigInt(leading) * this._getPow10(pow10Exponent);
+  }
+  /**
    * 精度をチェックする
    * @param precision - チェックする精度
    * @throws {RangeError} 精度が範囲外の場合
@@ -1020,6 +1046,7 @@ var BigFloat = class _BigFloat {
    */
   changePrecision(precision) {
     const precisionBig = BigInt(precision);
+    this.constructor._checkPrecision(precisionBig);
     this._precision = precisionBig;
     this._applyPrecision();
     return this;
@@ -1806,7 +1833,8 @@ var BigFloat = class _BigFloat {
     const scale = this._getPow10(precision);
     const nScaled = n * scale;
     const TWO = 2n;
-    let x = nScaled;
+    let x = this._estimatePositiveRoot(nScaled, 2n);
+    if (x === 0n) x = 1n;
     let last;
     while (true) {
       last = x;
@@ -1854,13 +1882,7 @@ var BigFloat = class _BigFloat {
     if (e5s < 0n) valForSqrt /= construct._getPow5(-e5s);
     let x = 0n;
     if (valForSqrt > 0n) {
-      const numVal = Number(valForSqrt.toString().slice(0, 15));
-      const numLen = valForSqrt.toString().length;
-      if (numLen > 15) {
-        x = BigInt(Math.floor(Math.sqrt(numVal))) * construct._getPow10(BigInt(Math.floor((numLen - 15) / 2)));
-      } else {
-        x = BigInt(Math.floor(Math.sqrt(Number(valForSqrt))));
-      }
+      x = construct._estimatePositiveRoot(valForSqrt, 2n);
       if (x === 0n) x = 1n;
       let lastX;
       while (true) {
@@ -1908,7 +1930,8 @@ var BigFloat = class _BigFloat {
       return -this._nthRoot(-v, n, precision);
     }
     const scale = this._getPow10(precision);
-    let x = scale;
+    let x = this._estimatePositiveRoot(v, n, precision * (n - 1n));
+    if (x < scale) x = scale;
     while (true) {
       let xPow = x;
       if (n === 1n) {
@@ -5105,6 +5128,9 @@ var BigFloatStream = class _BigFloatStream {
    */
   [Symbol.iterator]() {
     const stages = this._collectPipelineStages();
+    if (stages.length === 0) {
+      return this._sourceFactory();
+    }
     const states = stages.map((stage) => stage.definition.createState(stage.data));
     const stack = [{ iterator: this._sourceFactory(), stageIndex: 0 }];
     let shouldStop = false;
@@ -5160,7 +5186,9 @@ var BigFloatStream = class _BigFloatStream {
    * @returns 要素の配列
    */
   toArray() {
-    return Array.from(this);
+    const values = [];
+    for (const item of this) values.push(item);
+    return values;
   }
   /**
    * 配列に変換する (終端操作)

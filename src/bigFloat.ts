@@ -1043,23 +1043,22 @@ export class BigFloat {
 		}
 
 		const resA = mutateA ? this : this.clone();
-		const resB = bfB._precision === resA._precision ? bfB : bfB.clone().changePrecision(resA._precision);
+		let finalB = bfB._precision === resA._precision ? bfB : bfB.clone().changePrecision(resA._precision);
 
-		if (resA._exp2 === resB._exp2 && resA._exp5 === resB._exp5) {
-			return [resA, resB];
+		if (resA._exp2 === finalB._exp2 && resA._exp5 === finalB._exp5) {
+			return [resA, finalB];
 		}
 
-		const minExp2 = resA._exp2 < resB._exp2 ? resA._exp2 : resB._exp2;
-		const minExp5 = resA._exp5 < resB._exp5 ? resA._exp5 : resB._exp5;
+		const minExp2 = resA._exp2 < finalB._exp2 ? resA._exp2 : finalB._exp2;
+		const minExp5 = resA._exp5 < finalB._exp5 ? resA._exp5 : finalB._exp5;
 
 		if (resA._exp2 > minExp2) {
 			resA.mantissa <<= BigInt(resA._exp2 - minExp2);
 			resA._exp2 = minExp2;
 		}
-		// resBは他の計算に影響を与えないようにクローンが必要な場合がある
-		let finalB = resB;
-		if (resB._exp2 > minExp2 || resB._exp5 > minExp5) {
-			finalB = resB.clone();
+		// 元のインスタンスをそのまま参照している場合だけ、破壊的変更を避けるためにクローンする
+		if (finalB._exp2 > minExp2 || finalB._exp5 > minExp5) {
+			if (finalB === bfB) finalB = finalB.clone();
 			if (finalB._exp2 > minExp2) {
 				finalB.mantissa <<= BigInt(finalB._exp2 - minExp2);
 				finalB._exp2 = minExp2;
@@ -1110,6 +1109,36 @@ export class BigFloat {
 	}
 
 	/**
+	 * 正の整数 n の degree 乗根の初期値を概算する
+	 * @param value - 対象の正の整数
+	 * @param degree - 乗根の次数
+	 * @param decimalShift - 値に追加で掛かっている 10 の指数
+	 * @returns ニュートン法用の初期値
+	 */
+	protected static _estimatePositiveRoot(value: bigint, degree: bigint, decimalShift = 0n): bigint {
+		if (degree <= 0n) throw new RangeError("degree must be a positive integer");
+		if (value <= 0n) return 0n;
+		if (value === 1n && decimalShift === 0n) return 1n;
+
+		const degreeNumber = Number(degree);
+		if (!Number.isFinite(degreeNumber) || degreeNumber <= 0) {
+			return 1n;
+		}
+
+		const digits = value.toString();
+		const prefixLength = Math.min(15, digits.length);
+		const prefix = Number(digits.slice(0, prefixLength));
+		const totalShift = BigInt(digits.length - prefixLength) + decimalShift;
+		const pow10Exponent = totalShift / degree;
+		const fractionalRemainder = totalShift % degree;
+		let leading = Math.floor(Math.pow(prefix, 1 / degreeNumber) * Math.pow(10, Number(fractionalRemainder) / degreeNumber));
+		if (!Number.isFinite(leading) || leading < 1) {
+			leading = 1;
+		}
+		return BigInt(leading) * this._getPow10(pow10Exponent);
+	}
+
+	/**
 	 * 精度をチェックする
 	 * @param precision - チェックする精度
 	 * @throws {RangeError} 精度が範囲外の場合
@@ -1130,6 +1159,7 @@ export class BigFloat {
 	 */
 	public changePrecision(precision: PrecisionValue): this {
 		const precisionBig = BigInt(precision);
+		(this.constructor as BigFloatConstructor)._checkPrecision(precisionBig);
 		this._precision = precisionBig;
 		this._applyPrecision();
 		return this;
@@ -2014,7 +2044,8 @@ export class BigFloat {
 		const nScaled = n * scale;
 		const TWO = 2n;
 
-		let x = nScaled;
+		let x = this._estimatePositiveRoot(nScaled, 2n);
+		if (x === 0n) x = 1n;
 		let last;
 		while (true) {
 			last = x;
@@ -2077,14 +2108,7 @@ export class BigFloat {
 		// Newton method for integer sqrt
 		let x = 0n;
 		if (valForSqrt > 0n) {
-			// 初期値推定にMath.sqrtを使用 (ハイブリッド)
-			const numVal = Number(valForSqrt.toString().slice(0, 15));
-			const numLen = valForSqrt.toString().length;
-			if (numLen > 15) {
-				x = BigInt(Math.floor(Math.sqrt(numVal))) * construct._getPow10(BigInt(Math.floor((numLen - 15) / 2)));
-			} else {
-				x = BigInt(Math.floor(Math.sqrt(Number(valForSqrt))));
-			}
+			x = construct._estimatePositiveRoot(valForSqrt, 2n);
 			if (x === 0n) x = 1n;
 
 			let lastX;
@@ -2137,7 +2161,8 @@ export class BigFloat {
 		}
 		const scale = this._getPow10(precision);
 
-		let x = scale;
+		let x = this._estimatePositiveRoot(v, n, precision * (n - 1n));
+		if (x < scale) x = scale;
 		while (true) {
 			let xPow = x;
 			if (n === 1n) {
