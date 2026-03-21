@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.2.10
+ * BigFloat 1.2.12
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -693,15 +693,23 @@ var BigFloat = class _BigFloat {
     return { intPart, fracPart: fracPartRaw, sign };
   }
   /**
+   * 集計関数の単一配列引数かどうかを判定する
+   * @param args - 引数リスト
+   * @returns 単一配列引数の場合はtrue
+   */
+  static _hasAggregateArrayArg(args) {
+    return args.length === 1 && Array.isArray(args[0]);
+  }
+  /**
    * 引数を正規化する
    * @param args - 引数リスト
    * @returns 正規化された引数リスト
    */
   static _normalizeArgs(args) {
-    if (args.length === 1 && Array.isArray(args[0])) {
-      return args[0];
+    if (this._hasAggregateArrayArg(args)) {
+      return [...args[0]];
     }
-    return args;
+    return [...args];
   }
   /**
    * 内部整数値から生の内部表現を生成する

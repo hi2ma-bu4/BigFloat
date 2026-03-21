@@ -1,4 +1,4 @@
-import { RoundingMode, SpecialValueState, type BigFloatOptions, type BigFloatValue, type PrecisionValue } from "./types";
+import { RoundingMode, SpecialValueState, type BigFloatAggregateArgs, type BigFloatOptions, type BigFloatValue, type PrecisionValue } from "./types";
 
 type BigFloatConstructor = typeof BigFloat;
 type BigFloatRawValue = { mantissa: bigint; exp2: bigint; exp5: bigint };
@@ -781,15 +781,24 @@ export class BigFloat {
 	}
 
 	/**
+	 * 集計関数の単一配列引数かどうかを判定する
+	 * @param args - 引数リスト
+	 * @returns 単一配列引数の場合はtrue
+	 */
+	protected static _hasAggregateArrayArg(args: BigFloatAggregateArgs): args is [readonly BigFloatValue[]] {
+		return args.length === 1 && Array.isArray(args[0]);
+	}
+
+	/**
 	 * 引数を正規化する
 	 * @param args - 引数リスト
 	 * @returns 正規化された引数リスト
 	 */
-	protected static _normalizeArgs(args: any[]): any[] {
-		if (args.length === 1 && Array.isArray(args[0])) {
-			return args[0];
+	protected static _normalizeArgs(args: BigFloatAggregateArgs): BigFloatValue[] {
+		if (this._hasAggregateArrayArg(args)) {
+			return [...args[0]];
 		}
-		return args;
+		return [...args];
 	}
 
 	/**
@@ -1869,27 +1878,19 @@ export class BigFloat {
 			if (bfB._isInfinityState()) {
 				if (!this._isFiniteState()) {
 					if (this._specialState === SpecialValueState.POSITIVE_INFINITY) {
-						return bfB._specialState === SpecialValueState.POSITIVE_INFINITY
-							? this._specialResult(SpecialValueState.POSITIVE_INFINITY, resultPrecision)
-							: this._makeExactResultWithPrecision(0n, resultPrecision);
+						return bfB._specialState === SpecialValueState.POSITIVE_INFINITY ? this._specialResult(SpecialValueState.POSITIVE_INFINITY, resultPrecision) : this._makeExactResultWithPrecision(0n, resultPrecision);
 					}
 					return this._specialResult(SpecialValueState.NAN, resultPrecision);
 				}
 				if (this.isZero()) {
-					return bfB._specialState === SpecialValueState.POSITIVE_INFINITY
-						? this._makeExactResultWithPrecision(0n, resultPrecision)
-						: this._specialResult(SpecialValueState.POSITIVE_INFINITY, resultPrecision);
+					return bfB._specialState === SpecialValueState.POSITIVE_INFINITY ? this._makeExactResultWithPrecision(0n, resultPrecision) : this._specialResult(SpecialValueState.POSITIVE_INFINITY, resultPrecision);
 				}
 				const exactBase = this._getExactInteger();
 				if (exactBase === 1n) return this._makeExactResultWithPrecision(1n, resultPrecision);
 				if (exactBase === -1n || this.mantissa < 0n) return this._specialResult(SpecialValueState.NAN, resultPrecision);
 				const absCmp = this.abs().compare(1);
-				const tendsToInfinity =
-					(absCmp === 1 && bfB._specialState === SpecialValueState.POSITIVE_INFINITY) ||
-					(absCmp === -1 && bfB._specialState === SpecialValueState.NEGATIVE_INFINITY);
-				return tendsToInfinity
-					? this._specialResult(SpecialValueState.POSITIVE_INFINITY, resultPrecision)
-					: this._makeExactResultWithPrecision(0n, resultPrecision);
+				const tendsToInfinity = (absCmp === 1 && bfB._specialState === SpecialValueState.POSITIVE_INFINITY) || (absCmp === -1 && bfB._specialState === SpecialValueState.NEGATIVE_INFINITY);
+				return tendsToInfinity ? this._specialResult(SpecialValueState.POSITIVE_INFINITY, resultPrecision) : this._makeExactResultWithPrecision(0n, resultPrecision);
 			}
 			if (this._isInfinityState()) {
 				if (bfB.isPositive()) {
@@ -3002,9 +3003,7 @@ export class BigFloat {
 		if ((this.mantissa <= 0n || bfB.mantissa <= 0n) && construct.config.allowSpecialValues) {
 			if (this.mantissa < 0n || bfB.mantissa < 0n || bfB.isZero()) return this._specialResult(SpecialValueState.NAN, resultPrecision);
 			if (this.isZero()) {
-				return bfB.gt(1)
-					? this._specialResult(SpecialValueState.NEGATIVE_INFINITY, resultPrecision)
-					: this._specialResult(SpecialValueState.POSITIVE_INFINITY, resultPrecision);
+				return bfB.gt(1) ? this._specialResult(SpecialValueState.NEGATIVE_INFINITY, resultPrecision) : this._specialResult(SpecialValueState.POSITIVE_INFINITY, resultPrecision);
 			}
 		}
 		if (this._getExactInteger() === 1n) return this._makeExactResult(0n);
@@ -3337,7 +3336,7 @@ export class BigFloat {
 	 * @returns 最大値
 	 * @throws {Error} 引数が空の場合
 	 */
-	public static max(...args: any[]): BigFloat {
+	public static max(...args: BigFloatAggregateArgs): BigFloat {
 		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new this(x)));
 		if (arr.length === 0) throw new Error("No arguments provided");
 		let maxBF = arr[0];
@@ -3353,7 +3352,7 @@ export class BigFloat {
 	 * @returns 最小値
 	 * @throws {Error} 引数が空の場合
 	 */
-	public static min(...args: any[]): BigFloat {
+	public static min(...args: BigFloatAggregateArgs): BigFloat {
 		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new this(x)));
 		if (arr.length === 0) throw new Error("No arguments provided");
 		let minBF = arr[0];
@@ -3368,7 +3367,7 @@ export class BigFloat {
 	 * @param args - 数値のリスト
 	 * @returns 合計
 	 */
-	public static sum(...args: any[]): BigFloat {
+	public static sum(...args: BigFloatAggregateArgs): BigFloat {
 		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new this(x)));
 		if (arr.length === 0) return new this(0);
 		let total = new this(0, arr[0]._precision);
@@ -3383,7 +3382,7 @@ export class BigFloat {
 	 * @param args - 数値のリスト
 	 * @returns 積
 	 */
-	public static product(...args: any[]): BigFloat {
+	public static product(...args: BigFloatAggregateArgs): BigFloat {
 		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new this(x)));
 		if (arr.length === 0) return new this(1);
 		let prod = new this(1, arr[0]._precision);
@@ -3398,7 +3397,7 @@ export class BigFloat {
 	 * @param args - 数値のリスト
 	 * @returns 平均
 	 */
-	public static average(...args: any[]): BigFloat {
+	public static average(...args: BigFloatAggregateArgs): BigFloat {
 		const arr = this._normalizeArgs(args);
 		if (arr.length === 0) return new this();
 		const total = this.sum(arr);
@@ -3411,7 +3410,7 @@ export class BigFloat {
 	 * @returns 中央値
 	 * @throws {Error} 引数が空の場合
 	 */
-	public static median(...args: any[]): BigFloat {
+	public static median(...args: BigFloatAggregateArgs): BigFloat {
 		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new this(x)));
 		if (arr.length === 0) throw new Error("No arguments provided");
 		const sorted = arr.sort((a, b) => a.compare(b));
@@ -3429,7 +3428,7 @@ export class BigFloat {
 	 * @returns 分散
 	 * @throws {Error} 引数が空の場合
 	 */
-	public static variance(...args: any[]): BigFloat {
+	public static variance(...args: BigFloatAggregateArgs): BigFloat {
 		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new this(x)));
 		if (arr.length === 0) throw new Error("No arguments provided");
 		if (arr.length === 1) return new this(0, arr[0]._precision);
@@ -3452,7 +3451,7 @@ export class BigFloat {
 	 * @param args - 数値のリスト
 	 * @returns 標準偏差
 	 */
-	public static stddev(...args: any[]): BigFloat {
+	public static stddev(...args: BigFloatAggregateArgs): BigFloat {
 		const varianceVal = this.variance(...args);
 		return varianceVal.sqrt();
 	}

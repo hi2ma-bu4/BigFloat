@@ -1,11 +1,12 @@
 import { BigFloat } from "./bigFloat";
 import type { BigFloatStreamValue, BigFloatValue, PrecisionValue } from "./types";
 
-type BigFloatStreamFactory = () => Iterator<BigFloat>;
-type BigFloatStreamFrame = { iterator: Iterator<BigFloat>; stageIndex: number };
+type BigFloatIterator = Iterator<BigFloat, void, undefined>;
+type BigFloatStreamFactory = () => BigFloatIterator;
+type BigFloatStreamFrame = { iterator: Iterator<BigFloat, void, undefined>; stageIndex: number };
 type BigFloatStreamStageSignal = BigFloat | typeof BIGFLOAT_STREAM_SKIP;
 type BigFloatStreamStageContext = {
-	pushIterator: (iterator: Iterator<BigFloat>, stageIndex: number) => void;
+	pushIterator: (iterator: Iterator<BigFloat, void, undefined>, stageIndex: number) => void;
 	stop: () => void;
 };
 type BigFloatStreamStageDefinition = {
@@ -151,7 +152,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 * @returns BigFloatのイテレータ
 	 */
-	protected static _toIterator(iterable: Iterable<BigFloatStreamValue>, precision?: bigint): IterableIterator<BigFloat> {
+	protected static _toIterator(iterable: Iterable<BigFloatStreamValue>, precision?: bigint): IterableIterator<BigFloat, void, undefined> {
 		return (function* () {
 			for (const item of iterable) {
 				yield BigFloatStream._toBigFloat(item, precision);
@@ -680,7 +681,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * イテレータの実装
 	 * @returns イテレータ
 	 */
-	public [Symbol.iterator](): Iterator<BigFloat> {
+	public [Symbol.iterator](): Iterator<BigFloat, void, undefined> {
 		const stages = this._collectPipelineStages();
 		const states = stages.map((stage) => stage.definition.createState(stage.data));
 		const stack: BigFloatStreamFrame[] = [{ iterator: this._sourceFactory(), stageIndex: 0 }];

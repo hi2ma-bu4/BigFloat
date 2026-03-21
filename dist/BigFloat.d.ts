@@ -60,6 +60,12 @@ export type PrecisionValue = number | bigint;
  */
 export type BigFloatValue = BigFloat | number | string | bigint;
 /**
+ * BigFloat の可変引数または単一配列引数
+ */
+export type BigFloatAggregateArgs = BigFloatValue[] | [
+	readonly BigFloatValue[]
+];
+/**
  * BigFloatStreamで扱う値
  */
 export type BigFloatStreamValue = BigFloatValue;
@@ -317,11 +323,19 @@ export declare class BigFloat {
 		sign: number;
 	};
 	/**
+	 * 集計関数の単一配列引数かどうかを判定する
+	 * @param args - 引数リスト
+	 * @returns 単一配列引数の場合はtrue
+	 */
+	protected static _hasAggregateArrayArg(args: BigFloatAggregateArgs): args is [
+		readonly BigFloatValue[]
+	];
+	/**
 	 * 引数を正規化する
 	 * @param args - 引数リスト
 	 * @returns 正規化された引数リスト
 	 */
-	protected static _normalizeArgs(args: any[]): any[];
+	protected static _normalizeArgs(args: BigFloatAggregateArgs): BigFloatValue[];
 	/**
 	 * 内部整数値から生の内部表現を生成する
 	 * @param value - 10^precision倍された整数値
@@ -961,52 +975,52 @@ export declare class BigFloat {
 	 * @returns 最大値
 	 * @throws {Error} 引数が空の場合
 	 */
-	static max(...args: any[]): BigFloat;
+	static max(...args: BigFloatAggregateArgs): BigFloat;
 	/**
 	 * 引数の中で最小値を返す
 	 * @param args - 数値のリスト
 	 * @returns 最小値
 	 * @throws {Error} 引数が空の場合
 	 */
-	static min(...args: any[]): BigFloat;
+	static min(...args: BigFloatAggregateArgs): BigFloat;
 	/**
 	 * 引数の合計を返す
 	 * @param args - 数値のリスト
 	 * @returns 合計
 	 */
-	static sum(...args: any[]): BigFloat;
+	static sum(...args: BigFloatAggregateArgs): BigFloat;
 	/**
 	 * 引数の積を返す
 	 * @param args - 数値のリスト
 	 * @returns 積
 	 */
-	static product(...args: any[]): BigFloat;
+	static product(...args: BigFloatAggregateArgs): BigFloat;
 	/**
 	 * 引数の平均を返す
 	 * @param args - 数値のリスト
 	 * @returns 平均
 	 */
-	static average(...args: any[]): BigFloat;
+	static average(...args: BigFloatAggregateArgs): BigFloat;
 	/**
 	 * 引数の中央値を返す
 	 * @param args - 数値のリスト
 	 * @returns 中央値
 	 * @throws {Error} 引数が空の場合
 	 */
-	static median(...args: any[]): BigFloat;
+	static median(...args: BigFloatAggregateArgs): BigFloat;
 	/**
 	 * 引数の分散を返す
 	 * @param args - 数値のリスト
 	 * @returns 分散
 	 * @throws {Error} 引数が空の場合
 	 */
-	static variance(...args: any[]): BigFloat;
+	static variance(...args: BigFloatAggregateArgs): BigFloat;
 	/**
 	 * 引数の標準偏差を返す
 	 * @param args - 数値のリスト
 	 * @returns 標準偏差
 	 */
-	static stddev(...args: any[]): BigFloat;
+	static stddev(...args: BigFloatAggregateArgs): BigFloat;
 	/**
 	 * ランダムな整数値を生成する (内部用)
 	 * @param precision - 精度
@@ -1360,10 +1374,11 @@ export declare class BigFloat {
  * @returns BigFloat インスタンス
  */
 export declare function bigFloat(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
-export type BigFloatStreamFactory = () => Iterator<BigFloat>;
+export type BigFloatIterator = Iterator<BigFloat, void, undefined>;
+export type BigFloatStreamFactory = () => BigFloatIterator;
 export type BigFloatStreamStageSignal = BigFloat | typeof BIGFLOAT_STREAM_SKIP;
 export type BigFloatStreamStageContext = {
-	pushIterator: (iterator: Iterator<BigFloat>, stageIndex: number) => void;
+	pushIterator: (iterator: Iterator<BigFloat, void, undefined>, stageIndex: number) => void;
 	stop: () => void;
 };
 export type BigFloatStreamStageDefinition = {
@@ -1432,7 +1447,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 * @returns BigFloatのイテレータ
 	 */
-	protected static _toIterator(iterable: Iterable<BigFloatStreamValue>, precision?: bigint): IterableIterator<BigFloat>;
+	protected static _toIterator(iterable: Iterable<BigFloatStreamValue>, precision?: bigint): IterableIterator<BigFloat, void, undefined>;
 	/**
 	 * ストリームの精度を解決する
 	 * @param values - 値
@@ -1647,7 +1662,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * イテレータの実装
 	 * @returns イテレータ
 	 */
-	[Symbol.iterator](): Iterator<BigFloat>;
+	[Symbol.iterator](): Iterator<BigFloat, void, undefined>;
 	/**
 	 * 各要素に対して処理を実行する (終端操作)
 	 * @param fn - 処理関数

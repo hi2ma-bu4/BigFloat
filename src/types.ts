@@ -65,6 +65,11 @@ export type PrecisionValue = number | bigint;
 export type BigFloatValue = BigFloat | number | string | bigint;
 
 /**
+ * BigFloat の可変引数または単一配列引数
+ */
+export type BigFloatAggregateArgs = BigFloatValue[] | [readonly BigFloatValue[]];
+
+/**
  * BigFloatStreamで扱う値
  */
 export type BigFloatStreamValue = BigFloatValue;

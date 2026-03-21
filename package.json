@@ -1,6 +1,6 @@
 {
   "name": "bigfloat",
-  "version": "1.2.11",
+  "version": "1.2.12",
   "description": "",
   "license": "Apache-2.0",
   "author": "hi2ma-bu4",
@@ -8,6 +8,7 @@
   "main": "src/index.ts",
   "scripts": {
     "build": "node ./dev/build.mjs",
+    "build:md": "node ./dev/build-md.mjs",
     "test:unit": "tsx --test --test-concurrency=1 \"test/node/**/*.test.ts\"",
     "test": "npm run build && npm run test:unit"
   },
