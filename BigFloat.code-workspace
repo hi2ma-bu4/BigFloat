@@ -6,14 +6,19 @@
 	],
 	"settings": {
 		"cSpell.words": [
+			"cbrt",
 			"CHUDNOVSKY",
 			"coeffs",
+			"expm",
+			"Funcs",
 			"linspace",
 			"logspace",
 			"Machin",
 			"Maclaurin",
 			"Prec",
-			"Spouge"
+			"Spouge",
+			"stddev",
+			"trunc"
 		]
 	}
 }

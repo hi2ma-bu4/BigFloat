@@ -1,9 +1,31 @@
 /*!
- * BigFloat 1.2.12
+ * BigFloat 1.2.13
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
  */
+
+// src/error.ts
+var BigFloatError = class extends Error {
+  constructor(message, options) {
+    super(message, options);
+    this.name = new.target.name;
+    Object.setPrototypeOf(this, new.target.prototype);
+    if (typeof Error.captureStackTrace === "function") {
+      Error.captureStackTrace(this, new.target);
+    }
+  }
+};
+var SpecialValuesDisabledError = class extends BigFloatError {
+};
+var PrecisionMismatchError = class extends BigFloatError {
+};
+var DivisionByZeroError = class extends BigFloatError {
+};
+var NumericalComputationError = class extends BigFloatError {
+};
+var CacheNotInitializedError = class extends BigFloatError {
+};
 
 // src/types.ts
 var RoundingMode = /* @__PURE__ */ ((RoundingMode2) => {
@@ -177,7 +199,7 @@ var BigFloat = class _BigFloat {
    */
   static _createSpecialValue(state, precision) {
     if (!this.config.allowSpecialValues) {
-      throw new Error("Special values are disabled");
+      throw new SpecialValuesDisabledError("Special values are disabled");
     }
     const result = new this(0n, precision);
     result._specialState = state;
@@ -196,7 +218,7 @@ var BigFloat = class _BigFloat {
   _specialResult(state, precision = this._precision) {
     const construct = this.constructor;
     if (!construct.config.allowSpecialValues) {
-      throw new Error("Special values are disabled");
+      throw new SpecialValuesDisabledError("Special values are disabled");
     }
     const result = construct.config.mutateResult ? this : new construct(0n, precision);
     result._precision = precision;
@@ -248,7 +270,7 @@ var BigFloat = class _BigFloat {
     if (construct.config.allowSpecialValues) return;
     for (const value of values) {
       if (!value._isFiniteState()) {
-        throw new Error("Special values are disabled");
+        throw new SpecialValuesDisabledError("Special values are disabled");
       }
     }
   }
@@ -335,7 +357,7 @@ var BigFloat = class _BigFloat {
     if (typeof value === "number") {
       const specialState = construct._stateFromNumber(value);
       if (specialState !== null) {
-        if (!construct.config.allowSpecialValues) throw new Error("Special values are disabled");
+        if (!construct.config.allowSpecialValues) throw new SpecialValuesDisabledError("Special values are disabled");
         this._specialState = specialState;
         this.mantissa = 0n;
         this._exp2 = 0n;
@@ -346,7 +368,7 @@ var BigFloat = class _BigFloat {
     if (typeof value === "string") {
       const specialState = construct._stateFromString(value);
       if (specialState !== null) {
-        if (!construct.config.allowSpecialValues) throw new Error("Special values are disabled");
+        if (!construct.config.allowSpecialValues) throw new SpecialValuesDisabledError("Special values are disabled");
         this._specialState = specialState;
         this.mantissa = 0n;
         this._exp2 = 0n;
@@ -629,7 +651,7 @@ var BigFloat = class _BigFloat {
     const digits = "0123456789abcdefghijklmnopqrstuvwxyz";
     const toDigit = (ch) => {
       const d = digits.indexOf(ch);
-      if (d < 0 || d >= base) throw new Error(`Invalid digit '${ch}' for base ${base}`);
+      if (d < 0 || d >= base) throw new SyntaxError(`Invalid digit '${ch}' for base ${base}`);
       return BigInt(d);
     };
     const bigBase = BigInt(base);
@@ -888,11 +910,7 @@ var BigFloat = class _BigFloat {
     const bfB = other instanceof _BigFloat ? other : new construct(other, this._precision);
     const config = construct.config;
     if (this._precision !== bfB._precision && !config.allowPrecisionMismatch) {
-      if (this._precision > bfB._precision) {
-        bfB.changePrecision(this._precision);
-      } else {
-        this.changePrecision(bfB._precision);
-      }
+      throw new PrecisionMismatchError(`Precision mismatch: ${this._precision} !== ${bfB._precision}`);
     }
     const resA = mutateA ? this : this.clone();
     const resB = bfB._precision === resA._precision ? bfB : bfB.clone().changePrecision(resA._precision);
@@ -1012,7 +1030,7 @@ var BigFloat = class _BigFloat {
     const construct = this.constructor;
     const bfB = other instanceof _BigFloat ? other : new construct(other, this._precision);
     if (!construct.config.allowSpecialValues && (!this._isFiniteState() || !bfB._isFiniteState())) {
-      throw new Error("Special values are disabled");
+      throw new SpecialValuesDisabledError("Special values are disabled");
     }
     if (this._isNaNState() || bfB._isNaNState()) return Number.NaN;
     if (this._specialState === bfB._specialState && !this._isFiniteState()) return 0;
@@ -1387,7 +1405,7 @@ var BigFloat = class _BigFloat {
       if (this.isZero()) return this._specialResult(3 /* NAN */, resultPrecision);
       return this._specialResult(this._signum() < 0 ? 2 /* NEGATIVE_INFINITY */ : 1 /* POSITIVE_INFINITY */, resultPrecision);
     }
-    if (bfB.mantissa === 0n) throw new Error("Division by zero");
+    if (bfB.mantissa === 0n) throw new DivisionByZeroError("Division by zero");
     const mutate = construct.config.mutateResult;
     const res = mutate ? this : this.clone();
     res._precision = resultPrecision;
@@ -1625,7 +1643,7 @@ var BigFloat = class _BigFloat {
     if (base === 0n) return 0n;
     if (exponent < 0n) {
       const positivePow = this._pow(base, -exponent, precision);
-      if (positivePow === 0n) throw new Error("Division by zero in power function");
+      if (positivePow === 0n) throw new DivisionByZeroError("Division by zero in power function");
       return scale * scale / positivePow;
     }
     if (exponent % scale === 0n) {
@@ -1693,7 +1711,7 @@ var BigFloat = class _BigFloat {
       if (construct.config.allowSpecialValues) {
         return this._specialResult(3 /* NAN */, resultPrecision);
       }
-      throw new Error("Fractional power of negative number is not real");
+      throw new RangeError("Fractional power of negative number is not real");
     }
     if (bfB._exp2 >= 0n && bfB._exp5 >= 0n) {
       let expVal = bfB.mantissa;
@@ -1723,7 +1741,7 @@ var BigFloat = class _BigFloat {
    * @throws {Error} 負の数の平方根を計算しようとした場合
    */
   static _sqrt(n, precision) {
-    if (n < 0n) throw new Error("Cannot compute square root of negative number");
+    if (n < 0n) throw new RangeError("Cannot compute square root of negative number");
     if (n === 0n) return 0n;
     const scale = this._getPow10(precision);
     const nScaled = n * scale;
@@ -1750,7 +1768,7 @@ var BigFloat = class _BigFloat {
     }
     if (this.mantissa < 0n) {
       if (construct.config.allowSpecialValues) return this._specialResult(3 /* NAN */);
-      throw new Error("Cannot compute square root of negative number");
+      throw new RangeError("Cannot compute square root of negative number");
     }
     if (this.mantissa === 0n) return new construct(0n, this._precision);
     const mutate = construct.config.mutateResult;
@@ -1821,11 +1839,11 @@ var BigFloat = class _BigFloat {
    */
   static _nthRoot(v, n, precision) {
     if (n <= 0n) {
-      throw new Error("n must be a positive integer");
+      throw new RangeError("n must be a positive integer");
     }
     if (v < 0n) {
       if (n % 2n === 0n) {
-        throw new Error("Even root of negative number is not real");
+        throw new RangeError("Even root of negative number is not real");
       }
       return -this._nthRoot(-v, n, precision);
     }
@@ -1854,7 +1872,7 @@ var BigFloat = class _BigFloat {
    */
   nthRoot(n) {
     const bn = BigInt(n);
-    if (bn <= 0n) throw new Error("n must be a positive integer");
+    if (bn <= 0n) throw new RangeError("n must be a positive integer");
     const construct = this.constructor;
     if (!this._isFiniteState()) {
       this._ensureSpecialValuesEnabled(this);
@@ -1865,7 +1883,7 @@ var BigFloat = class _BigFloat {
     }
     if (this.mantissa < 0n && bn % 2n === 0n) {
       if (construct.config.allowSpecialValues) return this._specialResult(3 /* NAN */);
-      throw new Error("Even root of negative number");
+      throw new RangeError("Even root of negative number");
     }
     if (this.isZero()) return this._makeExactResult(0n);
     if (bn === 1n) return this.clone();
@@ -2043,7 +2061,7 @@ var BigFloat = class _BigFloat {
   static _tan(x, precision, maxSteps) {
     const cosX = this._cos(x, precision, maxSteps);
     const EPSILON = this._getPow10(precision - 4n);
-    if (cosX === 0n || cosX > -EPSILON && cosX < EPSILON) throw new Error("tan(x) is undefined or numerically unstable at this point");
+    if (cosX === 0n || cosX > -EPSILON && cosX < EPSILON) throw new NumericalComputationError("tan(x) is undefined or numerically unstable at this point");
     const sinX = this._sin(x, precision, maxSteps);
     const scale = this._getPow10(precision);
     return sinX * scale / cosX;
@@ -2095,7 +2113,7 @@ var BigFloat = class _BigFloat {
    */
   static _asin(x, precision, maxSteps) {
     const scale = this._getPow10(precision);
-    if (x > scale || x < -scale) throw new Error("asin input out of range [-1,1]");
+    if (x > scale || x < -scale) throw new RangeError("asin input out of range [-1,1]");
     const halfPi = this._pi(precision) / 2n;
     const initial = x * halfPi / scale;
     const f = (theta) => this._sin(theta, precision, maxSteps) - x;
@@ -2208,7 +2226,7 @@ var BigFloat = class _BigFloat {
       const f = (theta) => this._tan(theta, precision, maxSteps) - x;
       const df = (theta) => {
         const cosTheta = this._cos(theta, precision, maxSteps);
-        if (cosTheta === 0n) throw new Error("Derivative undefined");
+        if (cosTheta === 0n) throw new NumericalComputationError("Derivative undefined");
         return scale * scale * scale / (cosTheta * cosTheta);
       };
       return this._trigFuncsNewton(f, df, x, precision, Number(maxSteps));
@@ -2374,7 +2392,7 @@ var BigFloat = class _BigFloat {
       const fx = f(x);
       if (fx === 0n) break;
       const dfx = df(x);
-      if (dfx === 0n) throw new Error("Derivative zero during Newton iteration");
+      if (dfx === 0n) throw new NumericalComputationError("Derivative zero during Newton iteration");
       const dx = fx * scale / dfx;
       x = x - dx;
       if (dx === 0n) break;
@@ -2534,7 +2552,7 @@ var BigFloat = class _BigFloat {
    * @throws {Error} 値が0以下の場合
    */
   static _ln(value, precision, maxSteps) {
-    if (value <= 0n) throw new Error("ln(x) is undefined for x <= 0");
+    if (value <= 0n) throw new RangeError("ln(x) is undefined for x <= 0");
     const scale = this._getPow10(precision);
     if (value % scale === 0n) {
       const intVal = value / scale;
@@ -2595,16 +2613,16 @@ var BigFloat = class _BigFloat {
     }
     if (this.isZero()) {
       if (config.allowSpecialValues) return this._specialResult(2 /* NEGATIVE_INFINITY */);
-      throw new Error("ln(x) is undefined for x <= 0");
+      throw new RangeError("ln(x) is undefined for x <= 0");
     }
     if (this.mantissa < 0n) {
       if (config.allowSpecialValues) return this._specialResult(3 /* NAN */);
-      throw new Error("ln(x) is undefined for x <= 0");
+      throw new RangeError("ln(x) is undefined for x <= 0");
     }
     if (this._getExactInteger() === 1n) return this._makeExactResult(0n);
     if (this._precision <= 15n) {
       const val2 = this.toNumber();
-      if (val2 <= 0) throw new Error("ln(x) is undefined for x <= 0");
+      if (val2 <= 0) throw new RangeError("ln(x) is undefined for x <= 0");
       const logVal = Math.log(val2);
       const mutate = config.mutateResult;
       const res = mutate ? this : this.clone();
@@ -2633,7 +2651,7 @@ var BigFloat = class _BigFloat {
   static _log(value, baseValue, precision, maxSteps) {
     if (value === this._getPow10(precision)) return 0n;
     const lnB = this._ln(baseValue, precision, maxSteps);
-    if (lnB === 0n) throw new Error("log base cannot be 1 or 0");
+    if (lnB === 0n) throw new RangeError("log base cannot be 1 or 0");
     const lnX = this._ln(value, precision, maxSteps);
     const SCALE = this._getPow10(precision);
     return lnX * SCALE / lnB;
@@ -2705,11 +2723,11 @@ var BigFloat = class _BigFloat {
     }
     if (this.isZero()) {
       if (construct.config.allowSpecialValues) return this._specialResult(2 /* NEGATIVE_INFINITY */);
-      throw new Error("ln(x) is undefined for x <= 0");
+      throw new RangeError("ln(x) is undefined for x <= 0");
     }
     if (this.mantissa < 0n) {
       if (construct.config.allowSpecialValues) return this._specialResult(3 /* NAN */);
-      throw new Error("ln(x) is undefined for x <= 0");
+      throw new RangeError("ln(x) is undefined for x <= 0");
     }
     if (this._getExactInteger() === 1n) return this._makeExactResult(0n);
     const exactPower = this._getExactPowerOf2Exponent();
@@ -2744,11 +2762,11 @@ var BigFloat = class _BigFloat {
     }
     if (this.isZero()) {
       if (construct.config.allowSpecialValues) return this._specialResult(2 /* NEGATIVE_INFINITY */);
-      throw new Error("ln(x) is undefined for x <= 0");
+      throw new RangeError("ln(x) is undefined for x <= 0");
     }
     if (this.mantissa < 0n) {
       if (construct.config.allowSpecialValues) return this._specialResult(3 /* NAN */);
-      throw new Error("ln(x) is undefined for x <= 0");
+      throw new RangeError("ln(x) is undefined for x <= 0");
     }
     if (this._getExactInteger() === 1n) return this._makeExactResult(0n);
     const exactPower = this._getExactPowerOf10Exponent();
@@ -2784,7 +2802,7 @@ var BigFloat = class _BigFloat {
     }
     if (this._getExactInteger() === -1n) {
       if (construct.config.allowSpecialValues) return this._specialResult(2 /* NEGATIVE_INFINITY */);
-      throw new Error("ln(x) is undefined for x <= 0");
+      throw new RangeError("ln(x) is undefined for x <= 0");
     }
     if (this.lt(-1) && construct.config.allowSpecialValues) {
       return this._specialResult(3 /* NAN */);
@@ -2983,7 +3001,7 @@ var BigFloat = class _BigFloat {
    */
   static max(...args) {
     const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this(x));
-    if (arr.length === 0) throw new Error("No arguments provided");
+    if (arr.length === 0) throw new TypeError("No arguments provided");
     let maxBF = arr[0];
     for (let i = 1; i < arr.length; i++) {
       if (arr[i].gt(maxBF)) maxBF = arr[i];
@@ -2998,7 +3016,7 @@ var BigFloat = class _BigFloat {
    */
   static min(...args) {
     const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this(x));
-    if (arr.length === 0) throw new Error("No arguments provided");
+    if (arr.length === 0) throw new TypeError("No arguments provided");
     let minBF = arr[0];
     for (let i = 1; i < arr.length; i++) {
       if (arr[i].lt(minBF)) minBF = arr[i];
@@ -3052,7 +3070,7 @@ var BigFloat = class _BigFloat {
    */
   static median(...args) {
     const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this(x));
-    if (arr.length === 0) throw new Error("No arguments provided");
+    if (arr.length === 0) throw new TypeError("No arguments provided");
     const sorted = arr.sort((a, b) => a.compare(b));
     const mid = Math.floor(sorted.length / 2);
     if (sorted.length % 2 === 1) {
@@ -3069,7 +3087,7 @@ var BigFloat = class _BigFloat {
    */
   static variance(...args) {
     const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this(x));
-    if (arr.length === 0) throw new Error("No arguments provided");
+    if (arr.length === 0) throw new TypeError("No arguments provided");
     if (arr.length === 1) return new this(0, arr[0]._precision);
     const n = new this(arr.length);
     const total = this.sum(arr);
@@ -3348,7 +3366,7 @@ var BigFloat = class _BigFloat {
   static _zetaPositive(s, precision) {
     const scale = this._getPow10(precision);
     if (s <= scale) {
-      throw new Error("zeta(s) requires s > 1 in _zetaPositive");
+      throw new RangeError("zeta(s) requires s > 1 in _zetaPositive");
     }
     if (s % scale === 0n) {
       const integerValue = s / scale;
@@ -3396,7 +3414,7 @@ var BigFloat = class _BigFloat {
     const ln2 = this._ln2(precision, this.config.lnMaxSteps);
     const exponent = (scale - s) * ln2 / scale;
     const denominator = -this._expm1(exponent, precision);
-    if (denominator === 0n) throw new Error("zeta(s) has a pole at s = 1");
+    if (denominator === 0n) throw new RangeError("zeta(s) has a pole at s = 1");
     return eta * scale / denominator;
   }
   /**
@@ -3407,7 +3425,7 @@ var BigFloat = class _BigFloat {
    */
   static _zeta(s, precision) {
     const scale = this._getPow10(precision);
-    if (s === scale) throw new Error("zeta(s) has a pole at s = 1");
+    if (s === scale) throw new RangeError("zeta(s) has a pole at s = 1");
     if (s === 0n) return -scale / 2n;
     if (s % scale === 0n) {
       const integerValue = s / scale;
@@ -3441,7 +3459,7 @@ var BigFloat = class _BigFloat {
     const scale = this._getPow10(precision);
     const half_scale = scale / 2n;
     if (z <= 0n && z % scale === 0n) {
-      throw new Error("z must not be a non-positive integer (pole)");
+      throw new RangeError("z must not be a non-positive integer (pole)");
     }
     if (z < half_scale) {
       const config = this.config;
@@ -3452,7 +3470,7 @@ var BigFloat = class _BigFloat {
       const pi_z = pi * z / scale;
       const sin_pi_z = this._sin(pi_z, precision, maxSteps);
       const denominator = sin_pi_z * gammaOneMinusZ / scale;
-      if (denominator === 0n) throw new Error("division by zero");
+      if (denominator === 0n) throw new DivisionByZeroError("division by zero");
       return pi * scale / denominator;
     }
     let product = scale;
@@ -3514,7 +3532,7 @@ var BigFloat = class _BigFloat {
     const exactInteger = this._getExactInteger();
     if (exactInteger === 1n) {
       if (construct.config.allowSpecialValues) return this._specialResult(1 /* POSITIVE_INFINITY */);
-      throw new Error("zeta(s) has a pole at s = 1");
+      throw new RangeError("zeta(s) has a pole at s = 1");
     }
     if (exactInteger === 0n) return this._makeExactResult(-1n, -1n);
     const currentPrecisionValue = this._getInternalValue(this._precision);
@@ -3604,7 +3622,7 @@ var BigFloat = class _BigFloat {
     if (cachedData) {
       return this._rescaleInternalValue(cachedData.exactValue, cachedData.precision, precision);
     }
-    throw new Error(`use _getCheckPiCache first`);
+    throw new CacheNotInitializedError("use _getCheckPiCache first");
   }
   /**
    * 円周率キャッシュを更新する (内部用)
@@ -3638,7 +3656,7 @@ var BigFloat = class _BigFloat {
     if (cachedData) {
       return this._rescaleInternalValue(cachedData.exactValue, cachedData.precision, precision);
     }
-    throw new Error(`use _getCheckECache first`);
+    throw new CacheNotInitializedError("use _getCheckECache first");
   }
   /**
    * eキャッシュを更新する (内部用)
@@ -3686,7 +3704,7 @@ var BigFloat = class _BigFloat {
     if (cachedData) {
       return this._rescaleInternalValue(cachedData.exactValue, cachedData.precision, precision);
     }
-    throw new Error(`use _getCheckLnCache first`);
+    throw new CacheNotInitializedError("use _getCheckLnCache first");
   }
   /**
    * 対数キャッシュを更新する (内部用)
@@ -4359,7 +4377,7 @@ var BigFloatStream = class _BigFloatStream {
       let current = _BigFloatStream._toBigFloat(actualStart, resolvedPrecision);
       const endValue = _BigFloatStream._toBigFloat(actualEnd, resolvedPrecision);
       const stepValue = _BigFloatStream._toBigFloat(step, resolvedPrecision);
-      if (stepValue.isZero()) throw new Error("Step cannot be zero");
+      if (stepValue.isZero()) throw new RangeError("Step cannot be zero");
       if (stepValue.gt(0)) {
         while (current.lt(endValue)) {
           yield current;
@@ -4809,7 +4827,7 @@ var BigFloatStream = class _BigFloatStream {
   max() {
     const iter = this[Symbol.iterator]();
     const first = iter.next();
-    if (first.done) throw new Error("No arguments provided");
+    if (first.done) throw new TypeError("No arguments provided");
     let result = first.value;
     for (let next = iter.next(); !next.done; next = iter.next()) {
       if (next.value.gt(result)) result = next.value;
@@ -4823,7 +4841,7 @@ var BigFloatStream = class _BigFloatStream {
   min() {
     const iter = this[Symbol.iterator]();
     const first = iter.next();
-    if (first.done) throw new Error("No arguments provided");
+    if (first.done) throw new TypeError("No arguments provided");
     let result = first.value;
     for (let next = iter.next(); !next.done; next = iter.next()) {
       if (next.value.lt(result)) result = next.value;
@@ -4899,9 +4917,15 @@ var BigFloatStream = class _BigFloatStream {
 export {
   BigFloat,
   BigFloatConfig,
+  BigFloatError,
   BigFloatStream,
+  CacheNotInitializedError,
+  DivisionByZeroError,
+  NumericalComputationError,
+  PrecisionMismatchError,
   RoundingMode,
   SpecialValueState,
+  SpecialValuesDisabledError,
   bigFloat
 };
 //# sourceMappingURL=BigFloat.js.map

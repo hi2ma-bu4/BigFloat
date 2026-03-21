@@ -15,7 +15,7 @@ test("BigFloatStream factories normalize counts, precision, and range boundaries
 	assert.deepStrictEqual(toStrings(BigFloatStream.range(5, 0, -2)), ["5", "3", "1"]);
 	assert.throws(() => BigFloatStream.arithmetic(0, 1, -1), /non-negative/);
 	assert.throws(() => BigFloatStream.repeat(1, Number.POSITIVE_INFINITY), /finite/);
-	assert.throws(() => BigFloatStream.range(0, 1, 0).toArray(), /Step cannot be zero/);
+	assert.throws(() => BigFloatStream.range(0, 1, 0).toArray(), (error) => error instanceof RangeError && /Step cannot be zero/.test(error.message));
 	assert.throws(() => BigFloatStream.random(1, { min: 2, max: 1 }).toArray(), /max >= min/);
 });
 
@@ -112,6 +112,6 @@ test("BigFloatStream aggregate methods cover empty and populated boundary cases"
 	assert.equal(BigFloatStream.empty().sum().toString(), "0");
 	assert.equal(BigFloatStream.empty().product().toString(), "1");
 	assert.equal(BigFloatStream.empty().average().toString(), "0");
-	assert.throws(() => BigFloatStream.empty().max(), /No arguments/);
-	assert.throws(() => BigFloatStream.empty().min(), /No arguments/);
+	assert.throws(() => BigFloatStream.empty().max(), (error) => error instanceof TypeError && /No arguments/.test(error.message));
+	assert.throws(() => BigFloatStream.empty().min(), (error) => error instanceof TypeError && /No arguments/.test(error.message));
 });

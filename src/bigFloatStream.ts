@@ -477,7 +477,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 			let current = BigFloatStream._toBigFloat(actualStart, resolvedPrecision);
 			const endValue = BigFloatStream._toBigFloat(actualEnd, resolvedPrecision);
 			const stepValue = BigFloatStream._toBigFloat(step, resolvedPrecision);
-			if (stepValue.isZero()) throw new Error("Step cannot be zero");
+			if (stepValue.isZero()) throw new RangeError("Step cannot be zero");
 
 			if (stepValue.gt(0)) {
 				while (current.lt(endValue)) {
@@ -979,7 +979,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	public max(): BigFloat {
 		const iter = this[Symbol.iterator]();
 		const first = iter.next();
-		if (first.done) throw new Error("No arguments provided");
+		if (first.done) throw new TypeError("No arguments provided");
 
 		let result = first.value;
 		for (let next = iter.next(); !next.done; next = iter.next()) {
@@ -995,7 +995,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	public min(): BigFloat {
 		const iter = this[Symbol.iterator]();
 		const first = iter.next();
-		if (first.done) throw new Error("No arguments provided");
+		if (first.done) throw new TypeError("No arguments provided");
 
 		let result = first.value;
 		for (let next = iter.next(); !next.done; next = iter.next()) {

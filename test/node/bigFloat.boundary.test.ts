@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BigFloat, BigFloatConfig, RoundingMode } from "../../dist/BigFloat.js";
+import { BigFloat, BigFloatConfig, PrecisionMismatchError, RoundingMode } from "../../dist/BigFloat.js";
 
 const HIGH_PRECISION = 80;
 const ULTRA_PRECISION = 120;
@@ -131,7 +131,7 @@ test("BigFloat construction, parsing, normalization, and formatting handle bound
 	assert.equal(new BigFloat("1234.5", HIGH_PRECISION).toExponential(4), "1.2345e+3");
 
 	assert.throws(() => BigFloat.parseFloat("1", HIGH_PRECISION, 1), /Base must be between 2 and 36/);
-	assert.throws(() => BigFloat.parseFloat("2", HIGH_PRECISION, 2), /Invalid digit/);
+	assert.throws(() => BigFloat.parseFloat("2", HIGH_PRECISION, 2), (error) => error instanceof SyntaxError && /Invalid digit/.test(error.message));
 	assert.throws(() => new BigFloat("1", HIGH_PRECISION).toString(37), /Base must be between 2 and 36/);
 	assert.throws(() => new BigFloat("1", -1), /Precision must be greater than 0/);
 });
@@ -140,11 +140,13 @@ test("BigFloat precision mismatch and mutation options change result precision s
 	const Strict = BigFloat.clone();
 	const strictA = new Strict("1.23456", 5);
 	const strictB = new Strict("0.000009", 6);
-	const strictSum = strictA.add(strictB);
 
-	assert.equal(strictA._precision, 6n);
-	assert.equal(strictSum._precision, 6n);
-	assert.equal(strictSum.toString(10, 6), "1.234569");
+	assert.throws(
+		() => strictA.add(strictB),
+		(error) => error instanceof PrecisionMismatchError && /5 !== 6/.test(error.message),
+	);
+	assert.equal(strictA._precision, 5n);
+	assert.equal(strictB._precision, 6n);
 
 	const Permissive = BigFloat.clone();
 	Permissive.config.allowPrecisionMismatch = true;

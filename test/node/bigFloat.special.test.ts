@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { bigFloat, BigFloat } from "../../dist/BigFloat.js";
+import { bigFloat, BigFloat, DivisionByZeroError, SpecialValuesDisabledError } from "../../dist/BigFloat.js";
 
 function tolerance(precision: number | bigint, guardDigits = 8): BigFloat {
 	const precisionBig = BigInt(precision);
@@ -95,12 +95,12 @@ test("BigFloat can disable special values and throw instead of producing states"
 	Strict.config.allowSpecialValues = false;
 
 	assert.equal(Strict.config.allowSpecialValues, false);
-	assert.throws(() => Strict.nan(20), /Special values are disabled/);
-	assert.throws(() => Strict.infinity(20), /Special values are disabled/);
-	assert.throws(() => Strict.negativeInfinity(20), /Special values are disabled/);
-	assert.throws(() => new Strict(Number.POSITIVE_INFINITY, 20), /Special values are disabled/);
-	assert.throws(() => new Strict("NaN", 20), /Special values are disabled/);
-	assert.throws(() => new Strict(1, 20).div(0), /Division by zero/);
+	assert.throws(() => Strict.nan(20), (error) => error instanceof SpecialValuesDisabledError && /Special values are disabled/.test(error.message));
+	assert.throws(() => Strict.infinity(20), (error) => error instanceof SpecialValuesDisabledError && /Special values are disabled/.test(error.message));
+	assert.throws(() => Strict.negativeInfinity(20), (error) => error instanceof SpecialValuesDisabledError && /Special values are disabled/.test(error.message));
+	assert.throws(() => new Strict(Number.POSITIVE_INFINITY, 20), (error) => error instanceof SpecialValuesDisabledError && /Special values are disabled/.test(error.message));
+	assert.throws(() => new Strict("NaN", 20), (error) => error instanceof SpecialValuesDisabledError && /Special values are disabled/.test(error.message));
+	assert.throws(() => new Strict(1, 20).div(0), (error) => error instanceof DivisionByZeroError && /Division by zero/.test(error.message));
 	assert.throws(() => new Strict(-1, 20).sqrt(), /negative number/);
 	assert.throws(() => new Strict(0, 20).ln(), /undefined for x <= 0/);
 
@@ -108,7 +108,7 @@ test("BigFloat can disable special values and throw instead of producing states"
 	const infinity = new Carrier(1, 20).div(0);
 	Carrier.config.allowSpecialValues = false;
 
-	assert.throws(() => infinity.toString(), /Special values are disabled/);
-	assert.throws(() => infinity.toNumber(), /Special values are disabled/);
-	assert.throws(() => infinity.add(1), /Special values are disabled/);
+	assert.throws(() => infinity.toString(), (error) => error instanceof SpecialValuesDisabledError && /Special values are disabled/.test(error.message));
+	assert.throws(() => infinity.toNumber(), (error) => error instanceof SpecialValuesDisabledError && /Special values are disabled/.test(error.message));
+	assert.throws(() => infinity.add(1), (error) => error instanceof SpecialValuesDisabledError && /Special values are disabled/.test(error.message));
 });

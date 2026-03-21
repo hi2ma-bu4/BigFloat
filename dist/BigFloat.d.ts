@@ -1843,5 +1843,36 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 */
 	stddev(): BigFloat;
 }
+/**
+ * BigFloat ライブラリ共通の基底エラー
+ */
+export declare class BigFloatError extends Error {
+	constructor(message?: string, options?: ErrorOptions);
+}
+/**
+ * 特殊値が無効な設定で特殊値を扱おうとした場合のエラー
+ */
+export declare class SpecialValuesDisabledError extends BigFloatError {
+}
+/**
+ * 精度不一致が許容されていない場合のエラー
+ */
+export declare class PrecisionMismatchError extends BigFloatError {
+}
+/**
+ * BigFloat 上でゼロ除算が発生した場合のエラー
+ */
+export declare class DivisionByZeroError extends BigFloatError {
+}
+/**
+ * 数値計算中に安定した結果を導けない場合のエラー
+ */
+export declare class NumericalComputationError extends BigFloatError {
+}
+/**
+ * 必須キャッシュが初期化されていない場合のエラー
+ */
+export declare class CacheNotInitializedError extends BigFloatError {
+}
 
 export {};

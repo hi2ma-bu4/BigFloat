@@ -8,6 +8,12 @@
 - [`BigFloat`](#bigfloat-1)
 - [`BigFloatConfig`](#bigfloatconfig)
 - [`BigFloatStream`](#bigfloatstream)
+- [`BigFloatError`](#bigfloaterror)
+- [`CacheNotInitializedError`](#cachenotinitializederror)
+- [`DivisionByZeroError`](#divisionbyzeroerror)
+- [`NumericalComputationError`](#numericalcomputationerror)
+- [`PrecisionMismatchError`](#precisionmismatcherror)
+- [`SpecialValuesDisabledError`](#specialvaluesdisablederror)
 - [`RoundingMode`](#roundingmode)
 - [`SpecialValueState`](#specialvaluestate)
 - [`BigFloatAggregateArgs`](#bigfloataggregateargs)
@@ -2048,6 +2054,76 @@ stddev(): BigFloat
 要素の標準偏差を返す (終端操作)
 
 **Returns**: 標準偏差
+
+<a id="bigfloaterror"></a>
+
+## `BigFloatError`
+
+BigFloat ライブラリ共通の基底エラー
+
+```ts
+class BigFloatError
+```
+
+### Constructor
+
+#### `constructor`
+
+```ts
+constructor(message?: string, options?: ErrorOptions): BigFloatError
+```
+
+BigFloat ライブラリ共通の基底エラー
+
+<a id="cachenotinitializederror"></a>
+
+## `CacheNotInitializedError`
+
+必須キャッシュが初期化されていない場合のエラー
+
+```ts
+class CacheNotInitializedError
+```
+
+<a id="divisionbyzeroerror"></a>
+
+## `DivisionByZeroError`
+
+BigFloat 上でゼロ除算が発生した場合のエラー
+
+```ts
+class DivisionByZeroError
+```
+
+<a id="numericalcomputationerror"></a>
+
+## `NumericalComputationError`
+
+数値計算中に安定した結果を導けない場合のエラー
+
+```ts
+class NumericalComputationError
+```
+
+<a id="precisionmismatcherror"></a>
+
+## `PrecisionMismatchError`
+
+精度不一致が許容されていない場合のエラー
+
+```ts
+class PrecisionMismatchError
+```
+
+<a id="specialvaluesdisablederror"></a>
+
+## `SpecialValuesDisabledError`
+
+特殊値が無効な設定で特殊値を扱おうとした場合のエラー
+
+```ts
+class SpecialValuesDisabledError
+```
 
 <a id="roundingmode"></a>
 
