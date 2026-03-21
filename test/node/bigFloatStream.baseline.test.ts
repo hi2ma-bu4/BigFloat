@@ -21,6 +21,11 @@ if (!fs.existsSync(BASELINE_PATH)) {
 	throw new Error(`Baseline build not found: ${BASELINE_PATH}`);
 }
 
+type CurrentBigFloatCtor = typeof CurrentBigFloat;
+type CurrentBigFloatStreamCtor = typeof CurrentBigFloatStream;
+type BigFloatInstance = InstanceType<typeof CurrentBigFloat>;
+type BigFloatStreamInstance = InstanceType<typeof CurrentBigFloatStream>;
+
 const baselineSource = fs.readFileSync(BASELINE_PATH, "utf8");
 const baselineRequire = vm.runInNewContext(
 	baselineSource,
@@ -33,36 +38,68 @@ const baselineRequire = vm.runInNewContext(
 	{ filename: BASELINE_PATH },
 );
 const JavaLibraryScript = baselineRequire(16);
-const OldBigFloat = JavaLibraryScript.math.BigFloat;
+const OldBigFloat = JavaLibraryScript.math.BigFloat as CurrentBigFloatCtor;
 OldBigFloat.config.extraPrecision = 6n;
-const OldBigFloatStream = JavaLibraryScript.util.stream.BigFloatStream;
+const OldBigFloatStream = JavaLibraryScript.util.stream.BigFloatStream as CurrentBigFloatStreamCtor;
 const identity = <T>(value: T): T => value;
 const alwaysTrue = (): boolean => true;
 const noop = (): void => {};
 
 const operations = {
 	map: {
-		old(stream: InstanceType<typeof OldBigFloatStream>) {
+		old(stream: BigFloatStreamInstance) {
 			return stream.map(identity);
 		},
-		current(stream: InstanceType<typeof CurrentBigFloatStream>) {
+		current(stream: BigFloatStreamInstance) {
 			return stream.map(identity);
 		},
 	},
+	flatMap: {
+		old(stream: BigFloatStreamInstance) {
+			return stream.flatMap((value: BigFloatInstance) => [value]);
+		},
+		current(stream: BigFloatStreamInstance) {
+			return stream.flatMap((value: BigFloatInstance) => [value]);
+		},
+	},
+	distinct: {
+		old(stream: BigFloatStreamInstance) {
+			return stream.distinct((value: BigFloatInstance) => value.toString());
+		},
+		current(stream: BigFloatStreamInstance) {
+			return stream.distinct((value: BigFloatInstance) => value.toString());
+		},
+	},
 	filter: {
-		old(stream: InstanceType<typeof OldBigFloatStream>) {
+		old(stream: BigFloatStreamInstance) {
 			return stream.filter(alwaysTrue);
 		},
-		current(stream: InstanceType<typeof CurrentBigFloatStream>) {
+		current(stream: BigFloatStreamInstance) {
 			return stream.filter(alwaysTrue);
 		},
 	},
 	peek: {
-		old(stream: InstanceType<typeof OldBigFloatStream>) {
+		old(stream: BigFloatStreamInstance) {
 			return stream.peek(noop);
 		},
-		current(stream: InstanceType<typeof CurrentBigFloatStream>) {
+		current(stream: BigFloatStreamInstance) {
 			return stream.peek(noop);
+		},
+	},
+	limit: {
+		old(stream: BigFloatStreamInstance) {
+			return stream.limit(EXACT_COUNT);
+		},
+		current(stream: BigFloatStreamInstance) {
+			return stream.limit(EXACT_COUNT);
+		},
+	},
+	skip: {
+		old(stream: BigFloatStreamInstance) {
+			return stream.skip(1);
+		},
+		current(stream: BigFloatStreamInstance) {
+			return stream.skip(1);
 		},
 	},
 };
@@ -141,6 +178,89 @@ function tryRun<T>(fn: () => T): { ok: true; value: T; ms: number } | { ok: fals
 	}
 }
 
+function makeOldSeries(size = 256) {
+	return new OldBigFloatStream(Array.from({ length: size }, (_, index) => new OldBigFloat(index + 1, 40)));
+}
+
+function makeCurrentSeries(size = 256) {
+	return CurrentBigFloatStream.from(Array.from({ length: size }, (_, index) => new CurrentBigFloat(index + 1, 40)));
+}
+
+type ExecutionBenchmarkCase = {
+	name: string;
+	old: () => unknown;
+	current: () => unknown;
+};
+
+const executionBenchmarks: ExecutionBenchmarkCase[] = [
+	{
+		name: "map+count",
+		old: () =>
+			makeOldSeries()
+				.map((value: BigFloatInstance) => value.mul(new OldBigFloat(2, 40)))
+				.count(),
+		current: () =>
+			makeCurrentSeries()
+				.map((value: BigFloatInstance) => value.mul(new CurrentBigFloat(2, 40)))
+				.count(),
+	},
+	{
+		name: "filter+count",
+		old: () =>
+			makeOldSeries()
+				.filter((value: BigFloatInstance) => value.mod(new OldBigFloat(2, 40)).isZero())
+				.count(),
+		current: () =>
+			makeCurrentSeries()
+				.filter((value: BigFloatInstance) => value.mod(new CurrentBigFloat(2, 40)).isZero())
+				.count(),
+	},
+	{
+		name: "flatMap+count",
+		old: () =>
+			makeOldSeries(64)
+				.flatMap((value: BigFloatInstance) => [value, value.add(new OldBigFloat(1, 40))])
+				.count(),
+		current: () =>
+			makeCurrentSeries(64)
+				.flatMap((value: BigFloatInstance) => [value, value.add(new CurrentBigFloat(1, 40))])
+				.count(),
+	},
+	{
+		name: "distinct+count",
+		old: () =>
+			makeOldSeries(64)
+				.flatMap((value: BigFloatInstance) => [value.mod(new OldBigFloat(7, 40))])
+				.distinct((value: BigFloatInstance) => value.toString())
+				.count(),
+		current: () =>
+			makeCurrentSeries(64)
+				.flatMap((value: BigFloatInstance) => [value.mod(new CurrentBigFloat(7, 40))])
+				.distinct((value: BigFloatInstance) => value.toString())
+				.count(),
+	},
+	{
+		name: "skip+limit+count",
+		old: () => makeOldSeries(256).skip(8).limit(64).count(),
+		current: () => makeCurrentSeries(256).skip(8).limit(64).count(),
+	},
+	{
+		name: "changePrecision+count",
+		old: () => makeOldSeries(64).changePrecision(20).count(),
+		current: () => makeCurrentSeries(64).changePrecision(20).count(),
+	},
+	{
+		name: "pow+count",
+		old: () => makeOldSeries(32).pow(new OldBigFloat(2, 40)).count(),
+		current: () => makeCurrentSeries(32).pow(new CurrentBigFloat(2, 40)).count(),
+	},
+	{
+		name: "sqrt+count",
+		old: () => new OldBigFloatStream([new OldBigFloat("4", 40), new OldBigFloat("9", 40), new OldBigFloat("16", 40)]).sqrt().count(),
+		current: () => CurrentBigFloatStream.of(new CurrentBigFloat("4", 40), new CurrentBigFloat("9", 40), new CurrentBigFloat("16", 40)).sqrt().count(),
+	},
+];
+
 test("BigFloatStream baseline build overhead", (t) => {
 	for (const name of Object.keys(operations) as Array<keyof typeof operations>) {
 		const count = resolveBuildCount(name);
@@ -159,4 +279,11 @@ test("BigFloatStream deep map chain stays executable", (t) => {
 	t.diagnostic(`baseline map+findFirst@${EXACT_COUNT}: ${baseline.ok ? `${baseline.ms.toFixed(2)}ms` : baseline.message}`);
 	t.diagnostic(`current map+findFirst@${EXACT_COUNT}: ${current.ok ? `${current.ms.toFixed(2)}ms` : current.message}`);
 	assert.ok(current.ok, `current BigFloatStream should execute ${EXACT_COUNT} no-op map stages without stack overflow`);
+});
+
+test("BigFloatStream execution throughput stays within baseline tolerance", (t) => {
+	for (const benchmark of executionBenchmarks) {
+		const result = pairwise(benchmark.old, benchmark.current);
+		t.diagnostic(`${benchmark.name}: baseline=${result.oldMs.toFixed(2)}ms current=${result.currentMs.toFixed(2)}ms`);
+	}
 });

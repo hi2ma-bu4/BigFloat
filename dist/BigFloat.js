@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.2.8
+ * BigFloat 1.2.9
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -1206,7 +1206,6 @@ var BigFloat = class _BigFloat {
    */
   floor() {
     const temp = this.clone();
-    temp._applyPrecision(0n);
     const config = this.constructor.config;
     const originalMode = config.roundingMode;
     config.roundingMode = 3 /* FLOOR */;
@@ -2238,7 +2237,7 @@ var BigFloat = class _BigFloat {
   static _log1p(value, precision, maxSteps) {
     const scale = this._getPow10(precision);
     const onePlusX = scale + value;
-    return this._log(onePlusX, scale, precision, maxSteps);
+    return this._ln(onePlusX, precision, maxSteps);
   }
   /**
    * ln(1 + x) を計算する
@@ -2439,7 +2438,7 @@ var BigFloat = class _BigFloat {
    * @throws {Error} 引数が空の場合
    */
   static max(...args) {
-    const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this.constructor(x));
+    const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this(x));
     if (arr.length === 0) throw new Error("No arguments provided");
     let maxBF = arr[0];
     for (let i = 1; i < arr.length; i++) {
@@ -2454,7 +2453,7 @@ var BigFloat = class _BigFloat {
    * @throws {Error} 引数が空の場合
    */
   static min(...args) {
-    const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this.constructor(x));
+    const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this(x));
     if (arr.length === 0) throw new Error("No arguments provided");
     let minBF = arr[0];
     for (let i = 1; i < arr.length; i++) {
@@ -2468,10 +2467,9 @@ var BigFloat = class _BigFloat {
    * @returns 合計
    */
   static sum(...args) {
-    const construct = this.constructor;
-    const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new construct(x));
-    if (arr.length === 0) return new construct(0);
-    let total = new construct(0, arr[0]._precision);
+    const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this(x));
+    if (arr.length === 0) return new this(0);
+    let total = new this(0, arr[0]._precision);
     for (const item of arr) {
       total = total.add(item);
     }
@@ -2483,10 +2481,9 @@ var BigFloat = class _BigFloat {
    * @returns 積
    */
   static product(...args) {
-    const construct = this.constructor;
-    const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new construct(x));
-    if (arr.length === 0) return new construct(1);
-    let prod = new construct(1, arr[0]._precision);
+    const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this(x));
+    if (arr.length === 0) return new this(1);
+    let prod = new this(1, arr[0]._precision);
     for (const item of arr) {
       prod = prod.mul(item);
     }
@@ -2510,7 +2507,7 @@ var BigFloat = class _BigFloat {
    * @throws {Error} 引数が空の場合
    */
   static median(...args) {
-    const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this.constructor(x));
+    const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this(x));
     if (arr.length === 0) throw new Error("No arguments provided");
     const sorted = arr.sort((a, b) => a.compare(b));
     const mid = Math.floor(sorted.length / 2);
@@ -2527,14 +2524,13 @@ var BigFloat = class _BigFloat {
    * @throws {Error} 引数が空の場合
    */
   static variance(...args) {
-    const construct = this.constructor;
-    const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new construct(x));
+    const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this(x));
     if (arr.length === 0) throw new Error("No arguments provided");
-    if (arr.length === 1) return new construct("0", arr[0]._precision);
-    const n = new construct(arr.length);
+    if (arr.length === 1) return new this(0, arr[0]._precision);
+    const n = new this(arr.length);
     const total = this.sum(arr);
     const meanVal = total.div(n);
-    let sumSquares = new construct(0, meanVal._precision);
+    let sumSquares = new this(0, meanVal._precision);
     for (const item of arr) {
       const diff = item.sub(meanVal);
       sumSquares = sumSquares.add(diff.mul(diff));
@@ -2547,7 +2543,7 @@ var BigFloat = class _BigFloat {
    * @returns 標準偏差
    */
   static stddev(...args) {
-    const varianceVal = this.variance(args);
+    const varianceVal = this.variance(...args);
     return varianceVal.sqrt();
   }
   // ====================================================================================================
