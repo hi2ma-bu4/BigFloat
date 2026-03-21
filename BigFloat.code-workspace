@@ -6,11 +6,17 @@
 	],
 	"settings": {
 		"cSpell.words": [
+			"acosh",
+			"asinh",
+			"atanh",
 			"cbrt",
 			"CHUDNOVSKY",
 			"coeffs",
 			"expm",
+			"fround",
 			"Funcs",
+			"hypot",
+			"imul",
 			"linspace",
 			"logspace",
 			"Machin",

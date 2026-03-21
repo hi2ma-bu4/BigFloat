@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.2.13
+ * BigFloat 1.2.14
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -107,6 +107,8 @@ var BigFloat = class _BigFloat {
   static MAX_PRECISION = 200000000n;
   /** レイジー正規化の閾値 */
   static LAZY_NORMALIZE_SMALL_THRESHOLD = 32n;
+  /** デフォルトの精度 */
+  static DEFAULT_PRECISION = 20n;
   /** 設定 */
   static config = new BigFloatConfig();
   /** 円周率キャッシュ */
@@ -147,7 +149,7 @@ var BigFloat = class _BigFloat {
     return this._exp5;
   }
   /** 精度 (小数点以下の最大桁数) */
-  _precision = 20n;
+  _precision = this.constructor.DEFAULT_PRECISION;
   /** 特殊値の状態 */
   _specialState = 0 /* FINITE */;
   /**
@@ -289,7 +291,7 @@ var BigFloat = class _BigFloat {
       case 3 /* NAN */:
         return Number.NaN;
       default:
-        return Number(this.mantissa) * Math.pow(2, Number(this._exp2)) * Math.pow(5, Number(this._exp5));
+        return Number(this.toExponential(17));
     }
   }
   /**
@@ -335,7 +337,7 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @throws {RangeError} 精度が不正な場合
    */
-  constructor(value, precision = 20n) {
+  constructor(value, precision = this.constructor.DEFAULT_PRECISION) {
     const construct = this.constructor;
     if (value instanceof _BigFloat) {
       this.mantissa = value.mantissa;
@@ -641,7 +643,7 @@ var BigFloat = class _BigFloat {
    * @throws {RangeError} 基数が2から36の範囲外の場合
    * @throws {Error} 不正な文字が含まれている場合
    */
-  static parseFloat(str, precision = 20n, base = 10) {
+  static parseFloat(str, precision = this.DEFAULT_PRECISION, base = 10) {
     if (str instanceof _BigFloat) return str.clone();
     if (typeof str !== "string") str = String(str);
     if (base < 2 || base > 36) throw new RangeError("Base must be between 2 and 36");
@@ -732,6 +734,34 @@ var BigFloat = class _BigFloat {
       return [...args[0]];
     }
     return [...args];
+  }
+  /**
+   * 演算に使う精度を解決する
+   * @param values - 対象値
+   * @param fallback - デフォルト精度
+   * @returns 解決済み精度
+   */
+  static _resolvePrecisionFromValues(values, fallback = this.DEFAULT_PRECISION) {
+    let resolved = BigInt(fallback);
+    for (const value of values) {
+      if (value instanceof _BigFloat && value._precision > resolved) {
+        resolved = value._precision;
+      }
+    }
+    this._checkPrecision(resolved);
+    return resolved;
+  }
+  /**
+   * 値を指定精度のBigFloatへ正規化する
+   * @param value - 対象値
+   * @param precision - 精度
+   * @returns 正規化後のBigFloat
+   */
+  static _coerceBigFloatValue(value, precision) {
+    if (value instanceof _BigFloat) {
+      return value._precision === precision ? value.clone() : value.clone().changePrecision(precision);
+    }
+    return new this(value, precision);
   }
   /**
    * 内部整数値から生の内部表現を生成する
@@ -1542,6 +1572,19 @@ var BigFloat = class _BigFloat {
     return res;
   }
   /**
+   * 符号を取得する
+   * @returns -1, 0, 1 または NaN
+   */
+  sign() {
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 3 /* NAN */) return this._specialResult(3 /* NAN */, 0n);
+      return this._makeExactResultWithPrecision(this._specialState === 1 /* POSITIVE_INFINITY */ ? 1n : -1n, 0n);
+    }
+    if (this.mantissa === 0n) return this._makeExactResultWithPrecision(0n, 0n);
+    return this._makeExactResultWithPrecision(this.mantissa > 0n ? 1n : -1n, 0n);
+  }
+  /**
    * 逆数を取得する
    * @returns 逆数
    * @throws {Error} ゼロの場合
@@ -1601,13 +1644,7 @@ var BigFloat = class _BigFloat {
       this._ensureSpecialValuesEnabled(this);
       return this.clone();
     }
-    const temp = this.clone();
-    const config = this.constructor.config;
-    const originalMode = config.roundingMode;
-    config.roundingMode = 4 /* HALF_UP */;
-    temp._applyPrecision(0n);
-    config.roundingMode = originalMode;
-    return this._makeResultFromInstance(temp);
+    return this.add(new this.constructor(0.5, this._precision)).floor();
   }
   /**
    * 0に近い方向へ切り捨てる
@@ -1625,6 +1662,20 @@ var BigFloat = class _BigFloat {
     temp._applyPrecision(0n);
     config.roundingMode = originalMode;
     return this._makeResultFromInstance(temp);
+  }
+  /**
+   * Float32 精度へ丸める
+   * @returns Float32相当に丸めた結果
+   */
+  fround() {
+    return this._fromSpecialAwareNumber(Math.fround(this._specialAwareNumber()), this._precision);
+  }
+  /**
+   * 32bit整数として見たときの先頭ゼロビット数を返す
+   * @returns 先頭ゼロビット数
+   */
+  clz32() {
+    return this._makeExactResultWithPrecision(BigInt(Math.clz32(this._specialAwareNumber())), 0n);
   }
   // ====================================================================================================
   // * 冪乗・ルート・スケーリング
@@ -2353,6 +2404,127 @@ var BigFloat = class _BigFloat {
     resBF._applyPrecision();
     return this._makeResultFromInstance(resBF);
   }
+  // ====================================================================================================
+  // * 双曲線関数
+  // ====================================================================================================
+  /**
+   * 双曲線正弦(sinh)を計算する
+   * @returns 双曲線正弦
+   */
+  sinh() {
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 3 /* NAN */) return this._specialResult(3 /* NAN */);
+      return this._specialResult(this._specialState);
+    }
+    if (this.isZero()) return this._makeExactResult(0n);
+    if (this._precision <= 15n) {
+      return this._fromSpecialAwareNumber(Math.sinh(this.toNumber()), this._precision);
+    }
+    const positive = this.exp();
+    const negative = this.neg().exp();
+    return positive.sub(negative).div(2);
+  }
+  /**
+   * 双曲線余弦(cosh)を計算する
+   * @returns 双曲線余弦
+   */
+  cosh() {
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 3 /* NAN */) return this._specialResult(3 /* NAN */);
+      return this._specialResult(1 /* POSITIVE_INFINITY */);
+    }
+    if (this.isZero()) return this._makeExactResult(1n);
+    if (this._precision <= 15n) {
+      return this._fromSpecialAwareNumber(Math.cosh(this.toNumber()), this._precision);
+    }
+    const positive = this.exp();
+    const negative = this.neg().exp();
+    return positive.add(negative).div(2);
+  }
+  /**
+   * 双曲線正接(tanh)を計算する
+   * @returns 双曲線正接
+   */
+  tanh() {
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 3 /* NAN */) return this._specialResult(3 /* NAN */);
+      return this._makeExactResultWithPrecision(this._specialState === 1 /* POSITIVE_INFINITY */ ? 1n : -1n, this._precision);
+    }
+    if (this.isZero()) return this._makeExactResult(0n);
+    if (this._precision <= 15n) {
+      return this._fromSpecialAwareNumber(Math.tanh(this.toNumber()), this._precision);
+    }
+    const doubled = this.mul(2);
+    const expDouble = doubled.exp();
+    return expDouble.sub(1).div(expDouble.add(1));
+  }
+  /**
+   * 逆双曲線正弦(asinh)を計算する
+   * @returns 逆双曲線正弦
+   */
+  asinh() {
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      return this._specialResult(this._specialState);
+    }
+    if (this.isZero()) return this._makeExactResult(0n);
+    if (this._precision <= 15n) {
+      return this._fromSpecialAwareNumber(Math.asinh(this.toNumber()), this._precision);
+    }
+    return this.mul(this).add(1).sqrt().add(this).ln();
+  }
+  /**
+   * 逆双曲線余弦(acosh)を計算する
+   * @returns 逆双曲線余弦
+   */
+  acosh() {
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      if (this._specialState === 1 /* POSITIVE_INFINITY */) return this._specialResult(1 /* POSITIVE_INFINITY */);
+      return this._specialResult(3 /* NAN */);
+    }
+    if (this.lt(1)) {
+      if (this.constructor.config.allowSpecialValues) return this._specialResult(3 /* NAN */);
+      throw new RangeError("acosh input must be >= 1");
+    }
+    if (this.eq(1)) return this._makeExactResult(0n);
+    if (this._precision <= 15n) {
+      return this._fromSpecialAwareNumber(Math.acosh(this.toNumber()), this._precision);
+    }
+    return this.add(this.sub(1).sqrt().mul(this.add(1).sqrt())).ln();
+  }
+  /**
+   * 逆双曲線正接(atanh)を計算する
+   * @returns 逆双曲線正接
+   */
+  atanh() {
+    const construct = this.constructor;
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      return this._specialResult(3 /* NAN */);
+    }
+    if (this.eq(1)) {
+      if (construct.config.allowSpecialValues) return this._specialResult(1 /* POSITIVE_INFINITY */);
+      throw new RangeError("atanh input must be in [-1,1]");
+    }
+    if (this.eq(-1)) {
+      if (construct.config.allowSpecialValues) return this._specialResult(2 /* NEGATIVE_INFINITY */);
+      throw new RangeError("atanh input must be in [-1,1]");
+    }
+    if (this.gt(1) || this.lt(-1)) {
+      if (construct.config.allowSpecialValues) return this._specialResult(3 /* NAN */);
+      throw new RangeError("atanh input must be in [-1,1]");
+    }
+    if (this.isZero()) return this._makeExactResult(0n);
+    if (this._precision <= 15n) {
+      return this._fromSpecialAwareNumber(Math.atanh(this.toNumber()), this._precision);
+    }
+    const one = new construct(1n, this._precision);
+    return one.add(this).div(one.sub(this)).ln().div(2);
+  }
   /**
    * マチン(Machin)の公式用のatan計算 (内部用)
    * @param invX - 1/xのx
@@ -2903,7 +3075,7 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @returns e
    */
-  static e(precision = 20n) {
+  static e(precision = this.DEFAULT_PRECISION) {
     const precisionBig = BigInt(precision);
     this._checkPrecision(precisionBig);
     const totalPr = precisionBig + this.config.extraPrecision;
@@ -2918,7 +3090,7 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @returns 円周率
    */
-  static _piChudnovsky(precision = 20n) {
+  static _piChudnovsky(precision = this.DEFAULT_PRECISION) {
     const scale = this._getPow10(precision);
     const digitsPerTerm = 14n;
     const terms = precision / digitsPerTerm + 1n;
@@ -2964,7 +3136,7 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @returns pi
    */
-  static pi(precision = 20n) {
+  static pi(precision = this.DEFAULT_PRECISION) {
     const precisionBig = BigInt(precision);
     this._checkPrecision(precisionBig);
     const val = this._pi(precisionBig);
@@ -2984,24 +3156,282 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @returns tau
    */
-  static tau(precision = 20n) {
+  static tau(precision = this.DEFAULT_PRECISION) {
     const precisionBig = BigInt(precision);
     this._checkPrecision(precisionBig);
     const val = this._tau(precisionBig);
     return this._makeResult(val, precisionBig);
   }
   // ====================================================================================================
-  // * 統計関数
+  // * Math互換 静的メソッド
   // ====================================================================================================
   /**
-   * 引数の中で最大値を返す
+   * Math.abs() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 絶対値
+   */
+  static abs(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).abs();
+  }
+  /**
+   * Math.acos() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 逆余弦
+   */
+  static acos(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).acos();
+  }
+  /**
+   * Math.acosh() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 逆双曲線余弦
+   */
+  static acosh(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).acosh();
+  }
+  /**
+   * Math.asin() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 逆正弦
+   */
+  static asin(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).asin();
+  }
+  /**
+   * Math.asinh() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 逆双曲線正弦
+   */
+  static asinh(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).asinh();
+  }
+  /**
+   * Math.atan() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 逆正接
+   */
+  static atan(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).atan();
+  }
+  /**
+   * Math.atan2() 相当
+   * @param y - y座標
+   * @param x - x座標
+   * @param precision - 結果精度
+   * @returns 逆正接
+   */
+  static atan2(y, x, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([y, x], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(y, precisionBig).atan2(this._coerceBigFloatValue(x, precisionBig));
+  }
+  /**
+   * Math.atanh() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 逆双曲線正接
+   */
+  static atanh(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).atanh();
+  }
+  /**
+   * Math.cbrt() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 立方根
+   */
+  static cbrt(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).cbrt();
+  }
+  /**
+   * Math.ceil() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 切り上げ結果
+   */
+  static ceil(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).ceil();
+  }
+  /**
+   * Math.clz32() 相当
+   * @param value - 対象値
+   * @returns 先頭ゼロビット数
+   */
+  static clz32(value) {
+    const precisionBig = this._resolvePrecisionFromValues([value], this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).clz32();
+  }
+  /**
+   * Math.cos() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 余弦
+   */
+  static cos(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).cos();
+  }
+  /**
+   * Math.cosh() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 双曲線余弦
+   */
+  static cosh(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).cosh();
+  }
+  /**
+   * Math.exp() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 指数関数
+   */
+  static exp(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).exp();
+  }
+  /**
+   * Math.expm1() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns e^x - 1
+   */
+  static expm1(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).expm1();
+  }
+  /**
+   * Math.floor() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 切り捨て結果
+   */
+  static floor(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).floor();
+  }
+  /**
+   * Math.fround() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns Float32相当に丸めた結果
+   */
+  static fround(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).fround();
+  }
+  /**
+   * Math.hypot() 相当
+   * @param values - 値の列
+   * @returns sqrt(sum(x_i^2))
+   */
+  static hypot(...values) {
+    if (values.length === 0) return new this(0);
+    const precisionBig = this._resolvePrecisionFromValues(values, this.DEFAULT_PRECISION);
+    const args = values.map((value) => this._coerceBigFloatValue(value, precisionBig));
+    if (!this.config.allowSpecialValues) {
+      for (const value of args) {
+        if (!value._isFiniteState()) throw new SpecialValuesDisabledError("Special values are disabled");
+      }
+    }
+    for (const value of args) {
+      if (value._isInfinityState()) return this.infinity(precisionBig);
+    }
+    for (const value of args) {
+      if (value._isNaNState()) return this.nan(precisionBig);
+    }
+    let total = new this(0, precisionBig);
+    for (const value of args) {
+      const squared = value.mul(value);
+      total = total.add(squared);
+    }
+    return total.sqrt();
+  }
+  /**
+   * Math.imul() 相当
+   * @param lhs - 左辺
+   * @param rhs - 右辺
+   * @returns 32bit整数乗算結果
+   */
+  static imul(lhs, rhs) {
+    const precisionBig = this._resolvePrecisionFromValues([lhs, rhs], this.DEFAULT_PRECISION);
+    const left = this._coerceBigFloatValue(lhs, precisionBig);
+    const right = this._coerceBigFloatValue(rhs, precisionBig);
+    return new this(Math.imul(left.toNumber(), right.toNumber()), 0n);
+  }
+  /**
+   * Math.log() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 自然対数
+   */
+  static log(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).ln();
+  }
+  /**
+   * Math.log10() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 常用対数
+   */
+  static log10(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).log10();
+  }
+  /**
+   * Math.log1p() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns ln(1 + x)
+   */
+  static log1p(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).log1p();
+  }
+  /**
+   * Math.log2() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 底2対数
+   */
+  static log2(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).log2();
+  }
+  /**
+   * Math.max() 相当
    * @param args - 数値のリスト
    * @returns 最大値
-   * @throws {Error} 引数が空の場合
    */
   static max(...args) {
-    const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this(x));
-    if (arr.length === 0) throw new TypeError("No arguments provided");
+    const values = this._normalizeArgs(args);
+    if (values.length === 0) return this.negativeInfinity();
+    const precisionBig = this._resolvePrecisionFromValues(values, this.DEFAULT_PRECISION);
+    const arr = values.map((value) => this._coerceBigFloatValue(value, precisionBig));
+    if (!this.config.allowSpecialValues) {
+      for (const value of arr) {
+        if (!value._isFiniteState()) throw new SpecialValuesDisabledError("Special values are disabled");
+      }
+    }
+    for (const value of arr) {
+      if (value._isNaNState()) return this.nan(precisionBig);
+    }
     let maxBF = arr[0];
     for (let i = 1; i < arr.length; i++) {
       if (arr[i].gt(maxBF)) maxBF = arr[i];
@@ -3009,20 +3439,123 @@ var BigFloat = class _BigFloat {
     return maxBF.clone();
   }
   /**
-   * 引数の中で最小値を返す
+   * Math.min() 相当
    * @param args - 数値のリスト
    * @returns 最小値
-   * @throws {Error} 引数が空の場合
    */
   static min(...args) {
-    const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this(x));
-    if (arr.length === 0) throw new TypeError("No arguments provided");
+    const values = this._normalizeArgs(args);
+    if (values.length === 0) return this.infinity();
+    const precisionBig = this._resolvePrecisionFromValues(values, this.DEFAULT_PRECISION);
+    const arr = values.map((value) => this._coerceBigFloatValue(value, precisionBig));
+    if (!this.config.allowSpecialValues) {
+      for (const value of arr) {
+        if (!value._isFiniteState()) throw new SpecialValuesDisabledError("Special values are disabled");
+      }
+    }
+    for (const value of arr) {
+      if (value._isNaNState()) return this.nan(precisionBig);
+    }
     let minBF = arr[0];
     for (let i = 1; i < arr.length; i++) {
       if (arr[i].lt(minBF)) minBF = arr[i];
     }
     return minBF.clone();
   }
+  /**
+   * Math.pow() 相当
+   * @param base - 底
+   * @param exponent - 指数
+   * @param precision - 結果精度
+   * @returns 冪乗結果
+   */
+  static pow(base, exponent, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([base, exponent], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(base, precisionBig).pow(this._coerceBigFloatValue(exponent, precisionBig));
+  }
+  /**
+   * Math.round() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 四捨五入結果
+   */
+  static round(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).round();
+  }
+  /**
+   * Math.sign() 相当
+   * @param value - 対象値
+   * @param precision - 入力精度
+   * @returns 符号
+   */
+  static sign(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).sign();
+  }
+  /**
+   * Math.sin() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 正弦
+   */
+  static sin(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).sin();
+  }
+  /**
+   * Math.sinh() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 双曲線正弦
+   */
+  static sinh(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).sinh();
+  }
+  /**
+   * Math.sqrt() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 平方根
+   */
+  static sqrt(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).sqrt();
+  }
+  /**
+   * Math.tan() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 正接
+   */
+  static tan(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).tan();
+  }
+  /**
+   * Math.tanh() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 双曲線正接
+   */
+  static tanh(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).tanh();
+  }
+  /**
+   * Math.trunc() 相当
+   * @param value - 対象値
+   * @param precision - 結果精度
+   * @returns 切り捨て結果
+   */
+  static trunc(value, precision) {
+    const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
+    return this._coerceBigFloatValue(value, precisionBig).trunc();
+  }
+  // ====================================================================================================
+  // * 統計関数
+  // ====================================================================================================
   /**
    * 引数の合計を返す
    * @param args - 数値のリスト
@@ -3141,7 +3674,7 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @returns ランダムなBigFloat
    */
-  static random(precision = 20n) {
+  static random(precision = this.DEFAULT_PRECISION) {
     const precisionBig = BigInt(precision);
     this._checkPrecision(precisionBig);
     let randBigInt = this._randomBigInt(precisionBig);
@@ -3848,7 +4381,7 @@ var BigFloat = class _BigFloat {
    * @returns NaN
    * @throws {Error} 特殊値が無効な場合
    */
-  static nan(precision = 20n) {
+  static nan(precision = this.DEFAULT_PRECISION) {
     return this._createSpecialValue(3 /* NAN */, BigInt(precision));
   }
   /**
@@ -3857,7 +4390,7 @@ var BigFloat = class _BigFloat {
    * @returns Infinity
    * @throws {Error} 特殊値が無効な場合
    */
-  static infinity(precision = 20n) {
+  static infinity(precision = this.DEFAULT_PRECISION) {
     return this._createSpecialValue(1 /* POSITIVE_INFINITY */, BigInt(precision));
   }
   /**
@@ -3866,7 +4399,7 @@ var BigFloat = class _BigFloat {
    * @returns -Infinity
    * @throws {Error} 特殊値が無効な場合
    */
-  static negativeInfinity(precision = 20n) {
+  static negativeInfinity(precision = this.DEFAULT_PRECISION) {
     return this._createSpecialValue(2 /* NEGATIVE_INFINITY */, BigInt(precision));
   }
   /**
@@ -3874,39 +4407,39 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @returns -10
    */
-  static minusTen(precision = 20n) {
-    return new this(-10n, precision);
+  static minusTen(precision = this.DEFAULT_PRECISION) {
+    return new this(-10, precision);
   }
   /**
    * 定数 -2 を取得する
    * @param precision - 精度
    * @returns -2
    */
-  static minusTwo(precision = 20n) {
-    return new this(-2n, precision);
+  static minusTwo(precision = this.DEFAULT_PRECISION) {
+    return new this(-2, precision);
   }
   /**
    * 定数 -1 を取得する
    * @param precision - 精度
    * @returns -1
    */
-  static minusOne(precision = 20n) {
-    return new this(-1n, precision);
+  static minusOne(precision = this.DEFAULT_PRECISION) {
+    return new this(-1, precision);
   }
   /**
    * 定数 0 を取得する
    * @param precision - 精度
    * @returns 0
    */
-  static zero(precision = 20n) {
-    return new this(0n, precision);
+  static zero(precision = this.DEFAULT_PRECISION) {
+    return new this(0, precision);
   }
   /**
    * 定数 0.25 を取得する
    * @param precision - 精度
    * @returns 0.25
    */
-  static quarter(precision = 20n) {
+  static quarter(precision = this.DEFAULT_PRECISION) {
     return new this("0.25", precision);
   }
   /**
@@ -3914,7 +4447,7 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @returns 0.5
    */
-  static half(precision = 20n) {
+  static half(precision = this.DEFAULT_PRECISION) {
     return new this("0.5", precision);
   }
   /**
@@ -3922,40 +4455,40 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @returns 1
    */
-  static one(precision = 20n) {
-    return new this(1n, precision);
+  static one(precision = this.DEFAULT_PRECISION) {
+    return new this(1, precision);
   }
   /**
    * 定数 2 を取得する
    * @param precision - 精度
    * @returns 2
    */
-  static two(precision = 20n) {
-    return new this(2n, precision);
+  static two(precision = this.DEFAULT_PRECISION) {
+    return new this(2, precision);
   }
   /**
    * 定数 10 を取得する
    * @param precision - 精度
    * @returns 10
    */
-  static ten(precision = 20n) {
-    return new this(10n, precision);
+  static ten(precision = this.DEFAULT_PRECISION) {
+    return new this(10, precision);
   }
   /**
    * 定数 100 を取得する
    * @param precision - 精度
    * @returns 100
    */
-  static hundred(precision = 20n) {
-    return new this(100n, precision);
+  static hundred(precision = this.DEFAULT_PRECISION) {
+    return new this(100, precision);
   }
   /**
    * 定数 1000 を取得する
    * @param precision - 精度
    * @returns 1000
    */
-  static thousand(precision = 20n) {
-    return new this(1000n, precision);
+  static thousand(precision = this.DEFAULT_PRECISION) {
+    return new this(1e3, precision);
   }
 };
 function bigFloat(value, precision) {

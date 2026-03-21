@@ -13,10 +13,7 @@ function tolerance(precision: number | bigint, guardDigits = 8): BigFloat {
 
 function assertClose(actual: BigFloat, expected: BigFloat, precision: number | bigint, label: string, guardDigits = 8): void {
 	const diff = actual.sub(expected).abs();
-	assert.ok(
-		diff.lt(tolerance(precision, guardDigits)),
-		`${label}: got ${actual.toString(10, precision)}, expected ${expected.toString(10, precision)}, diff ${diff.toString(10, precision)}`,
-	);
+	assert.ok(diff.lt(tolerance(precision, guardDigits)), `${label}: got ${actual.toString(10, precision)}, expected ${expected.toString(10, precision)}, diff ${diff.toString(10, precision)}`);
 }
 
 test("BigFloatConfig clones and toggles every option", () => {
@@ -131,7 +128,10 @@ test("BigFloat construction, parsing, normalization, and formatting handle bound
 	assert.equal(new BigFloat("1234.5", HIGH_PRECISION).toExponential(4), "1.2345e+3");
 
 	assert.throws(() => BigFloat.parseFloat("1", HIGH_PRECISION, 1), /Base must be between 2 and 36/);
-	assert.throws(() => BigFloat.parseFloat("2", HIGH_PRECISION, 2), (error) => error instanceof SyntaxError && /Invalid digit/.test(error.message));
+	assert.throws(
+		() => BigFloat.parseFloat("2", HIGH_PRECISION, 2),
+		(error) => error instanceof SyntaxError && /Invalid digit/.test(error.message),
+	);
 	assert.throws(() => new BigFloat("1", HIGH_PRECISION).toString(37), /Base must be between 2 and 36/);
 	assert.throws(() => new BigFloat("1", -1), /Precision must be greater than 0/);
 });
@@ -188,6 +188,7 @@ test("BigFloat rounding modes and integer rounding helpers cover signed tie case
 	assert.equal(value.floor().toString(), "-2");
 	assert.equal(value.ceil().toString(), "-1");
 	assert.equal(value.round().toString(), "-2");
+	assert.equal(new BigFloat("-1.5", HIGH_PRECISION).round().toString(), "-1");
 	assert.equal(value.trunc().toString(), "-1");
 });
 
@@ -301,8 +302,8 @@ test("BigFloat constants, aggregates, random, gamma, zeta, and factorial helpers
 	assert.equal(BigFloat.sum().toString(), "0");
 	assert.equal(BigFloat.product().toString(), "1");
 	assert.equal(BigFloat.average().toString(), "0");
-	assert.throws(() => BigFloat.max(), /No arguments/);
-	assert.throws(() => BigFloat.min(), /No arguments/);
+	assert.equal(BigFloat.max().toString(), "-Infinity");
+	assert.equal(BigFloat.min().toString(), "Infinity");
 	assert.throws(() => BigFloat.median(), /No arguments/);
 	assert.throws(() => BigFloat.variance(), /No arguments/);
 
@@ -329,4 +330,30 @@ test("BigFloat constants, aggregates, random, gamma, zeta, and factorial helpers
 	assertClose(new BigFloat("0.5", ULTRA_PRECISION).factorial(), piA.sqrt().div(2), ULTRA_PRECISION, "factorial(1/2)", 22);
 	assert.equal(new BigFloat(0, ULTRA_PRECISION).zeta().toString(), "-0.5");
 	assert.equal(new BigFloat(-2, ULTRA_PRECISION).zeta().toString(), "0");
+});
+
+test("BigFloat static Math-compatible methods cover missing Math APIs", () => {
+	const x = new BigFloat("1.25", ULTRA_PRECISION);
+
+	assert.equal(BigFloat.abs(-3).toString(), "3");
+	assert.equal(BigFloat.sign(-3).toString(), "-1");
+	assert.equal(BigFloat.sign(0).toString(), "0");
+	assert.equal(BigFloat.ceil("1.2").toString(), "2");
+	assert.equal(BigFloat.floor("-1.2").toString(), "-2");
+	assert.equal(BigFloat.round("-1.5").toString(), "-1");
+	assert.equal(BigFloat.trunc("-1.9").toString(), "-1");
+	assert.equal(BigFloat.clz32(1).toString(), "31");
+	assert.equal(BigFloat.imul(0xffffffff, 5).toString(), "-5");
+	assert.equal(BigFloat.hypot(3, 4).toString(), "5");
+	assert.equal(BigFloat.max("NaN", 1).toString(), "NaN");
+	assert.equal(BigFloat.min(1, "NaN").toString(), "NaN");
+	assert.equal(BigFloat.sinh(0, ULTRA_PRECISION).toString(), "0");
+	assert.equal(BigFloat.cosh(0, ULTRA_PRECISION).toString(), "1");
+	assertClose(BigFloat.asinh(x, ULTRA_PRECISION).sinh(), x, ULTRA_PRECISION, "sinh(asinh(x))");
+	assertClose(BigFloat.acosh(2, ULTRA_PRECISION).cosh(), new BigFloat(2, ULTRA_PRECISION), ULTRA_PRECISION, "cosh(acosh(2))");
+	assertClose(BigFloat.atanh("0.5", ULTRA_PRECISION).tanh(), new BigFloat("0.5", ULTRA_PRECISION), ULTRA_PRECISION, "tanh(atanh(0.5))");
+	assertClose(BigFloat.log(BigFloat.e(ULTRA_PRECISION), ULTRA_PRECISION), new BigFloat(1, ULTRA_PRECISION), ULTRA_PRECISION, "log(e)");
+	assertClose(BigFloat.sqrt(9, ULTRA_PRECISION), new BigFloat(3, ULTRA_PRECISION), ULTRA_PRECISION, "sqrt(9)");
+	assertClose(BigFloat.pow(2, 10, ULTRA_PRECISION), new BigFloat(1024, ULTRA_PRECISION), ULTRA_PRECISION, "pow(2,10)");
+	assert.equal(BigFloat.fround("1.337", ULTRA_PRECISION).toNumber(), Math.fround(1.337), "fround(1.337)");
 });

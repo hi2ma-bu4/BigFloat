@@ -84,6 +84,14 @@ LAZY_NORMALIZE_SMALL_THRESHOLD: bigint
 
 レイジー正規化の閾値
 
+#### `DEFAULT_PRECISION`
+
+```ts
+DEFAULT_PRECISION: bigint
+```
+
+デフォルトの精度
+
 #### `config`
 
 ```ts
@@ -170,20 +178,339 @@ tau(precision?: number | bigint): BigFloat
 
 **Returns**: tau
 
+#### `abs`
+
+```ts
+abs(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.abs() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 絶対値
+
+#### `acos`
+
+```ts
+acos(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.acos() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 逆余弦
+
+#### `acosh`
+
+```ts
+acosh(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.acosh() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 逆双曲線余弦
+
+#### `asin`
+
+```ts
+asin(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.asin() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 逆正弦
+
+#### `asinh`
+
+```ts
+asinh(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.asinh() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 逆双曲線正弦
+
+#### `atan`
+
+```ts
+atan(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.atan() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 逆正接
+
+#### `atan2`
+
+```ts
+atan2(y: string | number | bigint | BigFloat, x: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.atan2() 相当
+
+**Parameters**
+- `y`: y座標
+- `x`: x座標
+- `precision`: 結果精度
+
+**Returns**: 逆正接
+
+#### `atanh`
+
+```ts
+atanh(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.atanh() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 逆双曲線正接
+
+#### `cbrt`
+
+```ts
+cbrt(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.cbrt() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 立方根
+
+#### `ceil`
+
+```ts
+ceil(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.ceil() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 切り上げ結果
+
+#### `clz32`
+
+```ts
+clz32(value: string | number | bigint | BigFloat): BigFloat
+```
+
+Math.clz32() 相当
+
+**Parameters**
+- `value`: 対象値
+
+**Returns**: 先頭ゼロビット数
+
+#### `cos`
+
+```ts
+cos(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.cos() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 余弦
+
+#### `cosh`
+
+```ts
+cosh(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.cosh() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 双曲線余弦
+
+#### `exp`
+
+```ts
+exp(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.exp() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 指数関数
+
+#### `expm1`
+
+```ts
+expm1(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.expm1() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: e^x - 1
+
+#### `floor`
+
+```ts
+floor(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.floor() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 切り捨て結果
+
+#### `fround`
+
+```ts
+fround(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.fround() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: Float32相当に丸めた結果
+
+#### `hypot`
+
+```ts
+hypot(...values: string | number | bigint | BigFloat[]): BigFloat
+```
+
+Math.hypot() 相当
+
+**Parameters**
+- `values`: 値の列
+
+**Returns**: sqrt(sum(x_i^2))
+
+#### `imul`
+
+```ts
+imul(lhs: string | number | bigint | BigFloat, rhs: string | number | bigint | BigFloat): BigFloat
+```
+
+Math.imul() 相当
+
+**Parameters**
+- `lhs`: 左辺
+- `rhs`: 右辺
+
+**Returns**: 32bit整数乗算結果
+
+#### `log`
+
+```ts
+log(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.log() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 自然対数
+
+#### `log10`
+
+```ts
+log10(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.log10() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 常用対数
+
+#### `log1p`
+
+```ts
+log1p(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.log1p() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: ln(1 + x)
+
+#### `log2`
+
+```ts
+log2(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.log2() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 底2対数
+
 #### `max`
 
 ```ts
 max(...args: string | number | bigint | BigFloat[] | [ReadonlyArray<BigFloatValue>]): BigFloat
 ```
 
-引数の中で最大値を返す
+Math.max() 相当
 
 **Parameters**
 - `args`: 数値のリスト
 
 **Returns**: 最大値
-
-**Throws**: 引数が空の場合
 
 #### `min`
 
@@ -191,14 +518,139 @@ max(...args: string | number | bigint | BigFloat[] | [ReadonlyArray<BigFloatValu
 min(...args: string | number | bigint | BigFloat[] | [ReadonlyArray<BigFloatValue>]): BigFloat
 ```
 
-引数の中で最小値を返す
+Math.min() 相当
 
 **Parameters**
 - `args`: 数値のリスト
 
 **Returns**: 最小値
 
-**Throws**: 引数が空の場合
+#### `pow`
+
+```ts
+pow(base: string | number | bigint | BigFloat, exponent: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.pow() 相当
+
+**Parameters**
+- `base`: 底
+- `exponent`: 指数
+- `precision`: 結果精度
+
+**Returns**: 冪乗結果
+
+#### `round`
+
+```ts
+round(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.round() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 四捨五入結果
+
+#### `sign`
+
+```ts
+sign(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.sign() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 入力精度
+
+**Returns**: 符号
+
+#### `sin`
+
+```ts
+sin(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.sin() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 正弦
+
+#### `sinh`
+
+```ts
+sinh(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.sinh() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 双曲線正弦
+
+#### `sqrt`
+
+```ts
+sqrt(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.sqrt() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 平方根
+
+#### `tan`
+
+```ts
+tan(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.tan() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 正接
+
+#### `tanh`
+
+```ts
+tanh(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.tanh() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 双曲線正接
+
+#### `trunc`
+
+```ts
+trunc(value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloat
+```
+
+Math.trunc() 相当
+
+**Parameters**
+- `value`: 対象値
+- `precision`: 結果精度
+
+**Returns**: 切り捨て結果
 
 #### `sum`
 
@@ -900,6 +1352,16 @@ abs(): BigFloat
 
 **Returns**: 絶対値
 
+#### `sign`
+
+```ts
+sign(): BigFloat
+```
+
+符号を取得する
+
+**Returns**: 1, 0, 1 または NaN
+
 #### `reciprocal`
 
 ```ts
@@ -951,6 +1413,26 @@ trunc(): BigFloat
 0に近い方向へ切り捨てる
 
 **Returns**: 切り捨てられた結果
+
+#### `fround`
+
+```ts
+fround(): BigFloat
+```
+
+Float32 精度へ丸める
+
+**Returns**: Float32相当に丸めた結果
+
+#### `clz32`
+
+```ts
+clz32(): BigFloat
+```
+
+32bit整数として見たときの先頭ゼロビット数を返す
+
+**Returns**: 先頭ゼロビット数
 
 #### `pow`
 
@@ -1070,6 +1552,66 @@ atan2(x: string | number | bigint | BigFloat): BigFloat
 - `x`: x座標
 
 **Returns**: 角度(ラジアン)
+
+#### `sinh`
+
+```ts
+sinh(): BigFloat
+```
+
+双曲線正弦(sinh)を計算する
+
+**Returns**: 双曲線正弦
+
+#### `cosh`
+
+```ts
+cosh(): BigFloat
+```
+
+双曲線余弦(cosh)を計算する
+
+**Returns**: 双曲線余弦
+
+#### `tanh`
+
+```ts
+tanh(): BigFloat
+```
+
+双曲線正接(tanh)を計算する
+
+**Returns**: 双曲線正接
+
+#### `asinh`
+
+```ts
+asinh(): BigFloat
+```
+
+逆双曲線正弦(asinh)を計算する
+
+**Returns**: 逆双曲線正弦
+
+#### `acosh`
+
+```ts
+acosh(): BigFloat
+```
+
+逆双曲線余弦(acosh)を計算する
+
+**Returns**: 逆双曲線余弦
+
+#### `atanh`
+
+```ts
+atanh(): BigFloat
+```
+
+逆双曲線正接(atanh)を計算する
+
+**Returns**: 逆双曲線正接
 
 #### `exp`
 

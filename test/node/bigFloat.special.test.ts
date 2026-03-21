@@ -57,6 +57,11 @@ test("BigFloat roots, trig, logs, and special functions propagate special states
 	assert.equal(bigFloat("Infinity").tan().toString(), "NaN");
 	assert.equal(bigFloat("Infinity").asin().toString(), "NaN");
 	assert.equal(bigFloat("Infinity").acos().toString(), "NaN");
+	assert.equal(bigFloat("Infinity").sinh().toString(), "Infinity");
+	assert.equal(bigFloat("-Infinity").sinh().toString(), "-Infinity");
+	assert.equal(bigFloat("Infinity").cosh().toString(), "Infinity");
+	assert.equal(bigFloat("Infinity").tanh().toString(), "1");
+	assert.equal(bigFloat("-Infinity").tanh().toString(), "-1");
 	assertClose(bigFloat("Infinity", precision).atan(), pi.div(2), precision, "atan(+Infinity)");
 	assertClose(bigFloat("-Infinity", precision).atan(), pi.div(-2), precision, "atan(-Infinity)");
 	assertClose(bigFloat("Infinity", precision).atan2(1), pi.div(2), precision, "atan2(+Infinity, 1)");
@@ -64,6 +69,13 @@ test("BigFloat roots, trig, logs, and special functions propagate special states
 	assertClose(bigFloat("Infinity", precision).atan2("-Infinity"), pi.mul(3).div(4), precision, "atan2(+Infinity, -Infinity)");
 	assertClose(bigFloat("-Infinity", precision).atan2("Infinity"), pi.div(-4), precision, "atan2(-Infinity, +Infinity)");
 	assertClose(bigFloat("-Infinity", precision).atan2("-Infinity"), pi.mul(-3).div(4), precision, "atan2(-Infinity, -Infinity)");
+	assert.equal(bigFloat("Infinity").asinh().toString(), "Infinity");
+	assert.equal(bigFloat("-Infinity").asinh().toString(), "-Infinity");
+	assert.equal(bigFloat(1).acosh().toString(), "0");
+	assert.equal(bigFloat("0.5").acosh().toString(), "NaN");
+	assert.equal(bigFloat(1).atanh().toString(), "Infinity");
+	assert.equal(bigFloat(-1).atanh().toString(), "-Infinity");
+	assert.equal(bigFloat(2).atanh().toString(), "NaN");
 	assert.equal(bigFloat(1, precision).atan2("Infinity").toString(), "0");
 	assertClose(bigFloat(1, precision).atan2("-Infinity"), pi, precision, "atan2(1, -Infinity)");
 	assert.equal(bigFloat("Infinity").exp().toString(), "Infinity");
@@ -88,6 +100,9 @@ test("BigFloat roots, trig, logs, and special functions propagate special states
 	assert.equal(bigFloat(1).zeta().toString(), "Infinity");
 	assert.equal(bigFloat("Infinity").factorial().toString(), "Infinity");
 	assert.equal(bigFloat("NaN").factorial().toString(), "NaN");
+	assert.equal(BigFloat.hypot("NaN", "Infinity").toString(), "Infinity");
+	assert.equal(BigFloat.max("NaN", "Infinity").toString(), "NaN");
+	assert.equal(BigFloat.min("NaN", "-Infinity").toString(), "NaN");
 });
 
 test("BigFloat can disable special values and throw instead of producing states", () => {
@@ -103,6 +118,8 @@ test("BigFloat can disable special values and throw instead of producing states"
 	assert.throws(() => new Strict(1, 20).div(0), (error) => error instanceof DivisionByZeroError && /Division by zero/.test(error.message));
 	assert.throws(() => new Strict(-1, 20).sqrt(), /negative number/);
 	assert.throws(() => new Strict(0, 20).ln(), /undefined for x <= 0/);
+	assert.throws(() => new Strict("0.5", 20).acosh(), /acosh input must be >= 1/);
+	assert.throws(() => new Strict(2, 20).atanh(), /atanh input must be in \[-1,1\]/);
 
 	const Carrier = BigFloat.clone();
 	const infinity = new Carrier(1, 20).div(0);
@@ -111,4 +128,5 @@ test("BigFloat can disable special values and throw instead of producing states"
 	assert.throws(() => infinity.toString(), (error) => error instanceof SpecialValuesDisabledError && /Special values are disabled/.test(error.message));
 	assert.throws(() => infinity.toNumber(), (error) => error instanceof SpecialValuesDisabledError && /Special values are disabled/.test(error.message));
 	assert.throws(() => infinity.add(1), (error) => error instanceof SpecialValuesDisabledError && /Special values are disabled/.test(error.message));
+	assert.throws(() => Carrier.max(), (error) => error instanceof SpecialValuesDisabledError && /Special values are disabled/.test(error.message));
 });

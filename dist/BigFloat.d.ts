@@ -123,6 +123,8 @@ export declare class BigFloat {
 	static MAX_PRECISION: bigint;
 	/** レイジー正規化の閾値 */
 	static LAZY_NORMALIZE_SMALL_THRESHOLD: bigint;
+	/** デフォルトの精度 */
+	static DEFAULT_PRECISION: bigint;
 	/** 設定 */
 	static config: BigFloatConfig;
 	/** 円周率キャッシュ */
@@ -336,6 +338,20 @@ export declare class BigFloat {
 	 * @returns 正規化された引数リスト
 	 */
 	protected static _normalizeArgs(args: BigFloatAggregateArgs): BigFloatValue[];
+	/**
+	 * 演算に使う精度を解決する
+	 * @param values - 対象値
+	 * @param fallback - デフォルト精度
+	 * @returns 解決済み精度
+	 */
+	protected static _resolvePrecisionFromValues(values: readonly BigFloatValue[], fallback?: PrecisionValue): bigint;
+	/**
+	 * 値を指定精度のBigFloatへ正規化する
+	 * @param value - 対象値
+	 * @param precision - 精度
+	 * @returns 正規化後のBigFloat
+	 */
+	protected static _coerceBigFloatValue(value: BigFloatValue, precision: bigint): BigFloat;
 	/**
 	 * 内部整数値から生の内部表現を生成する
 	 * @param value - 10^precision倍された整数値
@@ -606,6 +622,11 @@ export declare class BigFloat {
 	 */
 	abs(): BigFloat;
 	/**
+	 * 符号を取得する
+	 * @returns -1, 0, 1 または NaN
+	 */
+	sign(): BigFloat;
+	/**
 	 * 逆数を取得する
 	 * @returns 逆数
 	 * @throws {Error} ゼロの場合
@@ -631,6 +652,16 @@ export declare class BigFloat {
 	 * @returns 切り捨てられた結果
 	 */
 	trunc(): BigFloat;
+	/**
+	 * Float32 精度へ丸める
+	 * @returns Float32相当に丸めた結果
+	 */
+	fround(): BigFloat;
+	/**
+	 * 32bit整数として見たときの先頭ゼロビット数を返す
+	 * @returns 先頭ゼロビット数
+	 */
+	clz32(): BigFloat;
 	/**
 	 * 冪乗を計算する (内部用)
 	 * @param base - 底
@@ -782,6 +813,36 @@ export declare class BigFloat {
 	 * @returns 角度(ラジアン)
 	 */
 	atan2(x: BigFloatValue): BigFloat;
+	/**
+	 * 双曲線正弦(sinh)を計算する
+	 * @returns 双曲線正弦
+	 */
+	sinh(): BigFloat;
+	/**
+	 * 双曲線余弦(cosh)を計算する
+	 * @returns 双曲線余弦
+	 */
+	cosh(): BigFloat;
+	/**
+	 * 双曲線正接(tanh)を計算する
+	 * @returns 双曲線正接
+	 */
+	tanh(): BigFloat;
+	/**
+	 * 逆双曲線正弦(asinh)を計算する
+	 * @returns 逆双曲線正弦
+	 */
+	asinh(): BigFloat;
+	/**
+	 * 逆双曲線余弦(acosh)を計算する
+	 * @returns 逆双曲線余弦
+	 */
+	acosh(): BigFloat;
+	/**
+	 * 逆双曲線正接(atanh)を計算する
+	 * @returns 逆双曲線正接
+	 */
+	atanh(): BigFloat;
 	/**
 	 * マチン(Machin)の公式用のatan計算 (内部用)
 	 * @param invX - 1/xのx
@@ -970,19 +1031,241 @@ export declare class BigFloat {
 	 */
 	static tau(precision?: PrecisionValue): BigFloat;
 	/**
-	 * 引数の中で最大値を返す
+	 * Math.abs() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 絶対値
+	 */
+	static abs(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.acos() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 逆余弦
+	 */
+	static acos(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.acosh() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 逆双曲線余弦
+	 */
+	static acosh(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.asin() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 逆正弦
+	 */
+	static asin(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.asinh() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 逆双曲線正弦
+	 */
+	static asinh(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.atan() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 逆正接
+	 */
+	static atan(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.atan2() 相当
+	 * @param y - y座標
+	 * @param x - x座標
+	 * @param precision - 結果精度
+	 * @returns 逆正接
+	 */
+	static atan2(y: BigFloatValue, x: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.atanh() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 逆双曲線正接
+	 */
+	static atanh(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.cbrt() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 立方根
+	 */
+	static cbrt(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.ceil() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 切り上げ結果
+	 */
+	static ceil(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.clz32() 相当
+	 * @param value - 対象値
+	 * @returns 先頭ゼロビット数
+	 */
+	static clz32(value: BigFloatValue): BigFloat;
+	/**
+	 * Math.cos() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 余弦
+	 */
+	static cos(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.cosh() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 双曲線余弦
+	 */
+	static cosh(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.exp() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 指数関数
+	 */
+	static exp(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.expm1() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns e^x - 1
+	 */
+	static expm1(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.floor() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 切り捨て結果
+	 */
+	static floor(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.fround() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns Float32相当に丸めた結果
+	 */
+	static fround(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.hypot() 相当
+	 * @param values - 値の列
+	 * @returns sqrt(sum(x_i^2))
+	 */
+	static hypot(...values: BigFloatValue[]): BigFloat;
+	/**
+	 * Math.imul() 相当
+	 * @param lhs - 左辺
+	 * @param rhs - 右辺
+	 * @returns 32bit整数乗算結果
+	 */
+	static imul(lhs: BigFloatValue, rhs: BigFloatValue): BigFloat;
+	/**
+	 * Math.log() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 自然対数
+	 */
+	static log(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.log10() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 常用対数
+	 */
+	static log10(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.log1p() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns ln(1 + x)
+	 */
+	static log1p(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.log2() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 底2対数
+	 */
+	static log2(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.max() 相当
 	 * @param args - 数値のリスト
 	 * @returns 最大値
-	 * @throws {Error} 引数が空の場合
 	 */
 	static max(...args: BigFloatAggregateArgs): BigFloat;
 	/**
-	 * 引数の中で最小値を返す
+	 * Math.min() 相当
 	 * @param args - 数値のリスト
 	 * @returns 最小値
-	 * @throws {Error} 引数が空の場合
 	 */
 	static min(...args: BigFloatAggregateArgs): BigFloat;
+	/**
+	 * Math.pow() 相当
+	 * @param base - 底
+	 * @param exponent - 指数
+	 * @param precision - 結果精度
+	 * @returns 冪乗結果
+	 */
+	static pow(base: BigFloatValue, exponent: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.round() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 四捨五入結果
+	 */
+	static round(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.sign() 相当
+	 * @param value - 対象値
+	 * @param precision - 入力精度
+	 * @returns 符号
+	 */
+	static sign(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.sin() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 正弦
+	 */
+	static sin(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.sinh() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 双曲線正弦
+	 */
+	static sinh(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.sqrt() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 平方根
+	 */
+	static sqrt(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.tan() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 正接
+	 */
+	static tan(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.tanh() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 双曲線正接
+	 */
+	static tanh(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
+	/**
+	 * Math.trunc() 相当
+	 * @param value - 対象値
+	 * @param precision - 結果精度
+	 * @returns 切り捨て結果
+	 */
+	static trunc(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
 	/**
 	 * 引数の合計を返す
 	 * @param args - 数値のリスト
