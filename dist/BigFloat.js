@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.3.3
+ * BigFloat 1.3.4
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -7384,8 +7384,8 @@ var BigFloatComplex = class _BigFloatComplex {
   _imag;
   /** 精度 */
   _precision;
-  constructor(real = 0, imagOrPrecision = 0, precision) {
-    const { imagPartValue, precisionValue } = _BigFloatComplex._normalizeArguments(real, imagOrPrecision, precision);
+  constructor(real = 0, imagOrPrecision, precision) {
+    const { imagPartValue, precisionValue } = _BigFloatComplex._normalizeArguments(real, imagOrPrecision, precision, arguments.length);
     const { realPart, imagPart } = _BigFloatComplex._normalizeParts(real, imagPartValue);
     const resolvedPrecision = _BigFloatComplex._resolvePrecision([realPart, imagPart], precisionValue);
     this._real = _BigFloatComplex._toBigFloat(realPart, resolvedPrecision);
@@ -7441,15 +7441,21 @@ var BigFloatComplex = class _BigFloatComplex {
     return { realPart: 0, imagPart: imag ?? 0 };
   }
   /** 引数を正規化する */
-  static _normalizeArguments(value, imagOrPrecision, precision) {
+  static _normalizeArguments(value, imagOrPrecision, precision, argCount = 0) {
+    if (argCount <= 1) return { imagPartValue: 0, precisionValue: precision };
     if (precision !== void 0) return { imagPartValue: imagOrPrecision, precisionValue: precision };
-    if (typeof value === "string") {
-      const parsed = this._parseComplexString(value);
-      if (parsed !== null && (typeof imagOrPrecision === "number" || typeof imagOrPrecision === "bigint")) {
-        return { imagPartValue: 0, precisionValue: imagOrPrecision };
-      }
+    if (argCount === 2 && this._shouldTreatSecondArgumentAsPrecision(value, imagOrPrecision)) {
+      return { imagPartValue: 0, precisionValue: imagOrPrecision };
     }
     return { imagPartValue: imagOrPrecision, precisionValue: precision };
+  }
+  /** 第2引数を精度として解釈すべきか */
+  static _shouldTreatSecondArgumentAsPrecision(value, imagOrPrecision) {
+    if (typeof imagOrPrecision !== "number" && typeof imagOrPrecision !== "bigint") return false;
+    if (value instanceof _BigFloatComplex) return true;
+    if (Array.isArray(value)) return true;
+    if (typeof value === "string") return this._parseComplexString(value) !== null;
+    return typeof value === "object" && value !== null;
   }
   /** 複素数文字列を解析する */
   static _parseComplexString(value) {
@@ -7489,6 +7495,8 @@ var BigFloatComplex = class _BigFloatComplex {
       if (precision === void 0 || value._precision === precision) return value.clone();
       return value.changePrecision(precision);
     }
+    if (precision === void 0) return new _BigFloatComplex(value);
+    if (this._shouldTreatSecondArgumentAsPrecision(value, precision)) return new _BigFloatComplex(value, precision);
     return new _BigFloatComplex(value, 0, precision);
   }
   /** 複素数定数 0 */
@@ -7516,7 +7524,10 @@ var BigFloatComplex = class _BigFloatComplex {
     return new _BigFloatComplex(BigFloat.tau(precision), 0, precision);
   }
   static from(value, imag, precision) {
-    return new _BigFloatComplex(value, imag, precision);
+    if (precision !== void 0) return new _BigFloatComplex(value, imag, precision);
+    if (imag === void 0) return new _BigFloatComplex(value);
+    if (this._shouldTreatSecondArgumentAsPrecision(value, imag)) return new _BigFloatComplex(value, imag);
+    return new _BigFloatComplex(value, imag);
   }
   /** 値の並びから生成する */
   static of(real, imag = 0, precision) {

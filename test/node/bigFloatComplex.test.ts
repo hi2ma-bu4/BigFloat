@@ -51,16 +51,22 @@ test("BigFloatComplex factories and accessors preserve owned values", () => {
 });
 
 test("BigFloatComplex parses complex strings in constructors and from()", () => {
+	const implicitPrecision = new BigFloatComplex("2i");
+
 	assert.deepStrictEqual(toPair(new BigFloatComplex("2i", 20), 20), ["0", "2"]);
 	assert.deepStrictEqual(toPair(new BigFloatComplex("-i", 20), 20), ["0", "-1"]);
 	assert.deepStrictEqual(toPair(new BigFloatComplex("1 + 2i", 20), 20), ["1", "2"]);
 	assert.deepStrictEqual(toPair(new BigFloatComplex("1-2i", 20), 20), ["1", "-2"]);
 	assert.deepStrictEqual(toPair(new BigFloatComplex("-3.5 + i", 20), 20), ["-3.5", "1"]);
 	assert.deepStrictEqual(toPair(new BigFloatComplex("1e-3-2e+1i", 20), 20), ["0.001", "-20"]);
+	assert.deepStrictEqual(toPair(implicitPrecision), ["0", "2"]);
+	assert.equal(implicitPrecision.precision, BigFloat.DEFAULT_PRECISION);
 
+	assert.deepStrictEqual(toPair(BigFloatComplex.from("2i")), ["0", "2"]);
 	assert.deepStrictEqual(toPair(BigFloatComplex.from("2i", 20), 20), ["0", "2"]);
 	assert.deepStrictEqual(toPair(BigFloatComplex.from("4 - i", 20), 20), ["4", "-1"]);
 	assert.deepStrictEqual(toPair(BigFloatComplex.from("3", 4, 20), 20), ["3", "4"]);
+	assert.equal(BigFloatComplex.from("2i").precision, BigFloat.DEFAULT_PRECISION);
 
 	assert.throws(() => new BigFloatComplex("1+i2", 20), /Invalid complex string/);
 });

@@ -3182,10 +3182,12 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 		imagPart: BigFloatValue;
 	};
 	/** 引数を正規化する */
-	protected static _normalizeArguments(value: BigFloatComplexValue, imagOrPrecision: BigFloatValue | PrecisionValue, precision?: PrecisionValue): {
+	protected static _normalizeArguments(value: BigFloatComplexValue, imagOrPrecision: BigFloatValue | PrecisionValue | undefined, precision?: PrecisionValue, argCount?: number): {
 		imagPartValue: BigFloatValue;
 		precisionValue: PrecisionValue | undefined;
 	};
+	/** 第2引数を精度として解釈すべきか */
+	protected static _shouldTreatSecondArgumentAsPrecision(value: BigFloatComplexValue, imagOrPrecision: BigFloatValue | PrecisionValue | undefined): boolean;
 	/** 複素数文字列を解析する */
 	protected static _parseComplexString(value: string): {
 		realPart: BigFloatValue;

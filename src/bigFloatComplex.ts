@@ -30,8 +30,8 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 */
 	public constructor(value?: BigFloatComplexValue, precision?: PrecisionValue);
 	public constructor(real: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue);
-	public constructor(real: BigFloatComplexValue = 0, imagOrPrecision: BigFloatValue | PrecisionValue = 0, precision?: PrecisionValue) {
-		const { imagPartValue, precisionValue } = BigFloatComplex._normalizeArguments(real, imagOrPrecision, precision);
+	public constructor(real: BigFloatComplexValue = 0, imagOrPrecision?: BigFloatValue | PrecisionValue, precision?: PrecisionValue) {
+		const { imagPartValue, precisionValue } = BigFloatComplex._normalizeArguments(real, imagOrPrecision, precision, arguments.length);
 		const { realPart, imagPart } = BigFloatComplex._normalizeParts(real, imagPartValue);
 		const resolvedPrecision = BigFloatComplex._resolvePrecision([realPart, imagPart], precisionValue);
 		this._real = BigFloatComplex._toBigFloat(realPart, resolvedPrecision);
@@ -92,19 +92,22 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	}
 
 	/** 引数を正規化する */
-	protected static _normalizeArguments(
-		value: BigFloatComplexValue,
-		imagOrPrecision: BigFloatValue | PrecisionValue,
-		precision?: PrecisionValue,
-	): { imagPartValue: BigFloatValue; precisionValue: PrecisionValue | undefined } {
+	protected static _normalizeArguments(value: BigFloatComplexValue, imagOrPrecision: BigFloatValue | PrecisionValue | undefined, precision?: PrecisionValue, argCount = 0): { imagPartValue: BigFloatValue; precisionValue: PrecisionValue | undefined } {
+		if (argCount <= 1) return { imagPartValue: 0, precisionValue: precision };
 		if (precision !== undefined) return { imagPartValue: imagOrPrecision as BigFloatValue, precisionValue: precision };
-		if (typeof value === "string") {
-			const parsed = this._parseComplexString(value);
-			if (parsed !== null && (typeof imagOrPrecision === "number" || typeof imagOrPrecision === "bigint")) {
-				return { imagPartValue: 0, precisionValue: imagOrPrecision };
-			}
+		if (argCount === 2 && this._shouldTreatSecondArgumentAsPrecision(value, imagOrPrecision)) {
+			return { imagPartValue: 0, precisionValue: imagOrPrecision as PrecisionValue };
 		}
 		return { imagPartValue: imagOrPrecision as BigFloatValue, precisionValue: precision };
+	}
+
+	/** 第2引数を精度として解釈すべきか */
+	protected static _shouldTreatSecondArgumentAsPrecision(value: BigFloatComplexValue, imagOrPrecision: BigFloatValue | PrecisionValue | undefined): boolean {
+		if (typeof imagOrPrecision !== "number" && typeof imagOrPrecision !== "bigint") return false;
+		if (value instanceof BigFloatComplex) return true;
+		if (Array.isArray(value)) return true;
+		if (typeof value === "string") return this._parseComplexString(value) !== null;
+		return typeof value === "object" && value !== null;
 	}
 
 	/** 複素数文字列を解析する */
@@ -150,6 +153,8 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 			if (precision === undefined || value._precision === precision) return value.clone();
 			return value.changePrecision(precision);
 		}
+		if (precision === undefined) return new BigFloatComplex(value);
+		if (this._shouldTreatSecondArgumentAsPrecision(value, precision)) return new BigFloatComplex(value, precision);
 		return new BigFloatComplex(value, 0, precision);
 	}
 
@@ -187,7 +192,10 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	public static from(value: BigFloatComplexValue, precision?: PrecisionValue): BigFloatComplex;
 	public static from(value: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue): BigFloatComplex;
 	public static from(value: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue): BigFloatComplex {
-		return new BigFloatComplex(value, imag as BigFloatValue | PrecisionValue, precision);
+		if (precision !== undefined) return new BigFloatComplex(value, imag, precision);
+		if (imag === undefined) return new BigFloatComplex(value);
+		if (this._shouldTreatSecondArgumentAsPrecision(value, imag)) return new BigFloatComplex(value, imag as PrecisionValue);
+		return new BigFloatComplex(value, imag);
 	}
 
 	/** 値の並びから生成する */
