@@ -6629,10 +6629,775 @@ var BigFloatVector = class _BigFloatVector {
     return _BigFloatVector._fromBigFloatArray([ay.mul(bz).sub(az.mul(by)), az.mul(bx).sub(ax.mul(bz)), ax.mul(by).sub(ay.mul(bx))]);
   }
 };
+
+// src/bigFloatMatrix.ts
+var BigFloatMatrix = class _BigFloatMatrix {
+  /** 内部要素 */
+  _values;
+  /**
+   * @param rows - 行列要素
+   * @param precision - 変換時の精度
+   */
+  constructor(rows = [], precision) {
+    const rawRows = Array.from(rows, (row) => Array.from(row));
+    _BigFloatMatrix._assertRectangularRaw(rawRows);
+    const resolvedPrecision = _BigFloatMatrix._resolvePrecision(rawRows.flat(), precision);
+    this._values = rawRows.map((row) => row.map((value) => _BigFloatMatrix._toBigFloat(value, resolvedPrecision)));
+  }
+  /** 内部配列から行列を生成する */
+  static _fromBigFloatGrid(values) {
+    const matrix = Object.create(_BigFloatMatrix.prototype);
+    matrix._values = values;
+    return matrix;
+  }
+  /** 値をBigFloatへ変換する */
+  static _toBigFloat(value, precision) {
+    if (value instanceof BigFloat) {
+      const cloned = value.clone();
+      if (precision === void 0 || cloned._precision === precision) return cloned;
+      return cloned.changePrecision(precision);
+    }
+    return new BigFloat(value, precision ?? 20n);
+  }
+  /** 精度を解決する */
+  static _resolvePrecision(values, precision) {
+    if (precision !== void 0) return BigInt(precision);
+    let resolved = 20n;
+    for (const value of values) {
+      if (value instanceof BigFloat && value._precision > resolved) resolved = value._precision;
+    }
+    return resolved;
+  }
+  /** 次元を正規化する */
+  static _normalizeSize(size, name) {
+    if (!Number.isFinite(size)) throw new RangeError(`${name} must be finite`);
+    const normalized = Math.trunc(size);
+    if (normalized < 0) throw new RangeError(`${name} must be non-negative`);
+    return normalized;
+  }
+  /** 生配列が長方形か検証する */
+  static _assertRectangularRaw(rows) {
+    if (rows.length === 0) return;
+    const columnCount = rows[0].length;
+    for (const row of rows) {
+      if (row.length !== columnCount) throw new RangeError("Matrix rows must have the same length");
+    }
+  }
+  /** 同形状か検証する */
+  static _assertSameShape(left, right) {
+    if (left.rowCount !== right.rowCount || left.columnCount !== right.columnCount) {
+      throw new RangeError("Matrix shapes must match");
+    }
+  }
+  /** 正方行列か検証する */
+  static _assertSquare(matrix) {
+    if (!matrix.isSquare()) throw new RangeError("Matrix must be square");
+  }
+  /** 行列積可能か検証する */
+  static _assertMultipliable(left, right) {
+    if (left.columnCount !== right.rowCount) throw new RangeError("Inner matrix dimensions must agree");
+  }
+  /** 微小値を返す */
+  static _epsilon(precision) {
+    if (precision <= 0n) return new BigFloat(1, 0);
+    return new BigFloat(1, precision).div(10n ** precision);
+  }
+  /** 行列または生データを行列化する */
+  static _coerceMatrix(value, referenceValues = []) {
+    if (value instanceof _BigFloatMatrix) return value;
+    const rows = Array.from(value, (row) => Array.from(row));
+    const resolvedPrecision = _BigFloatMatrix._resolvePrecision([...referenceValues, ...rows.flat()]);
+    return _BigFloatMatrix.from(rows, resolvedPrecision);
+  }
+  /** ベクトルまたは生データをベクトル化する */
+  static _coerceVector(value, referenceValues = []) {
+    if (value instanceof BigFloatVector) return value;
+    const values = Array.from(value);
+    const resolvedPrecision = _BigFloatMatrix._resolvePrecision([...referenceValues, ...values]);
+    return BigFloatVector.from(values, resolvedPrecision);
+  }
+  /** 要素列を平坦化する */
+  _flattenValues() {
+    return this._values.flat();
+  }
+  /** 要素ごとの写像を行う */
+  _mapValues(fn) {
+    const values = this._values.map(
+      (currentRow, rowIndex) => currentRow.map((value, columnIndex) => {
+        const mapped = fn(value.clone(), rowIndex, columnIndex);
+        return mapped instanceof BigFloat ? mapped.clone() : _BigFloatMatrix._toBigFloat(mapped, value._precision);
+      })
+    );
+    return _BigFloatMatrix._fromBigFloatGrid(values);
+  }
+  /** 要素ごとの二項演算を行う */
+  _mapWithOperand(other, fn) {
+    if (other instanceof _BigFloatMatrix || typeof other === "object" && other !== null && Symbol.iterator in other && !(other instanceof BigFloat)) {
+      const matrix = _BigFloatMatrix._coerceMatrix(other, this._flattenValues());
+      _BigFloatMatrix._assertSameShape(this, matrix);
+      const values = this._values.map(
+        (currentRow, rowIndex) => currentRow.map((value, columnIndex) => {
+          const mapped = fn(value.clone(), matrix._values[rowIndex][columnIndex].clone(), rowIndex, columnIndex);
+          return mapped instanceof BigFloat ? mapped.clone() : _BigFloatMatrix._toBigFloat(mapped, value._precision);
+        })
+      );
+      return _BigFloatMatrix._fromBigFloatGrid(values);
+    }
+    return this._mapValues((value, row, column) => fn(value, _BigFloatMatrix._toBigFloat(other, value._precision), row, column));
+  }
+  /** RREF を計算する */
+  static _reducedRowEchelon(values, leftColumnCount = values[0]?.length ?? 0) {
+    const rows = values.map((row) => row.map((value) => value.clone()));
+    const pivotColumns = [];
+    const rowCount = rows.length;
+    if (rowCount === 0) return { values: rows, pivotColumns };
+    const totalColumns = rows[0].length;
+    let pivotRow = 0;
+    for (let column = 0; column < leftColumnCount && pivotRow < rowCount; column++) {
+      let bestRow = -1;
+      let bestValue = null;
+      for (let candidate = pivotRow; candidate < rowCount; candidate++) {
+        const current = rows[candidate][column].abs();
+        if (current.isZero()) continue;
+        if (bestValue === null || current.gt(bestValue)) {
+          bestValue = current;
+          bestRow = candidate;
+        }
+      }
+      if (bestRow === -1) continue;
+      if (bestRow !== pivotRow) {
+        [rows[pivotRow], rows[bestRow]] = [rows[bestRow], rows[pivotRow]];
+      }
+      const pivot = rows[pivotRow][column].clone();
+      for (let index = column; index < totalColumns; index++) {
+        rows[pivotRow][index] = rows[pivotRow][index].div(pivot);
+      }
+      for (let row = 0; row < rowCount; row++) {
+        if (row === pivotRow) continue;
+        const factor = rows[row][column].clone();
+        if (factor.isZero()) continue;
+        for (let index = column; index < totalColumns; index++) {
+          rows[row][index] = rows[row][index].sub(factor.mul(rows[pivotRow][index]));
+        }
+      }
+      pivotColumns.push(column);
+      pivotRow++;
+    }
+    return { values: rows, pivotColumns };
+  }
+  /** 空行列を生成する */
+  static empty() {
+    return this._fromBigFloatGrid([]);
+  }
+  /** 行列データから生成する */
+  static from(rows, precision) {
+    return new _BigFloatMatrix(rows, precision);
+  }
+  /** 行ベクトル群から生成する */
+  static fromRows(rows, precision) {
+    return this.from(rows, precision);
+  }
+  /** 列ベクトル群から生成する */
+  static fromColumns(columns, precision) {
+    const rawColumns = Array.from(columns, (column) => Array.from(column));
+    if (rawColumns.length === 0) return this.empty();
+    const rowCount = rawColumns[0].length;
+    for (const column of rawColumns) {
+      if (column.length !== rowCount) throw new RangeError("Matrix columns must have the same length");
+    }
+    const rows = Array.from({ length: rowCount }, (_, rowIndex) => rawColumns.map((column) => column[rowIndex]));
+    return this.from(rows, precision);
+  }
+  /** 行の並びから生成する */
+  static of(...rows) {
+    return this.from(rows);
+  }
+  /** 指定値で埋めた行列を生成する */
+  static fill(rowCount, columnCount, value, precision) {
+    const normalizedRows = this._normalizeSize(rowCount, "Row count");
+    const normalizedColumns = this._normalizeSize(columnCount, "Column count");
+    if (normalizedRows === 0 || normalizedColumns === 0) return this.empty();
+    const resolvedPrecision = this._resolvePrecision([value], precision);
+    const base = this._toBigFloat(value, resolvedPrecision);
+    return this._fromBigFloatGrid(Array.from({ length: normalizedRows }, () => Array.from({ length: normalizedColumns }, () => base.clone())));
+  }
+  /** 0行列を生成する */
+  static zeros(rowCount, columnCount, precision) {
+    return this.fill(rowCount, columnCount, 0, precision);
+  }
+  /** 1行列を生成する */
+  static ones(rowCount, columnCount, precision) {
+    return this.fill(rowCount, columnCount, 1, precision);
+  }
+  /** 単位行列を生成する */
+  static identity(size, precision) {
+    const normalizedSize = this._normalizeSize(size, "Matrix size");
+    const resolvedPrecision = precision === void 0 ? 20n : BigInt(precision);
+    return this._fromBigFloatGrid(
+      Array.from(
+        { length: normalizedSize },
+        (_, row) => Array.from({ length: normalizedSize }, (_2, column) => new BigFloat(row === column ? 1 : 0, resolvedPrecision))
+      )
+    );
+  }
+  /** 対角行列を生成する */
+  static diagonal(values, precision) {
+    const entries = Array.from(values);
+    const resolvedPrecision = this._resolvePrecision(entries, precision);
+    return this._fromBigFloatGrid(
+      entries.map((value, row) => entries.map((_, column) => row === column ? this._toBigFloat(value, resolvedPrecision) : new BigFloat(0, resolvedPrecision)))
+    );
+  }
+  /** 乱数行列を生成する */
+  static random(rowCount, columnCount, options = {}) {
+    const normalizedRows = this._normalizeSize(rowCount, "Row count");
+    const normalizedColumns = this._normalizeSize(columnCount, "Column count");
+    if (normalizedRows === 0 || normalizedColumns === 0) return this.empty();
+    const min = options.min ?? 0;
+    const max = options.max ?? 1;
+    const resolvedPrecision = this._resolvePrecision([min, max], options.precision);
+    const minValue = this._toBigFloat(min, resolvedPrecision);
+    const maxValue = this._toBigFloat(max, resolvedPrecision);
+    const span = maxValue.sub(minValue);
+    if (span.lt(0)) throw new RangeError("Random range requires max >= min");
+    if (span.isZero()) return this.fill(normalizedRows, normalizedColumns, minValue, resolvedPrecision);
+    return this._fromBigFloatGrid(
+      Array.from({ length: normalizedRows }, () => Array.from({ length: normalizedColumns }, () => minValue.add(span.mul(BigFloat.random(resolvedPrecision)))))
+    );
+  }
+  /** 行数 */
+  get rowCount() {
+    return this._values.length;
+  }
+  /** 列数 */
+  get columnCount() {
+    return this.rowCount === 0 ? 0 : this._values[0].length;
+  }
+  /** 形状を返す */
+  shape() {
+    return [this.rowCount, this.columnCount];
+  }
+  /** 空行列かどうか */
+  isEmpty() {
+    return this.rowCount === 0 || this.columnCount === 0;
+  }
+  /** 正方行列かどうか */
+  isSquare() {
+    return this.rowCount === this.columnCount;
+  }
+  /** 要素を取得する */
+  at(row, column) {
+    if (row < 0 || column < 0 || row >= this.rowCount || column >= this.columnCount) return void 0;
+    return this._values[row][column].clone();
+  }
+  /** 行を取得する */
+  row(index) {
+    if (index < 0 || index >= this.rowCount) return void 0;
+    return BigFloatVector.from(this._values[index].map((value) => value.clone()));
+  }
+  /** 列を取得する */
+  column(index) {
+    if (index < 0 || index >= this.columnCount) return void 0;
+    return BigFloatVector.from(this._values.map((row) => row[index].clone()));
+  }
+  /** 対角成分を取得する */
+  diagonalVector() {
+    _BigFloatMatrix._assertSquare(this);
+    return BigFloatVector.from(this._values.map((row, index) => row[index].clone()));
+  }
+  /** 行列を複製する */
+  clone() {
+    return _BigFloatMatrix._fromBigFloatGrid(this._values.map((row) => row.map((value) => value.clone())));
+  }
+  /** 配列へ変換する */
+  toArray() {
+    return this._values.map((row) => row.map((value) => value.clone()));
+  }
+  /** 行ベクトル配列へ変換する */
+  toVectors() {
+    return this._values.map((row) => BigFloatVector.from(row.map((value) => value.clone())));
+  }
+  /** 平坦化ベクトルへ変換する */
+  flatten() {
+    return BigFloatVector.from(this._flattenValues().map((value) => value.clone()));
+  }
+  /** Stream へ変換する */
+  toStream() {
+    return this.flatten().toStream();
+  }
+  /** 行イテレータ */
+  [Symbol.iterator]() {
+    return this.toVectors()[Symbol.iterator]();
+  }
+  /** 各要素へ処理を適用する */
+  forEach(fn) {
+    for (let row = 0; row < this.rowCount; row++) {
+      for (let column = 0; column < this.columnCount; column++) {
+        fn(this._values[row][column].clone(), row, column);
+      }
+    }
+  }
+  /** 要素ごとに変換する */
+  map(fn) {
+    return this._mapValues(fn);
+  }
+  /** 2つの行列を要素ごとに変換する */
+  zipMap(other, fn) {
+    return this._mapWithOperand(other, fn);
+  }
+  /** 畳み込み処理を行う */
+  reduce(fn, initial) {
+    let acc = initial;
+    for (let row = 0; row < this.rowCount; row++) {
+      for (let column = 0; column < this.columnCount; column++) {
+        acc = fn(acc, this._values[row][column].clone(), row, column);
+      }
+    }
+    return acc;
+  }
+  /** 条件に一致する要素があるか */
+  some(fn) {
+    for (let row = 0; row < this.rowCount; row++) {
+      for (let column = 0; column < this.columnCount; column++) {
+        if (fn(this._values[row][column].clone(), row, column)) return true;
+      }
+    }
+    return false;
+  }
+  /** すべての要素が条件を満たすか */
+  every(fn) {
+    for (let row = 0; row < this.rowCount; row++) {
+      for (let column = 0; column < this.columnCount; column++) {
+        if (!fn(this._values[row][column].clone(), row, column)) return false;
+      }
+    }
+    return true;
+  }
+  /** 行方向に連結する */
+  concatRows(...others) {
+    const values = this.toArray();
+    for (const other of others) {
+      const matrix = _BigFloatMatrix._coerceMatrix(other, this._flattenValues());
+      if (this.columnCount !== 0 && matrix.columnCount !== this.columnCount) throw new RangeError("Column counts must match");
+      values.push(...matrix.toArray());
+    }
+    return _BigFloatMatrix._fromBigFloatGrid(values);
+  }
+  /** 列方向に連結する */
+  concatColumns(...others) {
+    let result = this.clone();
+    for (const other of others) {
+      const matrix = _BigFloatMatrix._coerceMatrix(other, result._flattenValues());
+      if (result.rowCount !== matrix.rowCount) throw new RangeError("Row counts must match");
+      result = _BigFloatMatrix._fromBigFloatGrid(
+        result._values.map((row, rowIndex) => [...row.map((value) => value.clone()), ...matrix._values[rowIndex].map((value) => value.clone())])
+      );
+    }
+    return result;
+  }
+  /** 行スライス */
+  sliceRows(start, end) {
+    return _BigFloatMatrix._fromBigFloatGrid(this._values.slice(start, end).map((row) => row.map((value) => value.clone())));
+  }
+  /** 列スライス */
+  sliceColumns(start, end) {
+    return _BigFloatMatrix._fromBigFloatGrid(this._values.map((row) => row.slice(start, end).map((value) => value.clone())));
+  }
+  /** 転置行列を返す */
+  transpose() {
+    if (this.isEmpty()) return _BigFloatMatrix.empty();
+    return _BigFloatMatrix._fromBigFloatGrid(
+      Array.from({ length: this.columnCount }, (_, column) => this._values.map((row) => row[column].clone()))
+    );
+  }
+  /** 一致判定 */
+  equals(other) {
+    const matrix = _BigFloatMatrix._coerceMatrix(other, this._flattenValues());
+    if (this.rowCount !== matrix.rowCount || this.columnCount !== matrix.columnCount) return false;
+    for (let row = 0; row < this.rowCount; row++) {
+      for (let column = 0; column < this.columnCount; column++) {
+        if (!this._values[row][column].eq(matrix._values[row][column])) return false;
+      }
+    }
+    return true;
+  }
+  /** すべての要素の精度を変更する */
+  changePrecision(precision) {
+    const precisionBig = BigInt(precision);
+    return this._mapValues((value) => value.changePrecision(precisionBig));
+  }
+  /** 各要素へ加算する */
+  add(other) {
+    return this._mapWithOperand(other, (left, right) => left.add(right));
+  }
+  /** 各要素から減算する */
+  sub(other) {
+    return this._mapWithOperand(other, (left, right) => left.sub(right));
+  }
+  /** スカラ倍する */
+  mul(scalar) {
+    return this._mapValues((value) => value.mul(scalar));
+  }
+  /** スカラ除算する */
+  div(scalar) {
+    return this._mapValues((value) => value.div(scalar));
+  }
+  /** 剰余を計算する */
+  mod(other) {
+    return this._mapWithOperand(other, (left, right) => left.mod(right));
+  }
+  /** 要素ごとの積を計算する */
+  hadamard(other) {
+    return this._mapWithOperand(other, (left, right) => left.mul(right));
+  }
+  /** 符号反転する */
+  neg() {
+    return this._mapValues((value) => value.neg());
+  }
+  /** 絶対値化する */
+  abs() {
+    return this._mapValues((value) => value.abs());
+  }
+  /** 符号行列を返す */
+  sign() {
+    return this._mapValues((value) => value.sign());
+  }
+  /** 逆数行列を返す */
+  reciprocal() {
+    return this._mapValues((value) => value.reciprocal());
+  }
+  /** 要素ごとの冪乗を計算する */
+  pow(exponent) {
+    return this._mapWithOperand(exponent, (left, right) => left.pow(right));
+  }
+  /** 各要素の平方根を計算する */
+  sqrt() {
+    return this._mapValues((value) => value.sqrt());
+  }
+  /** 各要素の立方根を計算する */
+  cbrt() {
+    return this._mapValues((value) => value.cbrt());
+  }
+  /** 各要素のn乗根を計算する */
+  nthRoot(n) {
+    return this._mapValues((value) => value.nthRoot(n));
+  }
+  /** 切り下げる */
+  floor() {
+    return this._mapValues((value) => value.floor());
+  }
+  /** 切り上げる */
+  ceil() {
+    return this._mapValues((value) => value.ceil());
+  }
+  /** 四捨五入する */
+  round() {
+    return this._mapValues((value) => value.round());
+  }
+  /** 0方向へ切り捨てる */
+  trunc() {
+    return this._mapValues((value) => value.trunc());
+  }
+  /** Float32相当に丸める */
+  fround() {
+    return this._mapValues((value) => value.fround());
+  }
+  /** 先頭ゼロビット数を返す */
+  clz32() {
+    return this._mapValues((value) => value.clz32());
+  }
+  /** 相対差を計算する */
+  relativeDiff(other) {
+    return this._mapWithOperand(other, (left, right) => left.relativeDiff(right));
+  }
+  /** 絶対差を計算する */
+  absoluteDiff(other) {
+    return this._mapWithOperand(other, (left, right) => left.absoluteDiff(right));
+  }
+  /** 百分率差分を計算する */
+  percentDiff(other) {
+    return this._mapWithOperand(other, (left, right) => left.percentDiff(right));
+  }
+  /** 正弦を計算する */
+  sin() {
+    return this._mapValues((value) => value.sin());
+  }
+  /** 余弦を計算する */
+  cos() {
+    return this._mapValues((value) => value.cos());
+  }
+  /** 正接を計算する */
+  tan() {
+    return this._mapValues((value) => value.tan());
+  }
+  /** 逆正弦を計算する */
+  asin() {
+    return this._mapValues((value) => value.asin());
+  }
+  /** 逆余弦を計算する */
+  acos() {
+    return this._mapValues((value) => value.acos());
+  }
+  /** 逆正接を計算する */
+  atan() {
+    return this._mapValues((value) => value.atan());
+  }
+  /** atan2 を計算する */
+  atan2(x) {
+    return this._mapWithOperand(x, (left, right) => left.atan2(right));
+  }
+  /** 双曲線正弦を計算する */
+  sinh() {
+    return this._mapValues((value) => value.sinh());
+  }
+  /** 双曲線余弦を計算する */
+  cosh() {
+    return this._mapValues((value) => value.cosh());
+  }
+  /** 双曲線正接を計算する */
+  tanh() {
+    return this._mapValues((value) => value.tanh());
+  }
+  /** 逆双曲線正弦を計算する */
+  asinh() {
+    return this._mapValues((value) => value.asinh());
+  }
+  /** 逆双曲線余弦を計算する */
+  acosh() {
+    return this._mapValues((value) => value.acosh());
+  }
+  /** 逆双曲線正接を計算する */
+  atanh() {
+    return this._mapValues((value) => value.atanh());
+  }
+  /** 指数関数を計算する */
+  exp() {
+    return this._mapValues((value) => value.exp());
+  }
+  /** 2冪指数関数を計算する */
+  exp2() {
+    return this._mapValues((value) => value.exp2());
+  }
+  /** exp(x)-1 を計算する */
+  expm1() {
+    return this._mapValues((value) => value.expm1());
+  }
+  /** 自然対数を計算する */
+  ln() {
+    return this._mapValues((value) => value.ln());
+  }
+  /** 対数を計算する */
+  log(base) {
+    return this._mapWithOperand(base, (left, right) => left.log(right));
+  }
+  /** 底2対数を計算する */
+  log2() {
+    return this._mapValues((value) => value.log2());
+  }
+  /** 底10対数を計算する */
+  log10() {
+    return this._mapValues((value) => value.log10());
+  }
+  /** log(1+x) を計算する */
+  log1p() {
+    return this._mapValues((value) => value.log1p());
+  }
+  /** ガンマ関数を計算する */
+  gamma() {
+    return this._mapValues((value) => value.gamma());
+  }
+  /** ゼータ関数を計算する */
+  zeta() {
+    return this._mapValues((value) => value.zeta());
+  }
+  /** 階乗を計算する */
+  factorial() {
+    return this._mapValues((value) => value.factorial());
+  }
+  /** 最大値を返す */
+  max() {
+    if (this.isEmpty()) throw new TypeError("No arguments provided");
+    let result = this._values[0][0];
+    for (const row of this._values) {
+      for (const value of row) {
+        if (value.gt(result)) result = value;
+      }
+    }
+    return result.clone();
+  }
+  /** 最小値を返す */
+  min() {
+    if (this.isEmpty()) throw new TypeError("No arguments provided");
+    let result = this._values[0][0];
+    for (const row of this._values) {
+      for (const value of row) {
+        if (value.lt(result)) result = value;
+      }
+    }
+    return result.clone();
+  }
+  /** 合計を返す */
+  sum() {
+    if (this.isEmpty()) return new BigFloat(0);
+    return this.flatten().sum();
+  }
+  /** 積を返す */
+  product() {
+    if (this.isEmpty()) return new BigFloat(1);
+    return this.flatten().product();
+  }
+  /** 平均を返す */
+  average() {
+    if (this.isEmpty()) return new BigFloat(0);
+    return this.sum().div(this.rowCount * this.columnCount);
+  }
+  /** 行和ベクトルを返す */
+  rowSums() {
+    return BigFloatVector.from(this._values.map((row) => BigFloatVector.from(row.map((value) => value.clone())).sum()));
+  }
+  /** 列和ベクトルを返す */
+  columnSums() {
+    if (this.isEmpty()) return BigFloatVector.empty();
+    const resolvedPrecision = _BigFloatMatrix._resolvePrecision(this._flattenValues());
+    return BigFloatVector.from(
+      Array.from({ length: this.columnCount }, (_, column) => this._values.reduce((acc, row) => acc.add(row[column]), new BigFloat(0, resolvedPrecision)))
+    );
+  }
+  /** トレースを返す */
+  trace() {
+    _BigFloatMatrix._assertSquare(this);
+    const resolvedPrecision = _BigFloatMatrix._resolvePrecision(this._flattenValues());
+    let total = new BigFloat(0, resolvedPrecision);
+    for (let index = 0; index < this.rowCount; index++) {
+      total = total.add(this._values[index][index]);
+    }
+    return total;
+  }
+  /** Frobenius ノルムを返す */
+  frobeniusNorm() {
+    return this.flatten().squaredNorm().sqrt();
+  }
+  /** 行列積を計算する */
+  matmul(other) {
+    const matrix = _BigFloatMatrix._coerceMatrix(other, this._flattenValues());
+    _BigFloatMatrix._assertMultipliable(this, matrix);
+    if (this.rowCount === 0 || this.columnCount === 0 || matrix.columnCount === 0) return _BigFloatMatrix.empty();
+    const resolvedPrecision = _BigFloatMatrix._resolvePrecision([...this._flattenValues(), ...matrix._flattenValues()]);
+    const values = Array.from(
+      { length: this.rowCount },
+      (_, row) => Array.from({ length: matrix.columnCount }, (_2, column) => {
+        let total = new BigFloat(0, resolvedPrecision);
+        for (let index = 0; index < this.columnCount; index++) {
+          total = total.add(this._values[row][index].mul(matrix._values[index][column]));
+        }
+        return total;
+      })
+    );
+    return _BigFloatMatrix._fromBigFloatGrid(values);
+  }
+  /** ベクトル積を計算する */
+  mulVector(vector) {
+    const rhs = _BigFloatMatrix._coerceVector(vector, this._flattenValues());
+    if (this.columnCount !== rhs.length) throw new RangeError("Inner matrix dimensions must agree");
+    return BigFloatVector.from(this._values.map((row) => BigFloatVector.from(row.map((value) => value.clone())).dot(rhs)));
+  }
+  /** 行列式を返す */
+  determinant() {
+    _BigFloatMatrix._assertSquare(this);
+    const size = this.rowCount;
+    if (size === 0) return new BigFloat(1);
+    const values = this.toArray();
+    let sign = 1;
+    let det = new BigFloat(1, _BigFloatMatrix._resolvePrecision(this._flattenValues()));
+    for (let column = 0; column < size; column++) {
+      let bestRow = -1;
+      let bestValue = null;
+      for (let row = column; row < size; row++) {
+        const current = values[row][column].abs();
+        if (current.isZero()) continue;
+        if (bestValue === null || current.gt(bestValue)) {
+          bestValue = current;
+          bestRow = row;
+        }
+      }
+      if (bestRow === -1) return new BigFloat(0, det._precision);
+      if (bestRow !== column) {
+        [values[column], values[bestRow]] = [values[bestRow], values[column]];
+        sign *= -1;
+      }
+      const pivot = values[column][column].clone();
+      det = det.mul(pivot);
+      for (let row = column + 1; row < size; row++) {
+        const factor = values[row][column].div(pivot);
+        if (factor.isZero()) continue;
+        for (let index = column; index < size; index++) {
+          values[row][index] = values[row][index].sub(factor.mul(values[column][index]));
+        }
+      }
+    }
+    return sign < 0 ? det.neg() : det;
+  }
+  /** ランクを返す */
+  rank() {
+    return _BigFloatMatrix._reducedRowEchelon(this.toArray(), this.columnCount).pivotColumns.length;
+  }
+  /** 逆行列を返す */
+  inverse() {
+    _BigFloatMatrix._assertSquare(this);
+    const identity = _BigFloatMatrix.identity(this.rowCount, _BigFloatMatrix._resolvePrecision(this._flattenValues()));
+    return this.solveMatrix(identity);
+  }
+  /** 連立方程式 Ax=b を解く */
+  solveVector(rhs) {
+    _BigFloatMatrix._assertSquare(this);
+    const vector = _BigFloatMatrix._coerceVector(rhs, this._flattenValues());
+    if (vector.length !== this.rowCount) throw new RangeError("Right-hand side vector length must match row count");
+    const solution = this.solveMatrix(_BigFloatMatrix.fromColumns([vector.toArray()]));
+    return solution.column(0) ?? BigFloatVector.empty();
+  }
+  /** 連立方程式 AX=B を解く */
+  solveMatrix(rhs) {
+    _BigFloatMatrix._assertSquare(this);
+    const right = _BigFloatMatrix._coerceMatrix(rhs, this._flattenValues());
+    if (right.rowCount !== this.rowCount) throw new RangeError("Right-hand side row count must match");
+    const size = this.rowCount;
+    const augmented = this._values.map((row, rowIndex) => [
+      ...row.map((value) => value.clone()),
+      ...right._values[rowIndex].map((value) => value.clone())
+    ]);
+    const { values, pivotColumns } = _BigFloatMatrix._reducedRowEchelon(augmented, size);
+    if (pivotColumns.length !== size) throw new RangeError("Matrix is singular");
+    const epsilon = _BigFloatMatrix._epsilon(_BigFloatMatrix._resolvePrecision([...this._flattenValues(), ...right._flattenValues()]));
+    for (let row = 0; row < size; row++) {
+      for (let column = 0; column < size; column++) {
+        const expected = new BigFloat(row === column ? 1 : 0, epsilon._precision);
+        if (values[row][column].absoluteDiff(expected).gt(epsilon)) throw new RangeError("Matrix is singular");
+      }
+    }
+    return _BigFloatMatrix._fromBigFloatGrid(values.map((row) => row.slice(size)));
+  }
+  /** 行列累乗を返す */
+  matrixPow(exponent) {
+    _BigFloatMatrix._assertSquare(this);
+    if (!Number.isFinite(exponent) || !Number.isInteger(exponent)) throw new RangeError("Matrix exponent must be an integer");
+    if (exponent === 0) return _BigFloatMatrix.identity(this.rowCount, _BigFloatMatrix._resolvePrecision(this._flattenValues()));
+    if (exponent < 0) return this.inverse().matrixPow(-exponent);
+    let result = _BigFloatMatrix.identity(this.rowCount, _BigFloatMatrix._resolvePrecision(this._flattenValues()));
+    let base = this.clone();
+    let power = exponent;
+    while (power > 0) {
+      if ((power & 1) === 1) result = result.matmul(base);
+      power >>= 1;
+      if (power > 0) base = base.matmul(base);
+    }
+    return result;
+  }
+};
 export {
   BigFloat,
   BigFloatConfig,
   BigFloatError,
+  BigFloatMatrix,
   BigFloatStream,
   BigFloatVector,
   CacheNotInitializedError,

@@ -2879,6 +2879,268 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 */
 	cross(other: BigFloatVectorOperand): this;
 }
+export type BigFloatMatrixRowSource = Iterable<BigFloatValue>;
+export type BigFloatMatrixSource = Iterable<BigFloatMatrixRowSource>;
+export type BigFloatMatrixOperand = BigFloatMatrix | BigFloatMatrixSource;
+export type BigFloatMatrixRandomOptions = {
+	min?: BigFloatValue;
+	max?: BigFloatValue;
+	precision?: PrecisionValue;
+};
+/**
+ * BigFloat を固定長行列として扱うクラス
+ */
+export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
+	/** 内部要素 */
+	protected _values: BigFloat[][];
+	/**
+	 * @param rows - 行列要素
+	 * @param precision - 変換時の精度
+	 */
+	constructor(rows?: BigFloatMatrixSource, precision?: PrecisionValue);
+	/** 内部配列から行列を生成する */
+	protected static _fromBigFloatGrid(values: BigFloat[][]): BigFloatMatrix;
+	/** 値をBigFloatへ変換する */
+	protected static _toBigFloat(value: BigFloatValue, precision?: bigint): BigFloat;
+	/** 精度を解決する */
+	protected static _resolvePrecision(values: BigFloatValue[], precision?: PrecisionValue): bigint;
+	/** 次元を正規化する */
+	protected static _normalizeSize(size: number, name: string): number;
+	/** 生配列が長方形か検証する */
+	protected static _assertRectangularRaw(rows: BigFloatValue[][]): void;
+	/** 同形状か検証する */
+	protected static _assertSameShape(left: BigFloatMatrix, right: BigFloatMatrix): void;
+	/** 正方行列か検証する */
+	protected static _assertSquare(matrix: BigFloatMatrix): void;
+	/** 行列積可能か検証する */
+	protected static _assertMultipliable(left: BigFloatMatrix, right: BigFloatMatrix): void;
+	/** 微小値を返す */
+	protected static _epsilon(precision: bigint): BigFloat;
+	/** 行列または生データを行列化する */
+	protected static _coerceMatrix(value: BigFloatMatrixOperand, referenceValues?: BigFloatValue[]): BigFloatMatrix;
+	/** ベクトルまたは生データをベクトル化する */
+	protected static _coerceVector(value: BigFloatVector | Iterable<BigFloatValue>, referenceValues?: BigFloatValue[]): BigFloatVector;
+	/** 要素列を平坦化する */
+	protected _flattenValues(): BigFloat[];
+	/** 要素ごとの写像を行う */
+	protected _mapValues(fn: (value: BigFloat, row: number, column: number) => BigFloatValue): this;
+	/** 要素ごとの二項演算を行う */
+	protected _mapWithOperand(other: BigFloatMatrixOperand | BigFloatValue, fn: (left: BigFloat, right: BigFloat, row: number, column: number) => BigFloatValue): this;
+	/** RREF を計算する */
+	protected static _reducedRowEchelon(values: BigFloat[][], leftColumnCount?: number): {
+		values: BigFloat[][];
+		pivotColumns: number[];
+	};
+	/** 空行列を生成する */
+	static empty(): BigFloatMatrix;
+	/** 行列データから生成する */
+	static from(rows: BigFloatMatrixSource, precision?: PrecisionValue): BigFloatMatrix;
+	/** 行ベクトル群から生成する */
+	static fromRows(rows: BigFloatMatrixSource, precision?: PrecisionValue): BigFloatMatrix;
+	/** 列ベクトル群から生成する */
+	static fromColumns(columns: BigFloatMatrixSource, precision?: PrecisionValue): BigFloatMatrix;
+	/** 行の並びから生成する */
+	static of(...rows: BigFloatValue[][]): BigFloatMatrix;
+	/** 指定値で埋めた行列を生成する */
+	static fill(rowCount: number, columnCount: number, value: BigFloatValue, precision?: PrecisionValue): BigFloatMatrix;
+	/** 0行列を生成する */
+	static zeros(rowCount: number, columnCount: number, precision?: PrecisionValue): BigFloatMatrix;
+	/** 1行列を生成する */
+	static ones(rowCount: number, columnCount: number, precision?: PrecisionValue): BigFloatMatrix;
+	/** 単位行列を生成する */
+	static identity(size: number, precision?: PrecisionValue): BigFloatMatrix;
+	/** 対角行列を生成する */
+	static diagonal(values: Iterable<BigFloatValue>, precision?: PrecisionValue): BigFloatMatrix;
+	/** 乱数行列を生成する */
+	static random(rowCount: number, columnCount: number, options?: BigFloatMatrixRandomOptions): BigFloatMatrix;
+	/** 行数 */
+	get rowCount(): number;
+	/** 列数 */
+	get columnCount(): number;
+	/** 形状を返す */
+	shape(): [
+		number,
+		number
+	];
+	/** 空行列かどうか */
+	isEmpty(): boolean;
+	/** 正方行列かどうか */
+	isSquare(): boolean;
+	/** 要素を取得する */
+	at(row: number, column: number): BigFloat | undefined;
+	/** 行を取得する */
+	row(index: number): BigFloatVector | undefined;
+	/** 列を取得する */
+	column(index: number): BigFloatVector | undefined;
+	/** 対角成分を取得する */
+	diagonalVector(): BigFloatVector;
+	/** 行列を複製する */
+	clone(): BigFloatMatrix;
+	/** 配列へ変換する */
+	toArray(): BigFloat[][];
+	/** 行ベクトル配列へ変換する */
+	toVectors(): BigFloatVector[];
+	/** 平坦化ベクトルへ変換する */
+	flatten(): BigFloatVector;
+	/** Stream へ変換する */
+	toStream(): BigFloatStream;
+	/** 行イテレータ */
+	[Symbol.iterator](): Iterator<BigFloatVector, void, undefined>;
+	/** 各要素へ処理を適用する */
+	forEach(fn: (value: BigFloat, row: number, column: number) => void): void;
+	/** 要素ごとに変換する */
+	map(fn: (value: BigFloat, row: number, column: number) => BigFloatValue): this;
+	/** 2つの行列を要素ごとに変換する */
+	zipMap(other: BigFloatMatrixOperand, fn: (left: BigFloat, right: BigFloat, row: number, column: number) => BigFloatValue): this;
+	/** 畳み込み処理を行う */
+	reduce<U>(fn: (acc: U, value: BigFloat, row: number, column: number) => U, initial: U): U;
+	/** 条件に一致する要素があるか */
+	some(fn: (value: BigFloat, row: number, column: number) => boolean): boolean;
+	/** すべての要素が条件を満たすか */
+	every(fn: (value: BigFloat, row: number, column: number) => boolean): boolean;
+	/** 行方向に連結する */
+	concatRows(...others: BigFloatMatrixOperand[]): this;
+	/** 列方向に連結する */
+	concatColumns(...others: BigFloatMatrixOperand[]): this;
+	/** 行スライス */
+	sliceRows(start?: number, end?: number): this;
+	/** 列スライス */
+	sliceColumns(start?: number, end?: number): this;
+	/** 転置行列を返す */
+	transpose(): this;
+	/** 一致判定 */
+	equals(other: BigFloatMatrixOperand): boolean;
+	/** すべての要素の精度を変更する */
+	changePrecision(precision: PrecisionValue): this;
+	/** 各要素へ加算する */
+	add(other: BigFloatValue | BigFloatMatrixOperand): this;
+	/** 各要素から減算する */
+	sub(other: BigFloatValue | BigFloatMatrixOperand): this;
+	/** スカラ倍する */
+	mul(scalar: BigFloatValue): this;
+	/** スカラ除算する */
+	div(scalar: BigFloatValue): this;
+	/** 剰余を計算する */
+	mod(other: BigFloatValue | BigFloatMatrixOperand): this;
+	/** 要素ごとの積を計算する */
+	hadamard(other: BigFloatMatrixOperand): this;
+	/** 符号反転する */
+	neg(): this;
+	/** 絶対値化する */
+	abs(): this;
+	/** 符号行列を返す */
+	sign(): this;
+	/** 逆数行列を返す */
+	reciprocal(): this;
+	/** 要素ごとの冪乗を計算する */
+	pow(exponent: BigFloatValue | BigFloatMatrixOperand): this;
+	/** 各要素の平方根を計算する */
+	sqrt(): this;
+	/** 各要素の立方根を計算する */
+	cbrt(): this;
+	/** 各要素のn乗根を計算する */
+	nthRoot(n: number | bigint): this;
+	/** 切り下げる */
+	floor(): this;
+	/** 切り上げる */
+	ceil(): this;
+	/** 四捨五入する */
+	round(): this;
+	/** 0方向へ切り捨てる */
+	trunc(): this;
+	/** Float32相当に丸める */
+	fround(): this;
+	/** 先頭ゼロビット数を返す */
+	clz32(): this;
+	/** 相対差を計算する */
+	relativeDiff(other: BigFloatValue | BigFloatMatrixOperand): this;
+	/** 絶対差を計算する */
+	absoluteDiff(other: BigFloatValue | BigFloatMatrixOperand): this;
+	/** 百分率差分を計算する */
+	percentDiff(other: BigFloatValue | BigFloatMatrixOperand): this;
+	/** 正弦を計算する */
+	sin(): this;
+	/** 余弦を計算する */
+	cos(): this;
+	/** 正接を計算する */
+	tan(): this;
+	/** 逆正弦を計算する */
+	asin(): this;
+	/** 逆余弦を計算する */
+	acos(): this;
+	/** 逆正接を計算する */
+	atan(): this;
+	/** atan2 を計算する */
+	atan2(x: BigFloatValue | BigFloatMatrixOperand): this;
+	/** 双曲線正弦を計算する */
+	sinh(): this;
+	/** 双曲線余弦を計算する */
+	cosh(): this;
+	/** 双曲線正接を計算する */
+	tanh(): this;
+	/** 逆双曲線正弦を計算する */
+	asinh(): this;
+	/** 逆双曲線余弦を計算する */
+	acosh(): this;
+	/** 逆双曲線正接を計算する */
+	atanh(): this;
+	/** 指数関数を計算する */
+	exp(): this;
+	/** 2冪指数関数を計算する */
+	exp2(): this;
+	/** exp(x)-1 を計算する */
+	expm1(): this;
+	/** 自然対数を計算する */
+	ln(): this;
+	/** 対数を計算する */
+	log(base: BigFloatValue | BigFloatMatrixOperand): this;
+	/** 底2対数を計算する */
+	log2(): this;
+	/** 底10対数を計算する */
+	log10(): this;
+	/** log(1+x) を計算する */
+	log1p(): this;
+	/** ガンマ関数を計算する */
+	gamma(): this;
+	/** ゼータ関数を計算する */
+	zeta(): this;
+	/** 階乗を計算する */
+	factorial(): this;
+	/** 最大値を返す */
+	max(): BigFloat;
+	/** 最小値を返す */
+	min(): BigFloat;
+	/** 合計を返す */
+	sum(): BigFloat;
+	/** 積を返す */
+	product(): BigFloat;
+	/** 平均を返す */
+	average(): BigFloat;
+	/** 行和ベクトルを返す */
+	rowSums(): BigFloatVector;
+	/** 列和ベクトルを返す */
+	columnSums(): BigFloatVector;
+	/** トレースを返す */
+	trace(): BigFloat;
+	/** Frobenius ノルムを返す */
+	frobeniusNorm(): BigFloat;
+	/** 行列積を計算する */
+	matmul(other: BigFloatMatrixOperand): this;
+	/** ベクトル積を計算する */
+	mulVector(vector: BigFloatVector | Iterable<BigFloatValue>): BigFloatVector;
+	/** 行列式を返す */
+	determinant(): BigFloat;
+	/** ランクを返す */
+	rank(): number;
+	/** 逆行列を返す */
+	inverse(): this;
+	/** 連立方程式 Ax=b を解く */
+	solveVector(rhs: BigFloatVector | Iterable<BigFloatValue>): BigFloatVector;
+	/** 連立方程式 AX=B を解く */
+	solveMatrix(rhs: BigFloatMatrixOperand): this;
+	/** 行列累乗を返す */
+	matrixPow(exponent: number): this;
+}
 /**
  * BigFloat ライブラリ共通の基底エラー
  */

@@ -9,6 +9,7 @@
 - [`BigFloatConfig`](#bigfloatconfig)
 - [`BigFloatStream`](#bigfloatstream)
 - [`BigFloatVector`](#bigfloatvector)
+- [`BigFloatMatrix`](#bigfloatmatrix)
 - [`BigFloatError`](#bigfloaterror)
 - [`CacheNotInitializedError`](#cachenotinitializederror)
 - [`DivisionByZeroError`](#divisionbyzeroerror)
@@ -4009,6 +4010,860 @@ cross(other: BigFloatVector | Iterable<BigFloatValue>): BigFloatVector
 - `other`: 対象ベクトル
 
 **Returns**: 外積ベクトル
+
+<a id="bigfloatmatrix"></a>
+
+## `BigFloatMatrix`
+
+BigFloat を固定長行列として扱うクラス
+
+```ts
+class BigFloatMatrix
+```
+
+### Constructor
+
+#### `constructor`
+
+```ts
+constructor(rows?: Iterable<BigFloatMatrixRowSource>, precision?: number | bigint): BigFloatMatrix
+```
+
+BigFloat を固定長行列として扱うクラス
+
+**Parameters**
+- `rows`: 行列要素
+- `precision`: 変換時の精度
+
+### Static Methods
+
+#### `empty`
+
+```ts
+empty(): BigFloatMatrix
+```
+
+空行列を生成する
+
+#### `from`
+
+```ts
+from(rows: Iterable<BigFloatMatrixRowSource>, precision?: number | bigint): BigFloatMatrix
+```
+
+行列データから生成する
+
+#### `fromRows`
+
+```ts
+fromRows(rows: Iterable<BigFloatMatrixRowSource>, precision?: number | bigint): BigFloatMatrix
+```
+
+行ベクトル群から生成する
+
+#### `fromColumns`
+
+```ts
+fromColumns(columns: Iterable<BigFloatMatrixRowSource>, precision?: number | bigint): BigFloatMatrix
+```
+
+列ベクトル群から生成する
+
+#### `of`
+
+```ts
+of(...rows: string | number | bigint | BigFloat[][]): BigFloatMatrix
+```
+
+行の並びから生成する
+
+#### `fill`
+
+```ts
+fill(rowCount: number, columnCount: number, value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloatMatrix
+```
+
+指定値で埋めた行列を生成する
+
+#### `zeros`
+
+```ts
+zeros(rowCount: number, columnCount: number, precision?: number | bigint): BigFloatMatrix
+```
+
+0行列を生成する
+
+#### `ones`
+
+```ts
+ones(rowCount: number, columnCount: number, precision?: number | bigint): BigFloatMatrix
+```
+
+1行列を生成する
+
+#### `identity`
+
+```ts
+identity(size: number, precision?: number | bigint): BigFloatMatrix
+```
+
+単位行列を生成する
+
+#### `diagonal`
+
+```ts
+diagonal(values: Iterable<BigFloatValue>, precision?: number | bigint): BigFloatMatrix
+```
+
+対角行列を生成する
+
+#### `random`
+
+```ts
+random(rowCount: number, columnCount: number, options?: { min?: string | number | bigint | BigFloat; max?: string | number | bigint | BigFloat; precision?: number | bigint }): BigFloatMatrix
+```
+
+乱数行列を生成する
+
+### Instance Properties
+
+#### `rowCount`
+
+```ts
+rowCount: number
+```
+
+行数
+
+#### `columnCount`
+
+```ts
+columnCount: number
+```
+
+列数
+
+### Instance Methods
+
+#### `shape`
+
+```ts
+shape(): [number, number]
+```
+
+形状を返す
+
+#### `isEmpty`
+
+```ts
+isEmpty(): boolean
+```
+
+空行列かどうか
+
+#### `isSquare`
+
+```ts
+isSquare(): boolean
+```
+
+正方行列かどうか
+
+#### `at`
+
+```ts
+at(row: number, column: number): undefined | BigFloat
+```
+
+要素を取得する
+
+#### `row`
+
+```ts
+row(index: number): undefined | BigFloatVector
+```
+
+行を取得する
+
+#### `column`
+
+```ts
+column(index: number): undefined | BigFloatVector
+```
+
+列を取得する
+
+#### `diagonalVector`
+
+```ts
+diagonalVector(): BigFloatVector
+```
+
+対角成分を取得する
+
+#### `clone`
+
+```ts
+clone(): BigFloatMatrix
+```
+
+行列を複製する
+
+#### `toArray`
+
+```ts
+toArray(): BigFloat[][]
+```
+
+配列へ変換する
+
+#### `toVectors`
+
+```ts
+toVectors(): BigFloatVector[]
+```
+
+行ベクトル配列へ変換する
+
+#### `flatten`
+
+```ts
+flatten(): BigFloatVector
+```
+
+平坦化ベクトルへ変換する
+
+#### `toStream`
+
+```ts
+toStream(): BigFloatStream
+```
+
+Stream へ変換する
+
+#### `[Symbol.iterator]`
+
+```ts
+[Symbol.iterator](): Iterator<BigFloatVector, void, undefined>
+```
+
+行イテレータ
+
+#### `forEach`
+
+```ts
+forEach(fn: (value: BigFloat, row: number, column: number): void): void
+```
+
+各要素へ処理を適用する
+
+#### `map`
+
+```ts
+map(fn: (value: BigFloat, row: number, column: number): string | number | bigint | BigFloat): BigFloatMatrix
+```
+
+要素ごとに変換する
+
+#### `zipMap`
+
+```ts
+zipMap(other: BigFloatMatrix | Iterable<BigFloatMatrixRowSource>, fn: (left: BigFloat, right: BigFloat, row: number, column: number): string | number | bigint | BigFloat): BigFloatMatrix
+```
+
+2つの行列を要素ごとに変換する
+
+#### `reduce`
+
+```ts
+reduce<U>(fn: (acc: U, value: BigFloat, row: number, column: number): U, initial: U): U
+```
+
+畳み込み処理を行う
+
+#### `some`
+
+```ts
+some(fn: (value: BigFloat, row: number, column: number): boolean): boolean
+```
+
+条件に一致する要素があるか
+
+#### `every`
+
+```ts
+every(fn: (value: BigFloat, row: number, column: number): boolean): boolean
+```
+
+すべての要素が条件を満たすか
+
+#### `concatRows`
+
+```ts
+concatRows(...others: BigFloatMatrix | Iterable<BigFloatMatrixRowSource>[]): BigFloatMatrix
+```
+
+行方向に連結する
+
+#### `concatColumns`
+
+```ts
+concatColumns(...others: BigFloatMatrix | Iterable<BigFloatMatrixRowSource>[]): BigFloatMatrix
+```
+
+列方向に連結する
+
+#### `sliceRows`
+
+```ts
+sliceRows(start?: number, end?: number): BigFloatMatrix
+```
+
+行スライス
+
+#### `sliceColumns`
+
+```ts
+sliceColumns(start?: number, end?: number): BigFloatMatrix
+```
+
+列スライス
+
+#### `transpose`
+
+```ts
+transpose(): BigFloatMatrix
+```
+
+転置行列を返す
+
+#### `equals`
+
+```ts
+equals(other: BigFloatMatrix | Iterable<BigFloatMatrixRowSource>): boolean
+```
+
+一致判定
+
+#### `changePrecision`
+
+```ts
+changePrecision(precision: number | bigint): BigFloatMatrix
+```
+
+すべての要素の精度を変更する
+
+#### `add`
+
+```ts
+add(other: string | number | bigint | BigFloat | BigFloatMatrix | Iterable<BigFloatMatrixRowSource>): BigFloatMatrix
+```
+
+各要素へ加算する
+
+#### `sub`
+
+```ts
+sub(other: string | number | bigint | BigFloat | BigFloatMatrix | Iterable<BigFloatMatrixRowSource>): BigFloatMatrix
+```
+
+各要素から減算する
+
+#### `mul`
+
+```ts
+mul(scalar: string | number | bigint | BigFloat): BigFloatMatrix
+```
+
+スカラ倍する
+
+#### `div`
+
+```ts
+div(scalar: string | number | bigint | BigFloat): BigFloatMatrix
+```
+
+スカラ除算する
+
+#### `mod`
+
+```ts
+mod(other: string | number | bigint | BigFloat | BigFloatMatrix | Iterable<BigFloatMatrixRowSource>): BigFloatMatrix
+```
+
+剰余を計算する
+
+#### `hadamard`
+
+```ts
+hadamard(other: BigFloatMatrix | Iterable<BigFloatMatrixRowSource>): BigFloatMatrix
+```
+
+要素ごとの積を計算する
+
+#### `neg`
+
+```ts
+neg(): BigFloatMatrix
+```
+
+符号反転する
+
+#### `abs`
+
+```ts
+abs(): BigFloatMatrix
+```
+
+絶対値化する
+
+#### `sign`
+
+```ts
+sign(): BigFloatMatrix
+```
+
+符号行列を返す
+
+#### `reciprocal`
+
+```ts
+reciprocal(): BigFloatMatrix
+```
+
+逆数行列を返す
+
+#### `pow`
+
+```ts
+pow(exponent: string | number | bigint | BigFloat | BigFloatMatrix | Iterable<BigFloatMatrixRowSource>): BigFloatMatrix
+```
+
+要素ごとの冪乗を計算する
+
+#### `sqrt`
+
+```ts
+sqrt(): BigFloatMatrix
+```
+
+各要素の平方根を計算する
+
+#### `cbrt`
+
+```ts
+cbrt(): BigFloatMatrix
+```
+
+各要素の立方根を計算する
+
+#### `nthRoot`
+
+```ts
+nthRoot(n: number | bigint): BigFloatMatrix
+```
+
+各要素のn乗根を計算する
+
+#### `floor`
+
+```ts
+floor(): BigFloatMatrix
+```
+
+切り下げる
+
+#### `ceil`
+
+```ts
+ceil(): BigFloatMatrix
+```
+
+切り上げる
+
+#### `round`
+
+```ts
+round(): BigFloatMatrix
+```
+
+四捨五入する
+
+#### `trunc`
+
+```ts
+trunc(): BigFloatMatrix
+```
+
+0方向へ切り捨てる
+
+#### `fround`
+
+```ts
+fround(): BigFloatMatrix
+```
+
+Float32相当に丸める
+
+#### `clz32`
+
+```ts
+clz32(): BigFloatMatrix
+```
+
+先頭ゼロビット数を返す
+
+#### `relativeDiff`
+
+```ts
+relativeDiff(other: string | number | bigint | BigFloat | BigFloatMatrix | Iterable<BigFloatMatrixRowSource>): BigFloatMatrix
+```
+
+相対差を計算する
+
+#### `absoluteDiff`
+
+```ts
+absoluteDiff(other: string | number | bigint | BigFloat | BigFloatMatrix | Iterable<BigFloatMatrixRowSource>): BigFloatMatrix
+```
+
+絶対差を計算する
+
+#### `percentDiff`
+
+```ts
+percentDiff(other: string | number | bigint | BigFloat | BigFloatMatrix | Iterable<BigFloatMatrixRowSource>): BigFloatMatrix
+```
+
+百分率差分を計算する
+
+#### `sin`
+
+```ts
+sin(): BigFloatMatrix
+```
+
+正弦を計算する
+
+#### `cos`
+
+```ts
+cos(): BigFloatMatrix
+```
+
+余弦を計算する
+
+#### `tan`
+
+```ts
+tan(): BigFloatMatrix
+```
+
+正接を計算する
+
+#### `asin`
+
+```ts
+asin(): BigFloatMatrix
+```
+
+逆正弦を計算する
+
+#### `acos`
+
+```ts
+acos(): BigFloatMatrix
+```
+
+逆余弦を計算する
+
+#### `atan`
+
+```ts
+atan(): BigFloatMatrix
+```
+
+逆正接を計算する
+
+#### `atan2`
+
+```ts
+atan2(x: string | number | bigint | BigFloat | BigFloatMatrix | Iterable<BigFloatMatrixRowSource>): BigFloatMatrix
+```
+
+atan2 を計算する
+
+#### `sinh`
+
+```ts
+sinh(): BigFloatMatrix
+```
+
+双曲線正弦を計算する
+
+#### `cosh`
+
+```ts
+cosh(): BigFloatMatrix
+```
+
+双曲線余弦を計算する
+
+#### `tanh`
+
+```ts
+tanh(): BigFloatMatrix
+```
+
+双曲線正接を計算する
+
+#### `asinh`
+
+```ts
+asinh(): BigFloatMatrix
+```
+
+逆双曲線正弦を計算する
+
+#### `acosh`
+
+```ts
+acosh(): BigFloatMatrix
+```
+
+逆双曲線余弦を計算する
+
+#### `atanh`
+
+```ts
+atanh(): BigFloatMatrix
+```
+
+逆双曲線正接を計算する
+
+#### `exp`
+
+```ts
+exp(): BigFloatMatrix
+```
+
+指数関数を計算する
+
+#### `exp2`
+
+```ts
+exp2(): BigFloatMatrix
+```
+
+2冪指数関数を計算する
+
+#### `expm1`
+
+```ts
+expm1(): BigFloatMatrix
+```
+
+exp(x)-1 を計算する
+
+#### `ln`
+
+```ts
+ln(): BigFloatMatrix
+```
+
+自然対数を計算する
+
+#### `log`
+
+```ts
+log(base: string | number | bigint | BigFloat | BigFloatMatrix | Iterable<BigFloatMatrixRowSource>): BigFloatMatrix
+```
+
+対数を計算する
+
+#### `log2`
+
+```ts
+log2(): BigFloatMatrix
+```
+
+底2対数を計算する
+
+#### `log10`
+
+```ts
+log10(): BigFloatMatrix
+```
+
+底10対数を計算する
+
+#### `log1p`
+
+```ts
+log1p(): BigFloatMatrix
+```
+
+log(1+x) を計算する
+
+#### `gamma`
+
+```ts
+gamma(): BigFloatMatrix
+```
+
+ガンマ関数を計算する
+
+#### `zeta`
+
+```ts
+zeta(): BigFloatMatrix
+```
+
+ゼータ関数を計算する
+
+#### `factorial`
+
+```ts
+factorial(): BigFloatMatrix
+```
+
+階乗を計算する
+
+#### `max`
+
+```ts
+max(): BigFloat
+```
+
+最大値を返す
+
+#### `min`
+
+```ts
+min(): BigFloat
+```
+
+最小値を返す
+
+#### `sum`
+
+```ts
+sum(): BigFloat
+```
+
+合計を返す
+
+#### `product`
+
+```ts
+product(): BigFloat
+```
+
+積を返す
+
+#### `average`
+
+```ts
+average(): BigFloat
+```
+
+平均を返す
+
+#### `rowSums`
+
+```ts
+rowSums(): BigFloatVector
+```
+
+行和ベクトルを返す
+
+#### `columnSums`
+
+```ts
+columnSums(): BigFloatVector
+```
+
+列和ベクトルを返す
+
+#### `trace`
+
+```ts
+trace(): BigFloat
+```
+
+トレースを返す
+
+#### `frobeniusNorm`
+
+```ts
+frobeniusNorm(): BigFloat
+```
+
+Frobenius ノルムを返す
+
+#### `matmul`
+
+```ts
+matmul(other: BigFloatMatrix | Iterable<BigFloatMatrixRowSource>): BigFloatMatrix
+```
+
+行列積を計算する
+
+#### `mulVector`
+
+```ts
+mulVector(vector: Iterable<BigFloatValue> | BigFloatVector): BigFloatVector
+```
+
+ベクトル積を計算する
+
+#### `determinant`
+
+```ts
+determinant(): BigFloat
+```
+
+行列式を返す
+
+#### `rank`
+
+```ts
+rank(): number
+```
+
+ランクを返す
+
+#### `inverse`
+
+```ts
+inverse(): BigFloatMatrix
+```
+
+逆行列を返す
+
+#### `solveVector`
+
+```ts
+solveVector(rhs: Iterable<BigFloatValue> | BigFloatVector): BigFloatVector
+```
+
+連立方程式 Ax=b を解く
+
+#### `solveMatrix`
+
+```ts
+solveMatrix(rhs: BigFloatMatrix | Iterable<BigFloatMatrixRowSource>): BigFloatMatrix
+```
+
+連立方程式 AX=B を解く
+
+#### `matrixPow`
+
+```ts
+matrixPow(exponent: number): BigFloatMatrix
+```
+
+行列累乗を返す
 
 <a id="bigfloaterror"></a>
 
