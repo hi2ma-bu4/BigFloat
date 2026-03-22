@@ -50,7 +50,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 			if (precision === undefined || cloned._precision === precision) return cloned;
 			return cloned.changePrecision(precision);
 		}
-		return new BigFloat(value, precision ?? 20n);
+		return new BigFloat(value, precision ?? BigFloat.DEFAULT_PRECISION);
 	}
 
 	/**
@@ -61,7 +61,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 */
 	protected static _resolvePrecision(values: BigFloatValue[], precision?: PrecisionValue): bigint {
 		if (precision !== undefined) return BigInt(precision);
-		let resolved = 20n;
+		let resolved = BigFloat.DEFAULT_PRECISION;
 		for (const value of values) {
 			if (value instanceof BigFloat && value._precision > resolved) {
 				resolved = value._precision;
@@ -219,7 +219,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 		const normalizedLength = this._normalizeLength(length);
 		const normalizedIndex = Math.trunc(index);
 		if (normalizedIndex < 0 || normalizedIndex >= normalizedLength) throw new RangeError("Basis index out of range");
-		const resolvedPrecision = precision === undefined ? 20n : BigInt(precision);
+		const resolvedPrecision = precision === undefined ? BigFloat.DEFAULT_PRECISION : BigInt(precision);
 		return this._fromBigFloatArray(Array.from({ length: normalizedLength }, (_, currentIndex) => new BigFloat(currentIndex === normalizedIndex ? 1 : 0, resolvedPrecision)));
 	}
 

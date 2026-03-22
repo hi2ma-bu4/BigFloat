@@ -3141,6 +3141,205 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	/** 行列累乗を返す */
 	matrixPow(exponent: number): this;
 }
+export type BigFloatComplexObject = {
+	re?: BigFloatValue;
+	im?: BigFloatValue;
+	real?: BigFloatValue;
+	imag?: BigFloatValue;
+};
+export type BigFloatComplexTuple = readonly [
+	BigFloatValue,
+	BigFloatValue
+];
+export type BigFloatComplexValue = BigFloatComplex | BigFloatValue | BigFloatComplexTuple | BigFloatComplexObject;
+export type BigFloatComplexAggregateSource = Iterable<BigFloatComplexValue>;
+/**
+ * BigFloat を用いた複素数クラス
+ */
+export declare class BigFloatComplex implements Iterable<BigFloat> {
+	/** 実部 */
+	protected _real: BigFloat;
+	/** 虚部 */
+	protected _imag: BigFloat;
+	/** 精度 */
+	protected _precision: bigint;
+	/**
+	 * @param real - 実部または複素数表現
+	 * @param imag - 虚部
+	 * @param precision - 精度
+	 */
+	constructor(value?: BigFloatComplexValue, precision?: PrecisionValue);
+	constructor(real: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue);
+	/** BigFloat へ変換する */
+	protected static _toBigFloat(value: BigFloatValue, precision?: bigint): BigFloat;
+	/** 精度を解決する */
+	protected static _resolvePrecision(values: BigFloatValue[], precision?: PrecisionValue): bigint;
+	/** 内部 BigFloat から生成する */
+	protected static _fromBigFloats(real: BigFloat, imag: BigFloat): BigFloatComplex;
+	/** 複素数表現を正規化する */
+	protected static _normalizeParts(value: BigFloatComplexValue, imag?: BigFloatValue): {
+		realPart: BigFloatValue;
+		imagPart: BigFloatValue;
+	};
+	/** 引数を正規化する */
+	protected static _normalizeArguments(value: BigFloatComplexValue, imagOrPrecision: BigFloatValue | PrecisionValue, precision?: PrecisionValue): {
+		imagPartValue: BigFloatValue;
+		precisionValue: PrecisionValue | undefined;
+	};
+	/** 複素数文字列を解析する */
+	protected static _parseComplexString(value: string): {
+		realPart: BigFloatValue;
+		imagPart: BigFloatValue;
+	} | null;
+	/** 虚部係数を正規化する */
+	protected static _normalizeImaginaryCoefficient(value: string, original: string): BigFloatValue;
+	/** 値を複素数へ変換する */
+	protected static _toComplex(value: BigFloatComplexValue, precision?: bigint): BigFloatComplex;
+	/** 複素数定数 0 */
+	static zero(precision?: PrecisionValue): BigFloatComplex;
+	/** 複素数定数 1 */
+	static one(precision?: PrecisionValue): BigFloatComplex;
+	/** 複素数定数 i */
+	static i(precision?: PrecisionValue): BigFloatComplex;
+	/** e を返す */
+	static e(precision?: PrecisionValue): BigFloatComplex;
+	/** pi を返す */
+	static pi(precision?: PrecisionValue): BigFloatComplex;
+	/** tau を返す */
+	static tau(precision?: PrecisionValue): BigFloatComplex;
+	/** 値から生成する */
+	static from(value: BigFloatComplexValue, precision?: PrecisionValue): BigFloatComplex;
+	static from(value: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue): BigFloatComplex;
+	/** 値の並びから生成する */
+	static of(real: BigFloatValue, imag?: BigFloatValue, precision?: PrecisionValue): BigFloatComplex;
+	/** 極形式から生成する */
+	static fromPolar(magnitude: BigFloatValue, angle: BigFloatValue, precision?: PrecisionValue): BigFloatComplex;
+	/** 複素数の総和を返す */
+	static sum(values: BigFloatComplexAggregateSource, precision?: PrecisionValue): BigFloatComplex;
+	/** 複素数の総積を返す */
+	static product(values: BigFloatComplexAggregateSource, precision?: PrecisionValue): BigFloatComplex;
+	/** 複素数の平均を返す */
+	static average(values: BigFloatComplexAggregateSource, precision?: PrecisionValue): BigFloatComplex;
+	/** 実部 */
+	get real(): BigFloat;
+	/** 虚部 */
+	get imag(): BigFloat;
+	/** 精度 */
+	get precision(): bigint;
+	/** 複製する */
+	clone(): BigFloatComplex;
+	/** 精度を変更する */
+	changePrecision(precision: PrecisionValue): BigFloatComplex;
+	/** 配列へ変換する */
+	toArray(): [
+		BigFloat,
+		BigFloat
+	];
+	/** ベクトルへ変換する */
+	toVector(): BigFloatVector;
+	/** 極形式へ変換する */
+	toPolar(): {
+		magnitude: BigFloat;
+		angle: BigFloat;
+	};
+	/** JSON へ変換する */
+	toJSON(): {
+		re: string;
+		im: string;
+	};
+	/** 文字列化する */
+	toString(base?: number, precision?: PrecisionValue): string;
+	/** イテレータ */
+	[Symbol.iterator](): Iterator<BigFloat, void, undefined>;
+	/** 一致判定 */
+	equals(other: BigFloatComplexValue): boolean;
+	/** 別値判定 */
+	ne(other: BigFloatComplexValue): boolean;
+	/** ゼロ判定 */
+	isZero(): boolean;
+	/** 純実数判定 */
+	isReal(): boolean;
+	/** 純虚数判定 */
+	isImaginary(): boolean;
+	/** 共役複素数を返す */
+	conjugate(): BigFloatComplex;
+	/** 符号反転する */
+	neg(): BigFloatComplex;
+	/** 絶対値の二乗を返す */
+	absSquared(): BigFloat;
+	/** 絶対値を返す */
+	abs(): BigFloat;
+	/** 偏角を返す */
+	arg(): BigFloat;
+	/** 符号複素数を返す */
+	sign(): BigFloatComplex;
+	/** 正規化する */
+	normalize(): BigFloatComplex;
+	/** 距離を返す */
+	distanceTo(other: BigFloatComplexValue): BigFloat;
+	/** 相対差を返す */
+	relativeDiff(other: BigFloatComplexValue): BigFloat;
+	/** 絶対差を返す */
+	absoluteDiff(other: BigFloatComplexValue): BigFloat;
+	/** 百分率差分を返す */
+	percentDiff(other: BigFloatComplexValue): BigFloat;
+	/** 加算する */
+	add(other: BigFloatComplexValue): BigFloatComplex;
+	/** 減算する */
+	sub(other: BigFloatComplexValue): BigFloatComplex;
+	/** 乗算する */
+	mul(other: BigFloatComplexValue): BigFloatComplex;
+	/** 除算する */
+	div(other: BigFloatComplexValue): BigFloatComplex;
+	/** 実数で除算する */
+	protected divByReal(value: BigFloatValue): BigFloatComplex;
+	/** 逆数を返す */
+	reciprocal(): BigFloatComplex;
+	/** 回転する */
+	rotate(angle: BigFloatValue): BigFloatComplex;
+	/** 指数関数を計算する */
+	exp(): BigFloatComplex;
+	/** exp(z)-1 を計算する */
+	expm1(): BigFloatComplex;
+	/** 自然対数を計算する */
+	ln(): BigFloatComplex;
+	/** 対数を計算する */
+	log(base: BigFloatComplexValue): BigFloatComplex;
+	/** 冪乗を計算する */
+	pow(exponent: BigFloatComplexValue): BigFloatComplex;
+	/** 平方根を計算する */
+	sqrt(): BigFloatComplex;
+	/** 立方根を計算する */
+	cbrt(): BigFloatComplex;
+	/** 主値の n 乗根を計算する */
+	nthRoot(n: number | bigint): BigFloatComplex;
+	/** n 乗根を全て返す */
+	nthRoots(n: number | bigint): BigFloatComplex[];
+	/** 正弦を計算する */
+	sin(): BigFloatComplex;
+	/** 余弦を計算する */
+	cos(): BigFloatComplex;
+	/** 正接を計算する */
+	tan(): BigFloatComplex;
+	/** 双曲線正弦を計算する */
+	sinh(): BigFloatComplex;
+	/** 双曲線余弦を計算する */
+	cosh(): BigFloatComplex;
+	/** 双曲線正接を計算する */
+	tanh(): BigFloatComplex;
+	/** 逆正弦を計算する */
+	asin(): BigFloatComplex;
+	/** 逆余弦を計算する */
+	acos(): BigFloatComplex;
+	/** 逆正接を計算する */
+	atan(): BigFloatComplex;
+	/** 逆双曲線正弦を計算する */
+	asinh(): BigFloatComplex;
+	/** 逆双曲線余弦を計算する */
+	acosh(): BigFloatComplex;
+	/** 逆双曲線正接を計算する */
+	atanh(): BigFloatComplex;
+}
 /**
  * BigFloat ライブラリ共通の基底エラー
  */

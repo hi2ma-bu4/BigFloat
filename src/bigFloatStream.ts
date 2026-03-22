@@ -143,7 +143,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 			if (precision === undefined || value._precision === precision) return value;
 			return value.clone().changePrecision(precision);
 		}
-		return new BigFloat(value, precision ?? 20n);
+		return new BigFloat(value, precision ?? BigFloat.DEFAULT_PRECISION);
 	}
 
 	/**
@@ -168,7 +168,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 */
 	protected static _resolvePrecision(values: BigFloatStreamValue[], precision?: PrecisionValue): bigint {
 		if (precision !== undefined) return BigInt(precision);
-		let resolved = 20n;
+		let resolved = BigFloat.DEFAULT_PRECISION;
 		for (const value of values) {
 			if (value instanceof BigFloat && value._precision > resolved) {
 				resolved = value._precision;
@@ -358,7 +358,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	public static harmonic(count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
 		if (normalizedCount === 0) return this.empty();
-		const resolvedPrecision = precision === undefined ? 20n : BigInt(precision);
+		const resolvedPrecision = precision === undefined ? BigFloat.DEFAULT_PRECISION : BigInt(precision);
 
 		return new BigFloatStream(function* () {
 			const one = new BigFloat(1, resolvedPrecision);
@@ -426,7 +426,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	public static fibonacci(count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
 		if (normalizedCount === 0) return this.empty();
-		const resolvedPrecision = precision === undefined ? 20n : BigInt(precision);
+		const resolvedPrecision = precision === undefined ? BigFloat.DEFAULT_PRECISION : BigInt(precision);
 
 		return new BigFloatStream(function* () {
 			let a = new BigFloat(0, resolvedPrecision);
@@ -449,7 +449,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	public static factorial(count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
 		if (normalizedCount === 0) return this.empty();
-		const resolvedPrecision = precision === undefined ? 20n : BigInt(precision);
+		const resolvedPrecision = precision === undefined ? BigFloat.DEFAULT_PRECISION : BigInt(precision);
 
 		return new BigFloatStream(function* () {
 			let current = new BigFloat(1, resolvedPrecision);

@@ -44,13 +44,13 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 			if (precision === undefined || cloned._precision === precision) return cloned;
 			return cloned.changePrecision(precision);
 		}
-		return new BigFloat(value, precision ?? 20n);
+		return new BigFloat(value, precision ?? BigFloat.DEFAULT_PRECISION);
 	}
 
 	/** 精度を解決する */
 	protected static _resolvePrecision(values: BigFloatValue[], precision?: PrecisionValue): bigint {
 		if (precision !== undefined) return BigInt(precision);
-		let resolved = 20n;
+		let resolved = BigFloat.DEFAULT_PRECISION;
 		for (const value of values) {
 			if (value instanceof BigFloat && value._precision > resolved) resolved = value._precision;
 		}
@@ -247,21 +247,15 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	/** 単位行列を生成する */
 	public static identity(size: number, precision?: PrecisionValue): BigFloatMatrix {
 		const normalizedSize = this._normalizeSize(size, "Matrix size");
-		const resolvedPrecision = precision === undefined ? 20n : BigInt(precision);
-		return this._fromBigFloatGrid(
-			Array.from({ length: normalizedSize }, (_, row) =>
-				Array.from({ length: normalizedSize }, (_, column) => new BigFloat(row === column ? 1 : 0, resolvedPrecision)),
-			),
-		);
+		const resolvedPrecision = precision === undefined ? BigFloat.DEFAULT_PRECISION : BigInt(precision);
+		return this._fromBigFloatGrid(Array.from({ length: normalizedSize }, (_, row) => Array.from({ length: normalizedSize }, (_, column) => new BigFloat(row === column ? 1 : 0, resolvedPrecision))));
 	}
 
 	/** 対角行列を生成する */
 	public static diagonal(values: Iterable<BigFloatValue>, precision?: PrecisionValue): BigFloatMatrix {
 		const entries = Array.from(values);
 		const resolvedPrecision = this._resolvePrecision(entries, precision);
-		return this._fromBigFloatGrid(
-			entries.map((value, row) => entries.map((_, column) => (row === column ? this._toBigFloat(value, resolvedPrecision) : new BigFloat(0, resolvedPrecision)))),
-		);
+		return this._fromBigFloatGrid(entries.map((value, row) => entries.map((_, column) => (row === column ? this._toBigFloat(value, resolvedPrecision) : new BigFloat(0, resolvedPrecision)))));
 	}
 
 	/** 乱数行列を生成する */
@@ -277,9 +271,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		const span = maxValue.sub(minValue);
 		if (span.lt(0)) throw new RangeError("Random range requires max >= min");
 		if (span.isZero()) return this.fill(normalizedRows, normalizedColumns, minValue, resolvedPrecision);
-		return this._fromBigFloatGrid(
-			Array.from({ length: normalizedRows }, () => Array.from({ length: normalizedColumns }, () => minValue.add(span.mul(BigFloat.random(resolvedPrecision))))),
-		);
+		return this._fromBigFloatGrid(Array.from({ length: normalizedRows }, () => Array.from({ length: normalizedColumns }, () => minValue.add(span.mul(BigFloat.random(resolvedPrecision))))));
 	}
 
 	/** 行数 */
@@ -428,9 +420,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		for (const other of others) {
 			const matrix = BigFloatMatrix._coerceMatrix(other, result._flattenValues());
 			if (result.rowCount !== matrix.rowCount) throw new RangeError("Row counts must match");
-			result = BigFloatMatrix._fromBigFloatGrid(
-				result._values.map((row, rowIndex) => [...row.map((value) => value.clone()), ...matrix._values[rowIndex].map((value) => value.clone())]),
-			);
+			result = BigFloatMatrix._fromBigFloatGrid(result._values.map((row, rowIndex) => [...row.map((value) => value.clone()), ...matrix._values[rowIndex].map((value) => value.clone())]));
 		}
 		return result as this;
 	}
@@ -448,9 +438,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	/** 転置行列を返す */
 	public transpose(): this {
 		if (this.isEmpty()) return BigFloatMatrix.empty() as this;
-		return BigFloatMatrix._fromBigFloatGrid(
-			Array.from({ length: this.columnCount }, (_, column) => this._values.map((row) => row[column].clone())),
-		) as this;
+		return BigFloatMatrix._fromBigFloatGrid(Array.from({ length: this.columnCount }, (_, column) => this._values.map((row) => row[column].clone()))) as this;
 	}
 
 	/** 一致判定 */
@@ -757,9 +745,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	public columnSums(): BigFloatVector {
 		if (this.isEmpty()) return BigFloatVector.empty();
 		const resolvedPrecision = BigFloatMatrix._resolvePrecision(this._flattenValues());
-		return BigFloatVector.from(
-			Array.from({ length: this.columnCount }, (_, column) => this._values.reduce((acc, row) => acc.add(row[column]), new BigFloat(0, resolvedPrecision))),
-		);
+		return BigFloatVector.from(Array.from({ length: this.columnCount }, (_, column) => this._values.reduce((acc, row) => acc.add(row[column]), new BigFloat(0, resolvedPrecision))));
 	}
 
 	/** トレースを返す */
@@ -869,10 +855,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		const right = BigFloatMatrix._coerceMatrix(rhs, this._flattenValues());
 		if (right.rowCount !== this.rowCount) throw new RangeError("Right-hand side row count must match");
 		const size = this.rowCount;
-		const augmented = this._values.map((row, rowIndex) => [
-			...row.map((value) => value.clone()),
-			...right._values[rowIndex].map((value) => value.clone()),
-		]);
+		const augmented = this._values.map((row, rowIndex) => [...row.map((value) => value.clone()), ...right._values[rowIndex].map((value) => value.clone())]);
 		const { values, pivotColumns } = BigFloatMatrix._reducedRowEchelon(augmented, size);
 		if (pivotColumns.length !== size) throw new RangeError("Matrix is singular");
 		const epsilon = BigFloatMatrix._epsilon(BigFloatMatrix._resolvePrecision([...this._flattenValues(), ...right._flattenValues()]));

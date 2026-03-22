@@ -10,6 +10,7 @@
 - [`BigFloatStream`](#bigfloatstream)
 - [`BigFloatVector`](#bigfloatvector)
 - [`BigFloatMatrix`](#bigfloatmatrix)
+- [`BigFloatComplex`](#bigfloatcomplex)
 - [`BigFloatError`](#bigfloaterror)
 - [`CacheNotInitializedError`](#cachenotinitializederror)
 - [`DivisionByZeroError`](#divisionbyzeroerror)
@@ -4864,6 +4865,597 @@ matrixPow(exponent: number): BigFloatMatrix
 ```
 
 行列累乗を返す
+
+<a id="bigfloatcomplex"></a>
+
+## `BigFloatComplex`
+
+BigFloat を用いた複素数クラス
+
+```ts
+class BigFloatComplex
+```
+
+### Constructor
+
+#### `constructor`
+
+```ts
+constructor(value?: string | number | bigint | BigFloat | BigFloatComplex | [string | number | bigint | BigFloat, string | number | bigint | BigFloat] | { re?: string | number | bigint | BigFloat; im?: string | number | bigint | BigFloat; real?: string | number | bigint | BigFloat; imag?: string | number | bigint | BigFloat }, precision?: number | bigint): BigFloatComplex
+```
+
+BigFloat を用いた複素数クラス
+
+**Parameters**
+- `real`: 実部または複素数表現
+- `imag`: 虚部
+- `precision`: 精度
+
+#### `constructor`
+
+```ts
+constructor(real: string | number | bigint | BigFloat | BigFloatComplex | [string | number | bigint | BigFloat, string | number | bigint | BigFloat] | { re?: string | number | bigint | BigFloat; im?: string | number | bigint | BigFloat; real?: string | number | bigint | BigFloat; imag?: string | number | bigint | BigFloat }, imag?: string | number | bigint | BigFloat, precision?: number | bigint): BigFloatComplex
+```
+
+BigFloat を用いた複素数クラス
+
+#### `constructor`
+
+```ts
+constructor(real?: string | number | bigint | BigFloat | BigFloatComplex | [string | number | bigint | BigFloat, string | number | bigint | BigFloat] | { re?: string | number | bigint | BigFloat; im?: string | number | bigint | BigFloat; real?: string | number | bigint | BigFloat; imag?: string | number | bigint | BigFloat }, imagOrPrecision?: string | number | bigint | BigFloat, precision?: number | bigint): BigFloatComplex
+```
+
+BigFloat を用いた複素数クラス
+
+### Static Methods
+
+#### `zero`
+
+```ts
+zero(precision?: number | bigint): BigFloatComplex
+```
+
+複素数定数 0
+
+#### `one`
+
+```ts
+one(precision?: number | bigint): BigFloatComplex
+```
+
+複素数定数 1
+
+#### `i`
+
+```ts
+i(precision?: number | bigint): BigFloatComplex
+```
+
+複素数定数 i
+
+#### `e`
+
+```ts
+e(precision?: number | bigint): BigFloatComplex
+```
+
+e を返す
+
+#### `pi`
+
+```ts
+pi(precision?: number | bigint): BigFloatComplex
+```
+
+pi を返す
+
+#### `tau`
+
+```ts
+tau(precision?: number | bigint): BigFloatComplex
+```
+
+tau を返す
+
+#### `from`
+
+```ts
+from(value: string | number | bigint | BigFloat | BigFloatComplex | [string | number | bigint | BigFloat, string | number | bigint | BigFloat] | { re?: string | number | bigint | BigFloat; im?: string | number | bigint | BigFloat; real?: string | number | bigint | BigFloat; imag?: string | number | bigint | BigFloat }, precision?: number | bigint): BigFloatComplex
+```
+
+値から生成する
+
+#### `from`
+
+```ts
+from(value: string | number | bigint | BigFloat | BigFloatComplex | [string | number | bigint | BigFloat, string | number | bigint | BigFloat] | { re?: string | number | bigint | BigFloat; im?: string | number | bigint | BigFloat; real?: string | number | bigint | BigFloat; imag?: string | number | bigint | BigFloat }, imag?: string | number | bigint | BigFloat, precision?: number | bigint): BigFloatComplex
+```
+
+値から生成する
+
+#### `from`
+
+```ts
+from(value: string | number | bigint | BigFloat | BigFloatComplex | [string | number | bigint | BigFloat, string | number | bigint | BigFloat] | { re?: string | number | bigint | BigFloat; im?: string | number | bigint | BigFloat; real?: string | number | bigint | BigFloat; imag?: string | number | bigint | BigFloat }, imag?: string | number | bigint | BigFloat, precision?: number | bigint): BigFloatComplex
+```
+
+値から生成する
+
+#### `of`
+
+```ts
+of(real: string | number | bigint | BigFloat, imag?: string | number | bigint | BigFloat, precision?: number | bigint): BigFloatComplex
+```
+
+値の並びから生成する
+
+#### `fromPolar`
+
+```ts
+fromPolar(magnitude: string | number | bigint | BigFloat, angle: string | number | bigint | BigFloat, precision?: number | bigint): BigFloatComplex
+```
+
+極形式から生成する
+
+#### `sum`
+
+```ts
+sum(values: Iterable<BigFloatComplexValue>, precision?: number | bigint): BigFloatComplex
+```
+
+複素数の総和を返す
+
+#### `product`
+
+```ts
+product(values: Iterable<BigFloatComplexValue>, precision?: number | bigint): BigFloatComplex
+```
+
+複素数の総積を返す
+
+#### `average`
+
+```ts
+average(values: Iterable<BigFloatComplexValue>, precision?: number | bigint): BigFloatComplex
+```
+
+複素数の平均を返す
+
+### Instance Properties
+
+#### `real`
+
+```ts
+real: BigFloat
+```
+
+実部
+
+#### `imag`
+
+```ts
+imag: BigFloat
+```
+
+虚部
+
+#### `precision`
+
+```ts
+precision: bigint
+```
+
+精度
+
+### Instance Methods
+
+#### `clone`
+
+```ts
+clone(): BigFloatComplex
+```
+
+複製する
+
+#### `changePrecision`
+
+```ts
+changePrecision(precision: number | bigint): BigFloatComplex
+```
+
+精度を変更する
+
+#### `toArray`
+
+```ts
+toArray(): [BigFloat, BigFloat]
+```
+
+配列へ変換する
+
+#### `toVector`
+
+```ts
+toVector(): BigFloatVector
+```
+
+ベクトルへ変換する
+
+#### `toPolar`
+
+```ts
+toPolar(): { magnitude: BigFloat; angle: BigFloat }
+```
+
+極形式へ変換する
+
+#### `toJSON`
+
+```ts
+toJSON(): { re: string; im: string }
+```
+
+JSON へ変換する
+
+#### `toString`
+
+```ts
+toString(base?: number, precision?: number | bigint): string
+```
+
+文字列化する
+
+#### `[Symbol.iterator]`
+
+```ts
+[Symbol.iterator](): Iterator<BigFloat, void, undefined>
+```
+
+イテレータ
+
+#### `equals`
+
+```ts
+equals(other: string | number | bigint | BigFloat | BigFloatComplex | [string | number | bigint | BigFloat, string | number | bigint | BigFloat] | { re?: string | number | bigint | BigFloat; im?: string | number | bigint | BigFloat; real?: string | number | bigint | BigFloat; imag?: string | number | bigint | BigFloat }): boolean
+```
+
+一致判定
+
+#### `ne`
+
+```ts
+ne(other: string | number | bigint | BigFloat | BigFloatComplex | [string | number | bigint | BigFloat, string | number | bigint | BigFloat] | { re?: string | number | bigint | BigFloat; im?: string | number | bigint | BigFloat; real?: string | number | bigint | BigFloat; imag?: string | number | bigint | BigFloat }): boolean
+```
+
+別値判定
+
+#### `isZero`
+
+```ts
+isZero(): boolean
+```
+
+ゼロ判定
+
+#### `isReal`
+
+```ts
+isReal(): boolean
+```
+
+純実数判定
+
+#### `isImaginary`
+
+```ts
+isImaginary(): boolean
+```
+
+純虚数判定
+
+#### `conjugate`
+
+```ts
+conjugate(): BigFloatComplex
+```
+
+共役複素数を返す
+
+#### `neg`
+
+```ts
+neg(): BigFloatComplex
+```
+
+符号反転する
+
+#### `absSquared`
+
+```ts
+absSquared(): BigFloat
+```
+
+絶対値の二乗を返す
+
+#### `abs`
+
+```ts
+abs(): BigFloat
+```
+
+絶対値を返す
+
+#### `arg`
+
+```ts
+arg(): BigFloat
+```
+
+偏角を返す
+
+#### `sign`
+
+```ts
+sign(): BigFloatComplex
+```
+
+符号複素数を返す
+
+#### `normalize`
+
+```ts
+normalize(): BigFloatComplex
+```
+
+正規化する
+
+#### `distanceTo`
+
+```ts
+distanceTo(other: string | number | bigint | BigFloat | BigFloatComplex | [string | number | bigint | BigFloat, string | number | bigint | BigFloat] | { re?: string | number | bigint | BigFloat; im?: string | number | bigint | BigFloat; real?: string | number | bigint | BigFloat; imag?: string | number | bigint | BigFloat }): BigFloat
+```
+
+距離を返す
+
+#### `relativeDiff`
+
+```ts
+relativeDiff(other: string | number | bigint | BigFloat | BigFloatComplex | [string | number | bigint | BigFloat, string | number | bigint | BigFloat] | { re?: string | number | bigint | BigFloat; im?: string | number | bigint | BigFloat; real?: string | number | bigint | BigFloat; imag?: string | number | bigint | BigFloat }): BigFloat
+```
+
+相対差を返す
+
+#### `absoluteDiff`
+
+```ts
+absoluteDiff(other: string | number | bigint | BigFloat | BigFloatComplex | [string | number | bigint | BigFloat, string | number | bigint | BigFloat] | { re?: string | number | bigint | BigFloat; im?: string | number | bigint | BigFloat; real?: string | number | bigint | BigFloat; imag?: string | number | bigint | BigFloat }): BigFloat
+```
+
+絶対差を返す
+
+#### `percentDiff`
+
+```ts
+percentDiff(other: string | number | bigint | BigFloat | BigFloatComplex | [string | number | bigint | BigFloat, string | number | bigint | BigFloat] | { re?: string | number | bigint | BigFloat; im?: string | number | bigint | BigFloat; real?: string | number | bigint | BigFloat; imag?: string | number | bigint | BigFloat }): BigFloat
+```
+
+百分率差分を返す
+
+#### `add`
+
+```ts
+add(other: string | number | bigint | BigFloat | BigFloatComplex | [string | number | bigint | BigFloat, string | number | bigint | BigFloat] | { re?: string | number | bigint | BigFloat; im?: string | number | bigint | BigFloat; real?: string | number | bigint | BigFloat; imag?: string | number | bigint | BigFloat }): BigFloatComplex
+```
+
+加算する
+
+#### `sub`
+
+```ts
+sub(other: string | number | bigint | BigFloat | BigFloatComplex | [string | number | bigint | BigFloat, string | number | bigint | BigFloat] | { re?: string | number | bigint | BigFloat; im?: string | number | bigint | BigFloat; real?: string | number | bigint | BigFloat; imag?: string | number | bigint | BigFloat }): BigFloatComplex
+```
+
+減算する
+
+#### `mul`
+
+```ts
+mul(other: string | number | bigint | BigFloat | BigFloatComplex | [string | number | bigint | BigFloat, string | number | bigint | BigFloat] | { re?: string | number | bigint | BigFloat; im?: string | number | bigint | BigFloat; real?: string | number | bigint | BigFloat; imag?: string | number | bigint | BigFloat }): BigFloatComplex
+```
+
+乗算する
+
+#### `div`
+
+```ts
+div(other: string | number | bigint | BigFloat | BigFloatComplex | [string | number | bigint | BigFloat, string | number | bigint | BigFloat] | { re?: string | number | bigint | BigFloat; im?: string | number | bigint | BigFloat; real?: string | number | bigint | BigFloat; imag?: string | number | bigint | BigFloat }): BigFloatComplex
+```
+
+除算する
+
+#### `reciprocal`
+
+```ts
+reciprocal(): BigFloatComplex
+```
+
+逆数を返す
+
+#### `rotate`
+
+```ts
+rotate(angle: string | number | bigint | BigFloat): BigFloatComplex
+```
+
+回転する
+
+#### `exp`
+
+```ts
+exp(): BigFloatComplex
+```
+
+指数関数を計算する
+
+#### `expm1`
+
+```ts
+expm1(): BigFloatComplex
+```
+
+exp(z)-1 を計算する
+
+#### `ln`
+
+```ts
+ln(): BigFloatComplex
+```
+
+自然対数を計算する
+
+#### `log`
+
+```ts
+log(base: string | number | bigint | BigFloat | BigFloatComplex | [string | number | bigint | BigFloat, string | number | bigint | BigFloat] | { re?: string | number | bigint | BigFloat; im?: string | number | bigint | BigFloat; real?: string | number | bigint | BigFloat; imag?: string | number | bigint | BigFloat }): BigFloatComplex
+```
+
+対数を計算する
+
+#### `pow`
+
+```ts
+pow(exponent: string | number | bigint | BigFloat | BigFloatComplex | [string | number | bigint | BigFloat, string | number | bigint | BigFloat] | { re?: string | number | bigint | BigFloat; im?: string | number | bigint | BigFloat; real?: string | number | bigint | BigFloat; imag?: string | number | bigint | BigFloat }): BigFloatComplex
+```
+
+冪乗を計算する
+
+#### `sqrt`
+
+```ts
+sqrt(): BigFloatComplex
+```
+
+平方根を計算する
+
+#### `cbrt`
+
+```ts
+cbrt(): BigFloatComplex
+```
+
+立方根を計算する
+
+#### `nthRoot`
+
+```ts
+nthRoot(n: number | bigint): BigFloatComplex
+```
+
+主値の n 乗根を計算する
+
+#### `nthRoots`
+
+```ts
+nthRoots(n: number | bigint): BigFloatComplex[]
+```
+
+n 乗根を全て返す
+
+#### `sin`
+
+```ts
+sin(): BigFloatComplex
+```
+
+正弦を計算する
+
+#### `cos`
+
+```ts
+cos(): BigFloatComplex
+```
+
+余弦を計算する
+
+#### `tan`
+
+```ts
+tan(): BigFloatComplex
+```
+
+正接を計算する
+
+#### `sinh`
+
+```ts
+sinh(): BigFloatComplex
+```
+
+双曲線正弦を計算する
+
+#### `cosh`
+
+```ts
+cosh(): BigFloatComplex
+```
+
+双曲線余弦を計算する
+
+#### `tanh`
+
+```ts
+tanh(): BigFloatComplex
+```
+
+双曲線正接を計算する
+
+#### `asin`
+
+```ts
+asin(): BigFloatComplex
+```
+
+逆正弦を計算する
+
+#### `acos`
+
+```ts
+acos(): BigFloatComplex
+```
+
+逆余弦を計算する
+
+#### `atan`
+
+```ts
+atan(): BigFloatComplex
+```
+
+逆正接を計算する
+
+#### `asinh`
+
+```ts
+asinh(): BigFloatComplex
+```
+
+逆双曲線正弦を計算する
+
+#### `acosh`
+
+```ts
+acosh(): BigFloatComplex
+```
+
+逆双曲線余弦を計算する
+
+#### `atanh`
+
+```ts
+atanh(): BigFloatComplex
+```
+
+逆双曲線正接を計算する
 
 <a id="bigfloaterror"></a>
 
