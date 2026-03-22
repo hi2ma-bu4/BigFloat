@@ -1965,22 +1965,19 @@ export declare class BigFloat {
 	 * @param other - 比較対象
 	 * @returns 相対差
 	 */
-	relativeDiff(other: BigFloatValue): BigFloat;
-	relativeDiff(other: BigFloatComplex): BigFloat;
+	relativeDiff(other: BigFloatValue | BigFloatComplex): BigFloat;
 	/**
 	 * 絶対差を計算する
 	 * @param other - 比較対象
 	 * @returns 絶対差
 	 */
-	absoluteDiff(other: BigFloatValue): BigFloat;
-	absoluteDiff(other: BigFloatComplex): BigFloat;
+	absoluteDiff(other: BigFloatValue | BigFloatComplex): BigFloat;
 	/**
 	 * 差分の非一致度を計算する (百分率)
 	 * @param other - 比較対象
 	 * @returns 非一致度 (%)
 	 */
-	percentDiff(other: BigFloatValue): BigFloat;
-	percentDiff(other: BigFloatComplex): BigFloat;
+	percentDiff(other: BigFloatValue | BigFloatComplex): BigFloat;
 	/**
 	 * 文字列に変換する
 	 * @param base - 基数 (2-36)

@@ -4,6 +4,8 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 
+import { analyzeThrows } from "./analyze-throws.mjs";
+
 import pkg from "../package.json" with { type: "json" };
 /* -------------------------------------------------------------------------- */
 /* 設定値 */
@@ -141,6 +143,23 @@ function buildTypes() {
 			buildJs(),
 			buildJsMin(),
 		]);
+
+		{
+			console.log("🔍 Throws回収判定中...");
+			const result = await analyzeThrows({
+				rootDir: ROOT_DIR,
+				allowedDynamicDirs: [],
+			});
+
+			if (result.length > 0) {
+				for (const r of result) {
+					console.warn(`┃ ${r.file}:${r.line} - ${r.message}`);
+				}
+				console.error(`┗🛑 未処理Throwsが${result.length}件検出されました`);
+			} else {
+				console.log("┗✅ Throws回収判定完了！");
+			}
+		}
 
 		buildTypes();
 

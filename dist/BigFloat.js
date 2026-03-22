@@ -309,7 +309,7 @@ var BigFloat = class _BigFloat {
   _toComplexLike(other) {
     const precision = this._precision > other.precision ? this._precision : other.precision;
     const ComplexCtor = other.constructor;
-    return new ComplexCtor(this.clone(), 0, precision);
+    return new ComplexCtor(this, 0, precision);
   }
   /**
    * 特殊値を考慮してnumberへ変換する
@@ -1212,6 +1212,11 @@ var BigFloat = class _BigFloat {
   isNegative() {
     return this._specialState === 2 /* NEGATIVE_INFINITY */ || this._isFiniteState() && this.mantissa < 0n;
   }
+  /**
+   * 相対差を計算する
+   * @param other - 比較対象
+   * @returns 相対差
+   */
   relativeDiff(other) {
     const complex = this._complexOperand(other, "relativeDiff");
     if (complex) return this._toComplexLike(complex).relativeDiff(complex);
@@ -1224,6 +1229,11 @@ var BigFloat = class _BigFloat {
     if (denominator.isZero()) return new construct(0n, this._precision);
     return diff.div(denominator);
   }
+  /**
+   * 絶対差を計算する
+   * @param other - 比較対象
+   * @returns 絶対差
+   */
   absoluteDiff(other) {
     const complex = this._complexOperand(other, "absoluteDiff");
     if (complex) return this._toComplexLike(complex).absoluteDiff(complex);
@@ -1239,6 +1249,11 @@ var BigFloat = class _BigFloat {
     res._applyPrecision();
     return this._makeResultFromInstance(res);
   }
+  /**
+   * 差分の非一致度を計算する (百分率)
+   * @param other - 比較対象
+   * @returns 非一致度 (%)
+   */
   percentDiff(other) {
     const complex = this._complexOperand(other, "percentDiff");
     if (complex) return this._toComplexLike(complex).percentDiff(complex);
@@ -1567,13 +1582,13 @@ var BigFloat = class _BigFloat {
     return r < 0n ? r + m : r;
   }
   mod(other) {
-    const complex = this.constructor._isComplexValue(other) ? other : null;
+    const construct = this.constructor;
+    const complex = construct._isComplexValue(other) ? other : null;
     if (complex) {
       this._assertComplexNumbersEnabled("mod");
       throw new TypeError("BigFloat.mod does not support BigFloatComplex operands");
     }
     const value = other;
-    const construct = this.constructor;
     const bfB = value instanceof _BigFloat ? value : new construct(value, this._precision);
     const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
     if (!this._isFiniteState() || !bfB._isFiniteState()) {
