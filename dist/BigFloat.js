@@ -150,11 +150,17 @@ var BigFloat = class _BigFloat {
   _exp2 = 0n;
   /** 5の指数 */
   _exp5 = 0n;
-  /** 2の指数を取得する */
+  /**
+   * 2の指数を取得する
+   * @returns 2の指数
+   */
   exponent2() {
     return this._exp2;
   }
-  /** 5の指数を取得する */
+  /**
+   * 5の指数を取得する
+   * @returns 5の指数
+   */
   exponent5() {
     return this._exp5;
   }
@@ -286,7 +292,11 @@ var BigFloat = class _BigFloat {
       }
     }
   }
-  /** BigFloatComplex らしい値か判定する */
+  /**
+   * BigFloatComplex らしい値か判定する
+   * @param value - 判定対象
+   * @returns BigFloatComplex の場合は true
+   */
   static _isComplexValue(value) {
     if (typeof value !== "object" || value === null) return false;
     const candidate = value;
@@ -294,6 +304,7 @@ var BigFloat = class _BigFloat {
   }
   /**
    * 複素数モードが無効な場合は例外にする
+   * @param operation - 操作名
    * @throws {TypeError} 複素数モードが無効な場合
    */
   _assertComplexNumbersEnabled(operation) {
@@ -304,6 +315,9 @@ var BigFloat = class _BigFloat {
   }
   /**
    * 複素数オペランドを解決する
+   * @param other - 比較対象
+   * @param operation - 操作名
+   * @returns BigFloatComplex の場合はそのインスタンス、それ以外は null
    * @throws {TypeError} 複素数モードが無効な場合
    */
   _complexOperand(other, operation) {
@@ -311,7 +325,11 @@ var BigFloat = class _BigFloat {
     this._assertComplexNumbersEnabled(operation);
     return other;
   }
-  /** 自身を複素数へ昇格する */
+  /**
+   * 自身を複素数へ昇格する
+   * @param other - 昇格の基準となる複素数
+   * @returns 昇格後の複素数
+   */
   _toComplexLike(other) {
     const precision = this._precision > other.precision ? this._precision : other.precision;
     const ComplexCtor = other.constructor;

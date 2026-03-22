@@ -131,12 +131,18 @@ export class BigFloat {
 	/** 5の指数 */
 	public _exp5: bigint = 0n;
 
-	/** 2の指数を取得する */
+	/**
+	 * 2の指数を取得する
+	 * @returns 2の指数
+	 */
 	public exponent2(): bigint {
 		return this._exp2;
 	}
 
-	/** 5の指数を取得する */
+	/**
+	 * 5の指数を取得する
+	 * @returns 5の指数
+	 */
 	public exponent5(): bigint {
 		return this._exp5;
 	}
@@ -279,7 +285,11 @@ export class BigFloat {
 		}
 	}
 
-	/** BigFloatComplex らしい値か判定する */
+	/**
+	 * BigFloatComplex らしい値か判定する
+	 * @param value - 判定対象
+	 * @returns BigFloatComplex の場合は true
+	 */
 	protected static _isComplexValue(value: unknown): value is BigFloatComplex {
 		if (typeof value !== "object" || value === null) return false;
 		const candidate = value as Partial<BigFloatComplex>;
@@ -288,6 +298,7 @@ export class BigFloat {
 
 	/**
 	 * 複素数モードが無効な場合は例外にする
+	 * @param operation - 操作名
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 */
 	protected _assertComplexNumbersEnabled(operation: string): void {
@@ -299,6 +310,9 @@ export class BigFloat {
 
 	/**
 	 * 複素数オペランドを解決する
+	 * @param other - 比較対象
+	 * @param operation - 操作名
+	 * @returns BigFloatComplex の場合はそのインスタンス、それ以外は null
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 */
 	protected _complexOperand(other: unknown, operation: string): BigFloatComplex | null {
@@ -307,7 +321,11 @@ export class BigFloat {
 		return other;
 	}
 
-	/** 自身を複素数へ昇格する */
+	/**
+	 * 自身を複素数へ昇格する
+	 * @param other - 昇格の基準となる複素数
+	 * @returns 昇格後の複素数
+	 */
 	protected _toComplexLike(other: BigFloatComplex): BigFloatComplex {
 		const precision = this._precision > other.precision ? this._precision : other.precision;
 		const ComplexCtor = other.constructor as new (value?: unknown, imag?: unknown, precision?: PrecisionValue) => BigFloatComplex;
@@ -1543,7 +1561,6 @@ export class BigFloat {
 	 * 指数形式の文字列を取得する
 	 * @param digits - 有効桁数
 	 * @returns 指数形式の文字列
-	 * @throws {RangeError} digitsが不正な場合
 	 */
 	public toExponential(digits = Number(this._precision)): string {
 		const s = this.toString(10, this._precision).replace("-", "");
@@ -1579,8 +1596,15 @@ export class BigFloat {
 	 * 加算する (+)
 	 * @param other - 加算する値
 	 * @returns 加算結果
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値が入力された場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 */
 	public add(other: BigFloatValue): BigFloat;
+	/**
+	 * 複素数を加算する (+)
+	 * @param other - 加算する複素数
+	 * @returns 加算結果
+	 */
 	public add(other: BigFloatComplex): BigFloatComplex;
 	public add(other: BigFloatValue | BigFloatComplex): BigFloat | BigFloatComplex {
 		const complex = this._complexOperand(other, "add");
@@ -1610,8 +1634,15 @@ export class BigFloat {
 	 * 減算する (-)
 	 * @param other - 減算する値
 	 * @returns 減算結果
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値が入力された場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 */
 	public sub(other: BigFloatValue): BigFloat;
+	/**
+	 * 複素数を減算する (-)
+	 * @param other - 減算する複素数
+	 * @returns 減算結果
+	 */
 	public sub(other: BigFloatComplex): BigFloatComplex;
 	public sub(other: BigFloatValue | BigFloatComplex): BigFloat | BigFloatComplex {
 		const complex = this._complexOperand(other, "sub");
@@ -1642,8 +1673,14 @@ export class BigFloat {
 	 * 乗算する (*)
 	 * @param other - 乗算する値
 	 * @returns 乗算結果
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値が入力された場合
 	 */
 	public mul(other: BigFloatValue): BigFloat;
+	/**
+	 * 複素数を乗算する (*)
+	 * @param other - 乗算する複素数
+	 * @returns 乗算結果
+	 */
 	public mul(other: BigFloatComplex): BigFloatComplex;
 	public mul(other: BigFloatValue | BigFloatComplex): BigFloat | BigFloatComplex {
 		const complex = this._complexOperand(other, "mul");
@@ -1684,8 +1721,15 @@ export class BigFloat {
 	 * @param other - 除算する値
 	 * @returns 除算結果
 	 * @throws {DivisionByZeroError} ゼロ除算の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値が入力された場合
 	 */
 	public div(other: BigFloatValue): BigFloat;
+	/**
+	 * 複素数で除算する (/)
+	 * @param other - 除算する複素数
+	 * @returns 除算結果
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 */
 	public div(other: BigFloatComplex): BigFloatComplex;
 	public div(other: BigFloatValue | BigFloatComplex): BigFloat | BigFloatComplex {
 		const complex = this._complexOperand(other, "div");
@@ -1824,9 +1868,15 @@ export class BigFloat {
 	 * 剰余を計算する (%)
 	 * @param other - 法
 	 * @returns 剰余
-	 * @throws {TypeError} BigFloatComplexが渡された場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値が入力された場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 */
 	public mod(other: BigFloatValue): BigFloat;
+	/**
+	 * 複素数の剰余（未サポート）
+	 * @param other - 法
+	 * @throws {TypeError} 常にスローされる
+	 */
 	public mod(other: BigFloatComplex): never;
 	public mod(other: BigFloatValue | BigFloatComplex): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -2052,8 +2102,16 @@ export class BigFloat {
 	 * @param exponent - 指数
 	 * @returns 冪乗の結果
 	 * @throws {RangeError} 負の数の非整数冪を計算しようとした場合
+	 * @throws {DivisionByZeroError} ゼロの負の数乗を計算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値が入力された場合
 	 */
 	public pow(exponent: BigFloatValue): BigFloat;
+	/**
+	 * 複素数の冪乗を計算する
+	 * @param exponent - 指数
+	 * @returns 冪乗の結果
+	 * @throws {RangeError} ゼロ複素数を非正の実数以外の指数で冪乗しようとした場合
+	 */
 	public pow(exponent: BigFloatComplex): BigFloatComplex;
 	public pow(exponent: BigFloatValue | BigFloatComplex): BigFloat | BigFloatComplex {
 		const complex = this._complexOperand(exponent, "pow");
@@ -3580,6 +3638,12 @@ export class BigFloat {
 		const terms = precision / digitsPerTerm + 1n;
 		const C = 426880n * this._sqrt(10005n * scale, precision);
 		let sum = 0n;
+		/**
+		 * 内部用の累乗計算
+		 * @param base - 底
+		 * @param exp - 指数
+		 * @returns 累乗の結果
+		 */
 		function bigPower(base: bigint, exp: bigint) {
 			let res = 1n;
 			for (let i = 0n; i < exp; i++) res *= base;

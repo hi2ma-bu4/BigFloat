@@ -1615,9 +1615,15 @@ export declare class BigFloat {
 	_exp2: bigint;
 	/** 5の指数 */
 	_exp5: bigint;
-	/** 2の指数を取得する */
+	/**
+	 * 2の指数を取得する
+	 * @returns 2の指数
+	 */
 	exponent2(): bigint;
-	/** 5の指数を取得する */
+	/**
+	 * 5の指数を取得する
+	 * @returns 5の指数
+	 */
 	exponent5(): bigint;
 	/** 精度 (小数点以下の最大桁数) */
 	_precision: bigint;
@@ -1683,19 +1689,31 @@ export declare class BigFloat {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
 	 */
 	protected _ensureSpecialValuesEnabled(...values: BigFloat[]): void;
-	/** BigFloatComplex らしい値か判定する */
+	/**
+	 * BigFloatComplex らしい値か判定する
+	 * @param value - 判定対象
+	 * @returns BigFloatComplex の場合は true
+	 */
 	protected static _isComplexValue(value: unknown): value is BigFloatComplex;
 	/**
 	 * 複素数モードが無効な場合は例外にする
+	 * @param operation - 操作名
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 */
 	protected _assertComplexNumbersEnabled(operation: string): void;
 	/**
 	 * 複素数オペランドを解決する
+	 * @param other - 比較対象
+	 * @param operation - 操作名
+	 * @returns BigFloatComplex の場合はそのインスタンス、それ以外は null
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 */
 	protected _complexOperand(other: unknown, operation: string): BigFloatComplex | null;
-	/** 自身を複素数へ昇格する */
+	/**
+	 * 自身を複素数へ昇格する
+	 * @param other - 昇格の基準となる複素数
+	 * @returns 昇格後の複素数
+	 */
 	protected _toComplexLike(other: BigFloatComplex): BigFloatComplex;
 	/**
 	 * 特殊値を考慮してnumberへ変換する
