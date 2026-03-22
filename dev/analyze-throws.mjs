@@ -3,22 +3,17 @@ import { Node, Project, SyntaxKind } from "ts-morph";
 
 /**
  * @typedef {{
- *   rootDir: string;
- *   allowedDynamicDirs: string[];
+ * rootDir: string;
+ * allowedDynamicDirs: string[];
  * }} AnalyzeConfig
  *
  * @typedef {{
- *   file: string;
- *   line: number;
- *   message: string;
+ * file: string;
+ * line: number;
+ * message: string;
  * }} ThrowWarning
  */
 
-/**
- * throw文のハンドリング状況を解析して警告を返す
- * @param {AnalyzeConfig} config
- * @returns {ThrowWarning[]}
- */
 export function analyzeThrows(config) {
 	const result = [];
 	const project = new Project({
@@ -28,84 +23,80 @@ export function analyzeThrows(config) {
 
 	const sourceFiles = project.getSourceFiles().filter((sf) => !sf.getFilePath().includes("/test/"));
 
-	// [チェック1] 未補足の `throw` 文を検出
+	// 1. プロジェクト内の全関数・メソッド定義と @throws タグを収集
+	const allDefinedFunctions = [];
 	for (const sourceFile of sourceFiles) {
-		const throwStmts = sourceFile.getDescendantsOfKind(SyntaxKind.ThrowStatement);
+		const funcs = [...sourceFile.getFunctions(), ...sourceFile.getClasses().flatMap((c) => [...c.getMethods(), ...c.getConstructors()])];
 
-		for (const throwStmt of throwStmts) {
-			if (isThrowStatementHandled(throwStmt)) continue;
+		for (const func of funcs) {
+			const tags = getThrowsTags(func);
+			if (tags.length > 0) {
+				const parsedTags = parseThrowsTags(tags);
+				allDefinedFunctions.push({ node: func, tags: parsedTags });
 
-			// 匿名関数の場合は、さらに外側の関数を探す
-			const func = findDocumentableEnclosingFunction(throwStmt);
-
-			// default export + allowedDir + @throws があれば許容
-			if (isAllowedThrowContext(func, sourceFile.getFilePath(), config.allowedDynamicDirs)) continue;
-
-			// その他：@throwsがあれば許容、それ以外は警告
-			if (hasThrowsJSDoc(func)) {
-				// コメントチェック
-				const throwsTags = getThrowsTags(func);
-				for (const tag of throwsTags) {
-					if (
-						!tag
-							.getText()
-							.replace(/\{[^}]*\}/, "")
-							.trim()
-					) {
+				// [チェック1] @throws の説明コメント必須チェック
+				for (const tagInfo of parsedTags) {
+					if (!tagInfo.description) {
 						result.push({
-							file: path.relative(config.rootDir, sourceFile.getFilePath()) || sourceFile.getFilePath(),
-							line: tag.getStartLineNumber(),
-							message: "@throws に説明コメントがありません",
+							file: getRelPath(config.rootDir, sourceFile),
+							line: tagInfo.line,
+							message: `@throws {${tagInfo.type}} に説明がありません`,
 						});
 					}
 				}
-				continue;
 			}
+		}
+	}
+
+	// 2. [チェック2] 明示的な throw 文のチェック
+	for (const sourceFile of sourceFiles) {
+		const throwStmts = sourceFile.getDescendantsOfKind(SyntaxKind.ThrowStatement);
+		for (const throwStmt of throwStmts) {
+			if (isThrowStatementHandled(throwStmt)) continue;
+			const func = findDocumentableEnclosingFunction(throwStmt);
+			if (isAllowedThrowContext(func, sourceFile.getFilePath(), config.allowedDynamicDirs)) continue;
+			if (hasThrowsJSDoc(func)) continue;
 
 			result.push({
-				file: path.relative(config.rootDir, sourceFile.getFilePath()) || sourceFile.getFilePath(),
+				file: getRelPath(config.rootDir, sourceFile),
 				line: throwStmt.getStartLineNumber(),
-				message: "未補足のthrowがあります（@throwsなし）",
+				message: "未補足のthrowです。@throwsを付与してください",
 			});
 		}
 	}
 
-	// [チェック2] `@throws` を持つ関数の呼び出し元がハンドリングしているか検出
-	const throwingFunctions = [];
-	for (const sourceFile of sourceFiles) {
-		const functions = sourceFile.getFunctions();
-		const classes = sourceFile.getClasses();
-		const methods = classes.flatMap((c) => c.getMethods());
-		const constructors = classes.flatMap((c) => c.getConstructors());
-		const allFuncs = [...functions, ...methods, ...constructors];
-
-		for (const func of allFuncs) {
-			if (hasThrowsJSDoc(func)) {
-				throwingFunctions.push(func);
-			}
-		}
-	}
-
-	for (const throwingFunc of throwingFunctions) {
-		const nameNode = getFunctionNameNode(throwingFunc);
+	// 3. [チェック3] @throws を持つ関数の呼び出し元のチェック（伝播の強制）
+	for (const { node: targetFunc, tags: targetTags } of allDefinedFunctions) {
+		const nameNode = getFunctionNameNode(targetFunc);
 		if (!nameNode) continue;
 
 		const references = nameNode.findReferences();
 		for (const ref of references) {
 			for (const refEntry of ref.getReferences()) {
 				const refNode = refEntry.getNode();
-				const callExpr = refNode.getParentIfKind(SyntaxKind.CallExpression);
+				const callExpr = getCallExpressionFromRef(refNode);
 				if (!callExpr) continue;
 
-				const handled = isCallHandledByTryCatch(callExpr) || isCallHandledByPromise(callExpr) || isCallHandledByDelegation(callExpr, throwingFunc);
+				// ハンドリング（try-catch / .catch）されていればOK
+				if (isCallHandledByTryCatch(callExpr) || isCallHandledByPromise(callExpr)) continue;
 
-				if (!handled) {
-					const funcName = Node.isNamed(throwingFunc) ? throwingFunc.getName() : "(constructor)";
-					result.push({
-						file: path.relative(config.rootDir, refNode.getSourceFile().getFilePath()) || refNode.getSourceFile().getFilePath(),
-						line: refNode.getStartLineNumber(),
-						message: `@throws が付与された関数'${funcName}'がここで呼び出されていますが、エラーがハンドリングされていません。`,
-					});
+				const enclosingFunc = findDocumentableEnclosingFunction(callExpr);
+				if (!enclosingFunc) continue;
+
+				const callerTags = parseThrowsTags(getThrowsTags(enclosingFunc));
+
+				// 呼び出し先の全ての @throws が呼び出し元にも定義されているか確認
+				for (const targetTag of targetTags) {
+					const isDelegated = callerTags.some((t) => t.type === targetTag.type);
+					if (!isDelegated) {
+						// 【修正箇所】型だけでなく、説明文(description)も含めて返却
+						const errorDetail = targetTag.description ? `{${targetTag.type}} ${targetTag.description}` : `{${targetTag.type}}`;
+						result.push({
+							file: getRelPath(config.rootDir, refNode.getSourceFile()),
+							line: refNode.getStartLineNumber(),
+							message: `例外未処理: \`${errorDetail}\` を @throws に追加してください`,
+						});
+					}
 				}
 			}
 		}
@@ -114,225 +105,105 @@ export function analyzeThrows(config) {
 	return result;
 }
 
-function findEnclosingFunction(node) {
-	return node.getFirstAncestor((a) => Node.isFunctionDeclaration(a) || Node.isFunctionExpression(a) || Node.isArrowFunction(a) || Node.isMethodDeclaration(a) || Node.isConstructorDeclaration(a));
+/**
+ * JSDocタグから情報を抽出
+ */
+function parseSingleTag(tag) {
+	const text = tag.getText();
+	const typeMatch = text.match(/\{([^}]*)\}/);
+	const type = typeMatch ? typeMatch[1] : "Error";
+
+	// @throws と {Type} を除去して残りを説明とする
+	const description = text
+		.replace(/^\/\*\*|\*\/$/g, "") // ブロックコメントの囲みを除去
+		.replace(/^\s*\*\s*/gm, "") // 行頭の * を除去
+		.replace(/@throws\s*/, "")
+		.replace(/\{[^}]*\}\s*/, "")
+		.trim();
+
+	return {
+		type,
+		description,
+		line: tag.getStartLineNumber(),
+	};
+}
+
+function parseThrowsTags(tags) {
+	return tags.map(parseSingleTag);
 }
 
 /**
- * JSDoc を付与可能な外側の関数を探す
+ * プロパティアクセス（Class.method）を考慮して CallExpression を取得
  */
-function findDocumentableEnclosingFunction(node) {
-	let current = node;
-	while (true) {
-		const func = current.getFirstAncestor((a) => Node.isFunctionDeclaration(a) || Node.isFunctionExpression(a) || Node.isArrowFunction(a) || Node.isMethodDeclaration(a) || Node.isConstructorDeclaration(a));
-
-		if (!func) return null;
-
-		// 名前がある、または変数に代入されている、またはメソッド/コンストラクタならドキュメント可能
-		if (isDocumentableFunction(func)) return func;
-
-		current = func;
+function getCallExpressionFromRef(refNode) {
+	let parent = refNode.getParent();
+	while (parent && (Node.isPropertyAccessExpression(parent) || Node.isElementAccessExpression(parent))) {
+		parent = parent.getParent();
 	}
+	return Node.isCallExpression(parent) ? parent : null;
 }
 
-function isDocumentableFunction(func) {
-	// クラスのメソッドやコンストラクタはドキュメント可能
-	if (Node.isMethodDeclaration(func) || Node.isConstructorDeclaration(func)) return true;
+function getRelPath(rootDir, sourceFile) {
+	return path.relative(rootDir, sourceFile.getFilePath()) || sourceFile.getFilePath();
+}
 
-	// 関数宣言がトップレベルまたは名前付きでエクスポートされている場合はドキュメント可能
-	if (Node.isFunctionDeclaration(func)) {
-		const parent = func.getParent();
-		return Node.isSourceFile(parent) || Node.isModuleDeclaration(parent);
-	}
+function getThrowsTags(func) {
+	if (!func) return [];
+	let target = func;
 
-	// 変数に代入されている関数（ArrowFunction / FunctionExpression）
+	// アロー関数の場合は変数宣言側からJSDocを取得
 	if (Node.isArrowFunction(func) || Node.isFunctionExpression(func)) {
 		const varDecl = func.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
-		if (varDecl) {
-			const varStmt = varDecl.getFirstAncestorByKind(SyntaxKind.VariableStatement);
-			if (varStmt) {
-				const parent = varStmt.getParent();
-				// トップレベルの変数宣言ならドキュメント可能
-				return Node.isSourceFile(parent) || Node.isModuleDeclaration(parent);
-			}
-		}
+		const varStmt = varDecl?.getFirstAncestorByKind(SyntaxKind.VariableStatement);
+		if (varStmt) target = varStmt;
 	}
 
-	return false;
+	if (!target.getJsDocs) return [];
+	return target.getJsDocs().flatMap((doc) => doc.getTags().filter((t) => t.getTagName() === "throws"));
 }
 
-/**
- * 関数の名前ノードを安全に取得（ArrowFunction対応）
- */
+function hasThrowsJSDoc(func) {
+	return getThrowsTags(func).length > 0;
+}
+
+function findDocumentableEnclosingFunction(node) {
+	return node.getFirstAncestor((a) => Node.isFunctionDeclaration(a) || Node.isMethodDeclaration(a) || Node.isConstructorDeclaration(a) || isVariableArrowFunc(a));
+}
+
+function isVariableArrowFunc(node) {
+	if (!Node.isArrowFunction(node) && !Node.isFunctionExpression(node)) return false;
+	return !!node.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
+}
+
 function getFunctionNameNode(func) {
-	if (!func) return null;
-
-	if (func.getNameNode) {
-		const nameNode = func.getNameNode();
-		if (nameNode) return nameNode;
+	if (func.getNameNode?.()) return func.getNameNode();
+	if (isVariableArrowFunc(func)) {
+		return func.getFirstAncestorByKind(SyntaxKind.VariableDeclaration)?.getNameNode();
 	}
-
-	if (Node.isArrowFunction(func)) {
-		const varDecl = func.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
-		if (varDecl) return varDecl.getNameNode();
-	}
-
 	return null;
 }
 
-/**
- * [チェック1用] throw文がtry/catchまたは.catch()で処理されているか
- * @param {import("ts-morph").ThrowStatement} throwStmt
- * @returns {boolean}
- */
 function isThrowStatementHandled(throwStmt) {
-	if (throwStmt.getFirstAncestorByKind(SyntaxKind.TryStatement)) return true;
-
-	const func = findEnclosingFunction(throwStmt);
-	if (!func) return false;
-
-	const nameNode = getFunctionNameNode(func);
-	if (!nameNode) return false;
-
-	const refs = nameNode.findReferences();
-	for (const ref of refs) {
-		for (const refSymbol of ref.getReferences()) {
-			const parent = refSymbol.getNode().getParent();
-			if (!parent) continue;
-
-			if (Node.isCallExpression(parent)) {
-				if (isCallHandledByPromise(parent)) return true;
-				if (isCallHandledByTryCatch(parent)) return true;
-			}
-		}
-	}
-	return false;
+	return !!throwStmt.getFirstAncestorByKind(SyntaxKind.TryStatement);
 }
 
-/**
- * [チェック2用] 呼び出しがtry/catchブロックに囲まれているか
- * @param {import("ts-morph").Node} node
- * @returns {boolean}
- */
 function isCallHandledByTryCatch(node) {
-	return !!node.getAncestors().some((a) => Node.isTryStatement(a));
+	return !!node.getFirstAncestorByKind(SyntaxKind.TryStatement);
 }
 
-/**
- * [チェック1, 2共通] Promiseチェーンで.catch()または.then(null, onRejected)が呼ばれているか
- * @param {import("ts-morph").CallExpression} callExpr
- * @returns {boolean}
- */
 function isCallHandledByPromise(callExpr) {
 	let curr = callExpr.getParent();
 	while (curr) {
-		if (Node.isPropertyAccessExpression(curr) && curr.getName() === "catch") {
-			if (curr.getParent() && Node.isCallExpression(curr.getParent())) {
-				return true;
-			}
-		}
-		if (Node.isCallExpression(curr)) {
-			const expr = curr.getExpression();
-			if (Node.isPropertyAccessExpression(expr) && expr.getName() === "then") {
-				if (curr.getArguments().length > 1) {
-					return true;
-				}
-			}
-		}
+		if (Node.isPropertyAccessExpression(curr) && (curr.getName() === "catch" || curr.getName() === "then")) return true;
+		if (Node.isTryStatement(curr)) return true;
 		curr = curr.getParent();
 	}
 	return false;
 }
 
-/**
- * [チェック2用] 呼び出し元の関数自身も@throwsを持つ（エラー処理を委任している）か
- * 呼び出している関数が持つ全てのエラー型を網羅しているか確認する
- * @param {import("ts-morph").Node} node
- * @param {import("ts-morph").Node} throwingFunc
- * @returns {boolean}
- */
-function isCallHandledByDelegation(node, throwingFunc) {
-	const enclosingFunc = findDocumentableEnclosingFunction(node);
-	if (!enclosingFunc) return false;
-
-	const callerThrows = getThrowsTags(enclosingFunc).map((t) => t.getText().match(/\{([^}]*)\}/)?.[1]);
-	const calleeThrows = getThrowsTags(throwingFunc).map((t) => t.getText().match(/\{([^}]*)\}/)?.[1]);
-
-	return calleeThrows.every((type) => callerThrows.includes(type));
-}
-
-/**
- * [チェック1用] default exportなどの特定の文脈で@throwsがあれば許容
- * @param {import("ts-morph").Node} func
- * @param {string} filePath
- * @param {string[]} allowedDirs
- * @returns {boolean}
- */
 function isAllowedThrowContext(func, filePath, allowedDirs) {
 	if (!func) return false;
-
 	const normalized = path.normalize(filePath);
-	const isInAllowedDir = allowedDirs.some((dir) => normalized.includes(path.normalize(dir + path.sep)));
-
-	if (!isInAllowedDir || !func.getSymbol) return false;
-
-	let isDefaultExported = false;
-	if (Node.isMethodDeclaration(func) || Node.isConstructorDeclaration(func)) {
-		const parentClass = func.getParentIfKind(SyntaxKind.ClassDeclaration);
-		if (parentClass) {
-			isDefaultExported = parentClass.getSymbol() === parentClass.getSourceFile().getDefaultExportSymbol();
-		}
-	} else if (Node.isFunctionDeclaration(func) || Node.isFunctionExpression(func) || Node.isArrowFunction(func)) {
-		isDefaultExported = func.getSourceFile().getDefaultExportSymbol() === func.getSymbol();
-	}
-
-	return isDefaultExported && hasThrowsJSDoc(func);
-}
-
-/**
- * 全ての関連する宣言から @throws タグを取得する
- */
-function getThrowsTags(func) {
-	if (!func) return [];
-
-	let declarations = [func];
-	if (Node.isMethodDeclaration(func) || Node.isFunctionDeclaration(func) || Node.isConstructorDeclaration(func)) {
-		const symbol = func.getSymbol();
-		if (symbol) {
-			declarations = symbol.getDeclarations().filter((d) => Node.isMethodDeclaration(d) || Node.isFunctionDeclaration(d) || Node.isConstructorDeclaration(d));
-		}
-	}
-
-	const tags = [];
-	for (const decl of declarations) {
-		let target = decl;
-		if (Node.isArrowFunction(decl)) {
-			const varDecl = decl.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
-			if (varDecl) {
-				const varStmt = varDecl.getFirstAncestorByKind(SyntaxKind.VariableStatement);
-				if (varStmt) target = varStmt;
-			}
-		}
-		if (target.getJsDocs) {
-			tags.push(...target.getJsDocs().flatMap((doc) => doc.getTags().filter((tag) => tag.getTagName() === "throws")));
-		}
-	}
-
-	if (Node.isConstructorDeclaration(func)) {
-		const parentClass = func.getParentIfKind(SyntaxKind.ClassDeclaration);
-		if (parentClass && parentClass.getJsDocs) {
-			tags.push(...parentClass.getJsDocs().flatMap((doc) => doc.getTags().filter((tag) => tag.getTagName() === "throws")));
-		}
-	}
-
-	return tags;
-}
-
-/**
- * [チェック1, 2共通] JSDocに@throwsがあるか。コンストラクタの場合はクラス自身のJSDocも見る。
- * @param {import("ts-morph").Node & { getJsDocs?: any }} func
- * @returns {boolean}
- */
-function hasThrowsJSDoc(func) {
-	return getThrowsTags(func).length > 0;
+	if (!allowedDirs.some((dir) => normalized.includes(path.normalize(dir + path.sep)))) return false;
+	return hasThrowsJSDoc(func);
 }

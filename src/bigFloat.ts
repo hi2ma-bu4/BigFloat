@@ -299,7 +299,7 @@ export class BigFloat {
 
 	/**
 	 * 複素数オペランドを解決する
-	 * @throws {TypeError}
+	 * @throws {TypeError} 複素数モードが無効な場合
 	 */
 	protected _complexOperand(other: unknown, operation: string): BigFloatComplex | null {
 		if (!(this.constructor as typeof BigFloat)._isComplexValue(other)) return null;
@@ -317,7 +317,7 @@ export class BigFloat {
 	/**
 	 * 特殊値を考慮してnumberへ変換する
 	 * @returns 変換後のnumber値
-	 * @throws {Error} 特殊値が無効な場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
 	 */
 	protected _specialAwareNumber(): number {
 		this._ensureSpecialValuesEnabled(this);
@@ -1084,7 +1084,7 @@ export class BigFloat {
 	 * @param other - 合わせる対象
 	 * @param mutateA - 自身を破壊的に変更するかどうか
 	 * @returns [BigFloatA, BigFloatB] (アラインメント済みのインスタンス)
-	 * @throws {Error} 精度の不一致が許容されていない場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 */
 	protected _align(other: BigFloatValue, mutateA = false): [BigFloat, BigFloat] {
 		const construct = this.constructor as BigFloatConstructor;
@@ -1907,7 +1907,7 @@ export class BigFloat {
 	/**
 	 * 逆数を取得する
 	 * @returns 逆数
-	 * @throws {Error} ゼロの場合
+	 * @throws {DivisionByZeroError} ゼロの場合
 	 */
 	public reciprocal(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -2015,7 +2015,7 @@ export class BigFloat {
 	 * @param exponent - 指数
 	 * @param precision - 精度
 	 * @returns 冪乗の結果
-	 * @throws {Error} ゼロ除算が発生した場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 */
 	protected static _pow(base: bigint, exponent: bigint, precision: bigint): bigint {
 		const scale = this._getPow10(precision);
@@ -2133,7 +2133,7 @@ export class BigFloat {
 	 * @param n - 値
 	 * @param precision - 精度
 	 * @returns 平方根
-	 * @throws {Error} 負の数の平方根を計算しようとした場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 */
 	protected static _sqrt(n: bigint, precision: bigint): bigint {
 		if (n < 0n) throw new RangeError("Cannot compute square root of negative number");
@@ -2247,7 +2247,7 @@ export class BigFloat {
 	 * @param n - 指数
 	 * @param precision - 精度
 	 * @returns n乗根
-	 * @throws {Error} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
+	 * @throws {RangeError} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
 	 */
 	protected static _nthRoot(v: bigint, n: bigint, precision: bigint): bigint {
 		if (n <= 0n) {
@@ -2497,7 +2497,7 @@ export class BigFloat {
 	 * @param precision - 精度
 	 * @param maxSteps - 最大ステップ数
 	 * @returns 正接
-	 * @throws {Error} 正接が定義されない点の場合
+	 * @throws {NumericalComputationError} 正接が定義されない点の場合
 	 */
 	protected static _tan(x: bigint, precision: bigint, maxSteps: bigint): bigint {
 		const cosX = this._cos(x, precision, maxSteps);
@@ -2556,7 +2556,7 @@ export class BigFloat {
 	 * @param precision - 精度
 	 * @param maxSteps - 最大ステップ数
 	 * @returns 角度(ラジアン)
-	 * @throws {Error} 入力が範囲外([-1, 1])の場合
+	 * @throws {RangeError} 入力が範囲外([-1, 1])の場合
 	 */
 	protected static _asin(x: bigint, precision: bigint, maxSteps: bigint): bigint {
 		const scale = this._getPow10(precision);
@@ -2993,7 +2993,7 @@ export class BigFloat {
 	 * @param precision - 精度
 	 * @param maxSteps - 最大ステップ数
 	 * @returns 解
-	 * @throws {Error} 導関数がゼロになった場合
+	 * @throws {NumericalComputationError} 導関数がゼロになった場合
 	 */
 	protected static _trigFuncsNewton(f: (x: bigint) => bigint, df: (x: bigint) => bigint, initial: bigint, precision: bigint, maxSteps = 50): bigint {
 		const scale = this._getPow10(precision);
@@ -3172,7 +3172,7 @@ export class BigFloat {
 	 * @param precision - 精度
 	 * @param maxSteps - 最大ステップ数
 	 * @returns ln(value)
-	 * @throws {Error} 値が0以下の場合
+	 * @throws {RangeError} 値が0以下の場合
 	 */
 	protected static _ln(value: bigint, precision: bigint, maxSteps: bigint): bigint {
 		if (value <= 0n) throw new RangeError("ln(x) is undefined for x <= 0");
@@ -3282,7 +3282,7 @@ export class BigFloat {
 	 * @param precision - 精度
 	 * @param maxSteps - 最大ステップ数
 	 * @returns log_base(value)
-	 * @throws {Error} 底が1または0の場合
+	 * @throws {RangeError} 底が1または0の場合
 	 */
 	protected static _log(value: bigint, baseValue: bigint, precision: bigint, maxSteps: bigint): bigint {
 		if (value === this._getPow10(precision)) return 0n;
@@ -4130,7 +4130,7 @@ export class BigFloat {
 	 * 引数の中央値を返す
 	 * @param args - 数値のリスト
 	 * @returns 中央値
-	 * @throws {Error} 引数が空の場合
+	 * @throws {TypeError} 引数が空の場合
 	 */
 	public static median(...args: BigFloatAggregateArgs): BigFloat {
 		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new this(x)));
@@ -4148,7 +4148,7 @@ export class BigFloat {
 	 * 引数の分散を返す
 	 * @param args - 数値のリスト
 	 * @returns 分散
-	 * @throws {Error} 引数が空の場合
+	 * @throws {TypeError} 引数が空の場合
 	 */
 	public static variance(...args: BigFloatAggregateArgs): BigFloat {
 		const arr: BigFloat[] = this._normalizeArgs(args).map((x) => (x instanceof BigFloat ? x : new this(x)));
@@ -4563,7 +4563,7 @@ export class BigFloat {
 	 * @param z - 値
 	 * @param precision - 精度
 	 * @returns ガンマ関数
-	 * @throws {Error} 負の整数の場合
+	 * @throws {RangeError} 負の整数の場合
 	 */
 	protected static _gammaLanczos(z: bigint, precision: bigint): bigint {
 		const scale = this._getPow10(precision);
@@ -4753,7 +4753,7 @@ export class BigFloat {
 	 * 円周率キャッシュを取得する (内部用)
 	 * @param precision - 必要精度
 	 * @returns キャッシュされた値
-	 * @throws {Error} キャッシュが存在しない場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
 	protected static _getPiCache(precision: bigint): bigint {
 		const cachedData = this._piCache;
@@ -4790,7 +4790,7 @@ export class BigFloat {
 	 * eキャッシュを取得する (内部用)
 	 * @param precision - 必要精度
 	 * @returns キャッシュされた値
-	 * @throws {Error} キャッシュが存在しない場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
 	protected static _getECache(precision: bigint): bigint {
 		const cachedData = this._eCache;
@@ -4842,7 +4842,7 @@ export class BigFloat {
 	 * @param key - キャッシュキー
 	 * @param precision - 必要精度
 	 * @returns キャッシュされた値
-	 * @throws {Error} キャッシュが存在しない場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
 	protected static _getLnCache(key: string, precision: bigint): bigint {
 		const cachedData = this._lnCache[key];
@@ -5017,7 +5017,7 @@ export class BigFloat {
 	 * 定数 NaN を取得する
 	 * @param precision - 精度
 	 * @returns NaN
-	 * @throws {Error} 特殊値が無効な場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
 	 */
 	public static nan(precision: PrecisionValue = this.DEFAULT_PRECISION): BigFloat {
 		return this._createSpecialValue(SpecialValueState.NAN, BigInt(precision));
@@ -5027,7 +5027,7 @@ export class BigFloat {
 	 * 定数 Infinity を取得する
 	 * @param precision - 精度
 	 * @returns Infinity
-	 * @throws {Error} 特殊値が無効な場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
 	 */
 	public static infinity(precision: PrecisionValue = this.DEFAULT_PRECISION): BigFloat {
 		return this._createSpecialValue(SpecialValueState.POSITIVE_INFINITY, BigInt(precision));
@@ -5037,7 +5037,7 @@ export class BigFloat {
 	 * 定数 -Infinity を取得する
 	 * @param precision - 精度
 	 * @returns -Infinity
-	 * @throws {Error} 特殊値が無効な場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
 	 */
 	public static negativeInfinity(precision: PrecisionValue = this.DEFAULT_PRECISION): BigFloat {
 		return this._createSpecialValue(SpecialValueState.NEGATIVE_INFINITY, BigInt(precision));
