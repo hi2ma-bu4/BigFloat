@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.3.5
+ * BigFloat 1.3.6
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -207,7 +207,7 @@ var BigFloat = class _BigFloat {
    * @param state - 特殊値状態
    * @param precision - 結果の精度
    * @returns 生成された特殊値インスタンス
-   * @throws {Error} 特殊値が無効な場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
    */
   static _createSpecialValue(state, precision) {
     if (!this.config.allowSpecialValues) {
@@ -225,7 +225,7 @@ var BigFloat = class _BigFloat {
    * @param state - 特殊値状態
    * @param precision - 結果の精度
    * @returns 特殊値状態を持つ結果
-   * @throws {Error} 特殊値が無効な場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
    */
   _specialResult(state, precision = this._precision) {
     const construct = this.constructor;
@@ -275,7 +275,7 @@ var BigFloat = class _BigFloat {
   /**
    * 特殊値が無効な設定で特殊値を扱っていないかを検証する
    * @param values - 検証対象の値
-   * @throws {Error} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   _ensureSpecialValuesEnabled(...values) {
     const construct = this.constructor;
@@ -292,14 +292,20 @@ var BigFloat = class _BigFloat {
     const candidate = value;
     return typeof candidate.conjugate === "function" && typeof candidate.real === "object" && typeof candidate.imag === "object";
   }
-  /** 複素数モードが無効な場合は例外にする */
+  /**
+   * 複素数モードが無効な場合は例外にする
+   * @throws {TypeError} 複素数モードが無効な場合
+   */
   _assertComplexNumbersEnabled(operation) {
     const construct = this.constructor;
     if (!construct.config.allowComplexNumbers) {
       throw new TypeError(`BigFloat.${operation} does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.`);
     }
   }
-  /** 複素数オペランドを解決する */
+  /**
+   * 複素数オペランドを解決する
+   * @throws {TypeError}
+   */
   _complexOperand(other, operation) {
     if (!this.constructor._isComplexValue(other)) return null;
     this._assertComplexNumbersEnabled(operation);
@@ -676,7 +682,7 @@ var BigFloat = class _BigFloat {
    * @param base - 基数
    * @returns 変換されたBigFloatインスタンス
    * @throws {RangeError} 基数が2から36の範囲外の場合
-   * @throws {Error} 不正な文字が含まれている場合
+   * @throws {SyntaxError} 不正な文字が含まれている場合
    */
   static parseFloat(str, precision = this.DEFAULT_PRECISION, base = 10) {
     if (str instanceof _BigFloat) return str.clone();
@@ -1040,6 +1046,7 @@ var BigFloat = class _BigFloat {
    * @param degree - 乗根の次数
    * @param decimalShift - 値に追加で掛かっている 10 の指数
    * @returns ニュートン法用の初期値
+   * @throws {RangeError} degree が正の整数でない場合
    */
   static _estimatePositiveRoot(value, degree, decimalShift = 0n) {
     if (degree <= 0n) throw new RangeError("degree must be a positive integer");
@@ -1117,6 +1124,7 @@ var BigFloat = class _BigFloat {
    * 比較演算
    * @param other - 比較対象
    * @returns 比較結果 (-1, 0, 1)
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値を比較しようとしたとき
    */
   compare(other) {
     const construct = this.constructor;
@@ -1877,6 +1885,7 @@ var BigFloat = class _BigFloat {
   /**
    * 平方根を計算する
    * @returns 平方根
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
    */
   sqrt() {
     const construct = this.constructor;
@@ -1983,6 +1992,7 @@ var BigFloat = class _BigFloat {
    * n乗根を計算する
    * @param n - 指数
    * @returns n乗根
+   * @throws {RangeError} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
    */
   nthRoot(n) {
     const bn = BigInt(n);
@@ -2332,6 +2342,7 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @param maxSteps - 最大ステップ数
    * @returns 角度(ラジアン)
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
    */
   static _atan(x, precision, maxSteps) {
     const scale = this._getPow10(precision);
@@ -2542,6 +2553,7 @@ var BigFloat = class _BigFloat {
   /**
    * 逆双曲線余弦(acosh)を計算する
    * @returns 逆双曲線余弦
+   * @throws {RangeError} 入力が範囲外([1, ∞))の場合
    */
   acosh() {
     if (!this._isFiniteState()) {
@@ -2562,6 +2574,7 @@ var BigFloat = class _BigFloat {
   /**
    * 逆双曲線正接(atanh)を計算する
    * @returns 逆双曲線正接
+   * @throws {RangeError} 入力が範囲外([-1, 1])の場合
    */
   atanh() {
     const construct = this.constructor;
@@ -2836,6 +2849,7 @@ var BigFloat = class _BigFloat {
   /**
    * 自然対数(ln)を計算する
    * @returns ln(x)
+   * @throws {RangeError} 値が0以下の場合
    */
   ln() {
     const construct = this.constructor;
@@ -2948,6 +2962,7 @@ var BigFloat = class _BigFloat {
   /**
    * 2を底とする対数(log2)を計算する
    * @returns log2(x)
+   * @throws {RangeError} 値が0以下の場合
    */
   log2() {
     const construct = this.constructor;
@@ -2987,6 +3002,7 @@ var BigFloat = class _BigFloat {
   /**
    * 10を底とする対数(log10)を計算する
    * @returns log10(x)
+   * @throws {RangeError} 値が0以下の場合
    */
   log10() {
     const construct = this.constructor;
@@ -3027,6 +3043,7 @@ var BigFloat = class _BigFloat {
   /**
    * ln(1 + x) を計算する
    * @returns ln(1 + x)
+   * @throws {RangeError} 値が0以下の場合
    */
   log1p() {
     const construct = this.constructor;
@@ -3402,6 +3419,7 @@ var BigFloat = class _BigFloat {
    * Math.hypot() 相当
    * @param values - 値の列
    * @returns sqrt(sum(x_i^2))
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値を含む引数が渡されたとき
    */
   static hypot(...values) {
     if (values.length === 0) return new this(0);
@@ -3481,6 +3499,7 @@ var BigFloat = class _BigFloat {
    * Math.max() 相当
    * @param args - 数値のリスト
    * @returns 最大値
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値を含む引数が渡されたとき
    */
   static max(...args) {
     const values = this._normalizeArgs(args);
@@ -3505,6 +3524,7 @@ var BigFloat = class _BigFloat {
    * Math.min() 相当
    * @param args - 数値のリスト
    * @returns 最小値
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値を含む引数が渡されたとき
    */
   static min(...args) {
     const values = this._normalizeArgs(args);
@@ -3958,6 +3978,7 @@ var BigFloat = class _BigFloat {
    * @param s - 値
    * @param precision - 精度
    * @returns zeta(s)
+   * @throws {RangeError} s <= 1 の場合
    */
   static _zetaPositive(s, precision) {
     const scale = this._getPow10(precision);
@@ -3989,6 +4010,7 @@ var BigFloat = class _BigFloat {
    * @param s - 値
    * @param precision - 精度
    * @returns zeta(s)
+   * @throws {RangeError} s === 1 の場合
    */
   static _zetaEta(s, precision) {
     const scale = this._getPow10(precision);
@@ -4018,6 +4040,7 @@ var BigFloat = class _BigFloat {
    * @param s - 値
    * @param precision - 精度
    * @returns zeta(s)
+   * @throws {RangeError} s = 1 の場合
    */
   static _zeta(s, precision) {
     const scale = this._getPow10(precision);
@@ -4117,6 +4140,7 @@ var BigFloat = class _BigFloat {
   /**
    * Riemann zeta 関数を計算する
    * @returns zeta(this)
+   * @throws {RangeError} this = 1 の場合
    */
   zeta() {
     const construct = this.constructor;
@@ -4879,6 +4903,7 @@ var BigFloatStream = class _BigFloatStream {
    * @param count - 要素数
    * @param options - 生成オプション
    * @returns BigFloatStreamインスタンス
+   * @throws {RangeError} optionsの範囲が不正な場合
    */
   static random(count, options = {}) {
     const normalizedCount = this._normalizeCount(count);
@@ -4964,6 +4989,7 @@ var BigFloatStream = class _BigFloatStream {
    * @param step - ステップ
    * @param precision - 精度
    * @returns BigFloatStreamインスタンス
+   * @throws {RangeError} stepが0の場合
    */
   static range(start, end, step = 1, precision) {
     const actualStart = end === void 0 ? 0 : start;
@@ -5667,6 +5693,7 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 要素の最大値を返す (終端操作)
    * @returns 最大値
+   * @throws {TypeError} 要素が存在しない場合
    */
   max() {
     const iter = this[Symbol.iterator]();
@@ -5681,6 +5708,7 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 要素の最小値を返す (終端操作)
    * @returns 最小値
+   * @throws {TypeError} 要素が存在しない場合
    */
   min() {
     const iter = this[Symbol.iterator]();
@@ -5816,6 +5844,7 @@ var BigFloatVector = class _BigFloatVector {
    * ベクトル長を正規化する
    * @param length - ベクトル長
    * @returns 正規化済みベクトル長
+   * @throws {RangeError} ベクトル長が有限でない場合、または負の場合
    */
   static _normalizeLength(length) {
     if (!Number.isFinite(length)) throw new RangeError("Vector length must be finite");
@@ -5943,6 +5972,7 @@ var BigFloatVector = class _BigFloatVector {
    * @param index - 1を置く位置
    * @param precision - 精度
    * @returns BigFloatVector
+   * @throws {RangeError} index が範囲外の場合
    */
   static basis(length, index, precision) {
     const normalizedLength = this._normalizeLength(length);
@@ -5984,6 +6014,7 @@ var BigFloatVector = class _BigFloatVector {
    * @param length - ベクトル長
    * @param options - 生成オプション
    * @returns BigFloatVector
+   * @throws {RangeError} options.max < options.min の場合
    */
   static random(length, options = {}) {
     const normalizedLength = this._normalizeLength(length);
@@ -6514,6 +6545,7 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 最大値を返す
    * @returns 最大値
+   * @throws {TypeError} ベクトルが空の場合
    */
   max() {
     if (this.isEmpty()) throw new TypeError("No arguments provided");
@@ -6526,6 +6558,7 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 最小値を返す
    * @returns 最小値
+   * @throws {TypeError} ベクトルが空の場合
    */
   min() {
     if (this.isEmpty()) throw new TypeError("No arguments provided");
@@ -6598,6 +6631,7 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 正規化ベクトルを返す
    * @returns 正規化ベクトル
+   * @throws {RangeError} ベクトル長がゼロの場合
    */
   normalize() {
     const length = this.norm();
@@ -6624,6 +6658,7 @@ var BigFloatVector = class _BigFloatVector {
    * 射影ベクトルを返す
    * @param other - 射影先ベクトル
    * @returns 射影ベクトル
+   * @throws {RangeError} 射影先ベクトルがゼロベクトルの場合
    */
   projectOnto(other) {
     const vector = _BigFloatVector._coerceVector(other, this._values);
@@ -6636,6 +6671,7 @@ var BigFloatVector = class _BigFloatVector {
    * 2ベクトルのなす角を返す
    * @param other - 対象ベクトル
    * @returns 角度
+   * @throws {RangeError} いずれかのベクトルがゼロベクトルの場合
    */
   angleTo(other) {
     const vector = _BigFloatVector._coerceVector(other, this._values);
@@ -6650,6 +6686,7 @@ var BigFloatVector = class _BigFloatVector {
    * 3次元外積を返す
    * @param other - 対象ベクトル
    * @returns 外積ベクトル
+   * @throws {RangeError} いずれかのベクトルが3次元でない場合
    */
   cross(other) {
     const vector = _BigFloatVector._coerceVector(other, this._values);
@@ -6742,7 +6779,10 @@ var BigFloatComplex = class _BigFloatComplex {
     if (typeof value === "string") return this._parseComplexString(value) !== null;
     return typeof value === "object" && value !== null;
   }
-  /** 複素数文字列を解析する */
+  /**
+   * 複素数文字列を解析する
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
   static _parseComplexString(value) {
     const normalized = value.trim().replace(/\s+/g, "");
     if (!/[iI]/.test(normalized)) return null;
@@ -6767,7 +6807,10 @@ var BigFloatComplex = class _BigFloatComplex {
       imagPart: this._normalizeImaginaryCoefficient(imagPart, value)
     };
   }
-  /** 虚部係数を正規化する */
+  /**
+   * 虚部係数を正規化する
+   * @throws {SyntaxError} 係数が無効な場合
+   */
   static _normalizeImaginaryCoefficient(value, original) {
     if (value === "" || value === "+") return 1;
     if (value === "-") return -1;
@@ -6950,7 +6993,10 @@ var BigFloatComplex = class _BigFloatComplex {
     if (this.isZero()) return _BigFloatComplex.zero(this._precision);
     return this.div(this.abs());
   }
-  /** 正規化する */
+  /**
+   * 正規化する
+   * @throws {RangeError} ゼロ複素数を正規化しようとした場合
+   */
   normalize() {
     if (this.isZero()) throw new RangeError("Cannot normalize zero complex");
     return this.div(this.abs());
@@ -6997,7 +7043,10 @@ var BigFloatComplex = class _BigFloatComplex {
     const imag = this._real.mul(rhs._imag).add(this._imag.mul(rhs._real));
     return _BigFloatComplex._fromBigFloats(real, imag);
   }
-  /** 除算する */
+  /**
+   * 除算する
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   */
   div(other) {
     const rhs = _BigFloatComplex._toComplex(other, this._precision);
     const denominator = rhs.absSquared();
@@ -7025,7 +7074,10 @@ var BigFloatComplex = class _BigFloatComplex {
   expm1() {
     return this.exp().sub(1);
   }
-  /** 自然対数を計算する */
+  /**
+   * 自然対数を計算する
+   * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+   */
   ln() {
     if (this.isZero()) throw new RangeError("ln(0) is undefined");
     return _BigFloatComplex._fromBigFloats(this.abs().ln(), this.arg());
@@ -7034,7 +7086,10 @@ var BigFloatComplex = class _BigFloatComplex {
   log(base) {
     return this.ln().div(_BigFloatComplex._toComplex(base, this._precision).ln());
   }
-  /** 冪乗を計算する */
+  /**
+   * 冪乗を計算する
+   * @throws {RangeError} ゼロ複素数を非正の実数以外の指数で冪乗しようとした場合
+   */
   pow(exponent) {
     const rhs = _BigFloatComplex._toComplex(exponent, this._precision);
     if (rhs.isZero()) return _BigFloatComplex.one(this._precision);
@@ -7064,7 +7119,10 @@ var BigFloatComplex = class _BigFloatComplex {
     const roots = this.nthRoots(n);
     return roots[0];
   }
-  /** n 乗根を全て返す */
+  /**
+   * n 乗根を全て返す
+   * @throws {RangeError} n <= 0 の場合
+   */
   nthRoots(n) {
     const degree = typeof n === "number" ? Math.trunc(n) : Number(n);
     if (!Number.isFinite(degree) || degree <= 0 || !Number.isInteger(degree)) throw new RangeError("Root degree must be a positive integer");
@@ -7177,14 +7235,20 @@ var BigFloatMatrix = class _BigFloatMatrix {
     }
     return resolved;
   }
-  /** 次元を正規化する */
+  /**
+   * 次元を正規化する
+   * @throws {RangeError} size が負または非有限の場合
+   */
   static _normalizeSize(size, name) {
     if (!Number.isFinite(size)) throw new RangeError(`${name} must be finite`);
     const normalized = Math.trunc(size);
     if (normalized < 0) throw new RangeError(`${name} must be non-negative`);
     return normalized;
   }
-  /** 生配列が長方形か検証する */
+  /**
+   * 生配列が長方形か検証する
+   * @throws {RangeError} 行列の行が同じ長さを持たない場合
+   */
   static _assertRectangularRaw(rows) {
     if (rows.length === 0) return;
     const columnCount = rows[0].length;
@@ -7192,17 +7256,26 @@ var BigFloatMatrix = class _BigFloatMatrix {
       if (row.length !== columnCount) throw new RangeError("Matrix rows must have the same length");
     }
   }
-  /** 同形状か検証する */
+  /**
+   * 同形状か検証する
+   * @throws {RangeError} 行列の形状が異なる場合
+   */
   static _assertSameShape(left, right) {
     if (left.rowCount !== right.rowCount || left.columnCount !== right.columnCount) {
       throw new RangeError("Matrix shapes must match");
     }
   }
-  /** 正方行列か検証する */
+  /**
+   * 正方行列か検証する
+   * @throws {RangeError} 行列が正方行列でない場合
+   */
   static _assertSquare(matrix) {
     if (!matrix.isSquare()) throw new RangeError("Matrix must be square");
   }
-  /** 行列積可能か検証する */
+  /**
+   * 行列積可能か検証する
+   * @throws {RangeError} 行列の内積次元が一致しない場合
+   */
   static _assertMultipliable(left, right) {
     if (left.columnCount !== right.rowCount) throw new RangeError("Inner matrix dimensions must agree");
   }
@@ -7306,7 +7379,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
   static fromRows(rows, precision) {
     return this.from(rows, precision);
   }
-  /** 列ベクトル群から生成する */
+  /**
+   * 列ベクトル群から生成する
+   * @throws {RangeError} 列ベクトルの長さが異なる場合
+   */
   static fromColumns(columns, precision) {
     const rawColumns = Array.from(columns, (column) => Array.from(column));
     if (rawColumns.length === 0) return this.empty();
@@ -7350,7 +7426,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
     const resolvedPrecision = this._resolvePrecision(entries, precision);
     return this._fromBigFloatGrid(entries.map((value, row) => entries.map((_, column) => row === column ? this._toBigFloat(value, resolvedPrecision) : new BigFloat(0, resolvedPrecision))));
   }
-  /** 乱数行列を生成する */
+  /**
+   * 乱数行列を生成する
+   * @throws {RangeError} max < min の場合
+   */
   static random(rowCount, columnCount, options = {}) {
     const normalizedRows = this._normalizeSize(rowCount, "Row count");
     const normalizedColumns = this._normalizeSize(columnCount, "Column count");
@@ -7473,7 +7552,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
     }
     return true;
   }
-  /** 行方向に連結する */
+  /**
+   * 行方向に連結する
+   * @throws {RangeError} 列数が一致しない場合
+   */
   concatRows(...others) {
     const values = this.toArray();
     for (const other of others) {
@@ -7483,7 +7565,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
     }
     return _BigFloatMatrix._fromBigFloatGrid(values);
   }
-  /** 列方向に連結する */
+  /**
+   * 列方向に連結する
+   * @throws {RangeError} 行数が一致しない場合
+   */
   concatColumns(...others) {
     let result = this.clone();
     for (const other of others) {
@@ -7710,7 +7795,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
   factorial() {
     return this._mapValues((value) => value.factorial());
   }
-  /** 最大値を返す */
+  /**
+   * 最大値を返す
+   * @throws {TypeError} 行列が空の場合
+   */
   max() {
     if (this.isEmpty()) throw new TypeError("No arguments provided");
     let result = this._values[0][0];
@@ -7721,7 +7809,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
     }
     return result.clone();
   }
-  /** 最小値を返す */
+  /**
+   * 最小値を返す
+   * @throws {TypeError} 行列が空の場合
+   */
   min() {
     if (this.isEmpty()) throw new TypeError("No arguments provided");
     let result = this._values[0][0];
@@ -7789,7 +7880,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
     );
     return _BigFloatMatrix._fromBigFloatGrid(values);
   }
-  /** ベクトル積を計算する */
+  /**
+   * ベクトル積を計算する
+   * @throws {RangeError} 内部次元が一致しない場合
+   */
   mulVector(vector) {
     const rhs = _BigFloatMatrix._coerceVector(vector, this._flattenValues());
     if (this.columnCount !== rhs.length) throw new RangeError("Inner matrix dimensions must agree");
@@ -7841,7 +7935,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
     const identity = _BigFloatMatrix.identity(this.rowCount, _BigFloatMatrix._resolvePrecision(this._flattenValues()));
     return this.solveMatrix(identity);
   }
-  /** 連立方程式 Ax=b を解く */
+  /**
+   * 連立方程式 Ax=b を解く
+   * @throws {RangeError} 行列が特異な場合
+   */
   solveVector(rhs) {
     _BigFloatMatrix._assertSquare(this);
     const vector = _BigFloatMatrix._coerceVector(rhs, this._flattenValues());
@@ -7849,7 +7946,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
     const solution = this.solveMatrix(_BigFloatMatrix.fromColumns([vector.toArray()]));
     return solution.column(0) ?? BigFloatVector.empty();
   }
-  /** 連立方程式 AX=B を解く */
+  /**
+   * 連立方程式 AX=B を解く
+   * @throws {RangeError} 右辺の行数が一致しない場合
+   */
   solveMatrix(rhs) {
     _BigFloatMatrix._assertSquare(this);
     const right = _BigFloatMatrix._coerceMatrix(rhs, this._flattenValues());
@@ -7867,7 +7967,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
     }
     return _BigFloatMatrix._fromBigFloatGrid(values.map((row) => row.slice(size)));
   }
-  /** 行列累乗を返す */
+  /**
+   * 行列累乗を返す
+   * @throws {RangeError} 指数が整数でない場合
+   */
   matrixPow(exponent) {
     _BigFloatMatrix._assertSquare(this);
     if (!Number.isFinite(exponent) || !Number.isInteger(exponent)) throw new RangeError("Matrix exponent must be an integer");

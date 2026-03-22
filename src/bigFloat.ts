@@ -193,7 +193,7 @@ export class BigFloat {
 	 * @param state - 特殊値状態
 	 * @param precision - 結果の精度
 	 * @returns 生成された特殊値インスタンス
-	 * @throws {Error} 特殊値が無効な場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
 	 */
 	protected static _createSpecialValue(state: SpecialValueState, precision: bigint): BigFloat {
 		if (!this.config.allowSpecialValues) {
@@ -212,7 +212,7 @@ export class BigFloat {
 	 * @param state - 特殊値状態
 	 * @param precision - 結果の精度
 	 * @returns 特殊値状態を持つ結果
-	 * @throws {Error} 特殊値が無効な場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
 	 */
 	protected _specialResult(state: SpecialValueState, precision = this._precision): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -267,7 +267,7 @@ export class BigFloat {
 	/**
 	 * 特殊値が無効な設定で特殊値を扱っていないかを検証する
 	 * @param values - 検証対象の値
-	 * @throws {Error} 特殊値が無効で対象に特殊値が含まれる場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
 	 */
 	protected _ensureSpecialValuesEnabled(...values: BigFloat[]): void {
 		const construct = this.constructor as BigFloatConstructor;
@@ -286,7 +286,10 @@ export class BigFloat {
 		return typeof candidate.conjugate === "function" && typeof candidate.real === "object" && typeof candidate.imag === "object";
 	}
 
-	/** 複素数モードが無効な場合は例外にする */
+	/**
+	 * 複素数モードが無効な場合は例外にする
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 */
 	protected _assertComplexNumbersEnabled(operation: string): void {
 		const construct = this.constructor as BigFloatConstructor;
 		if (!construct.config.allowComplexNumbers) {
@@ -294,7 +297,10 @@ export class BigFloat {
 		}
 	}
 
-	/** 複素数オペランドを解決する */
+	/**
+	 * 複素数オペランドを解決する
+	 * @throws {TypeError}
+	 */
 	protected _complexOperand(other: unknown, operation: string): BigFloatComplex | null {
 		if (!(this.constructor as typeof BigFloat)._isComplexValue(other)) return null;
 		this._assertComplexNumbersEnabled(operation);
@@ -729,7 +735,7 @@ export class BigFloat {
 	 * @param base - 基数
 	 * @returns 変換されたBigFloatインスタンス
 	 * @throws {RangeError} 基数が2から36の範囲外の場合
-	 * @throws {Error} 不正な文字が含まれている場合
+	 * @throws {SyntaxError} 不正な文字が含まれている場合
 	 */
 	public static parseFloat(str: BigFloatValue, precision: PrecisionValue = this.DEFAULT_PRECISION, base = 10): BigFloat {
 		if (str instanceof BigFloat) return str.clone();
@@ -741,6 +747,12 @@ export class BigFloat {
 		const sign = str.trim().startsWith("-") ? -1n : 1n;
 		const digits = "0123456789abcdefghijklmnopqrstuvwxyz";
 
+		/**
+		 * 文字を基数に対応する数値に変換する
+		 * @param ch - 変換する文字
+		 * @returns 対応する数値
+		 * @throws {SyntaxError} 不正な文字が含まれている場合
+		 */
 		const toDigit = (ch: string) => {
 			const d = digits.indexOf(ch);
 			if (d < 0 || d >= base) throw new SyntaxError(`Invalid digit '${ch}' for base ${base}`);
@@ -1155,6 +1167,7 @@ export class BigFloat {
 	 * @param degree - 乗根の次数
 	 * @param decimalShift - 値に追加で掛かっている 10 の指数
 	 * @returns ニュートン法用の初期値
+	 * @throws {RangeError} degree が正の整数でない場合
 	 */
 	protected static _estimatePositiveRoot(value: bigint, degree: bigint, decimalShift = 0n): bigint {
 		if (degree <= 0n) throw new RangeError("degree must be a positive integer");
@@ -1242,6 +1255,7 @@ export class BigFloat {
 	 * 比較演算
 	 * @param other - 比較対象
 	 * @returns 比較結果 (-1, 0, 1)
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値を比較しようとしたとき
 	 */
 	public compare(other: BigFloatValue): number {
 		const construct = this.constructor as BigFloatConstructor;
@@ -1669,7 +1683,7 @@ export class BigFloat {
 	 * 除算する (/)
 	 * @param other - 除算する値
 	 * @returns 除算結果
-	 * @throws {Error} ゼロ除算の場合
+	 * @throws {DivisionByZeroError} ゼロ除算の場合
 	 */
 	public div(other: BigFloatValue): BigFloat;
 	public div(other: BigFloatComplex): BigFloatComplex;
@@ -1810,6 +1824,7 @@ export class BigFloat {
 	 * 剰余を計算する (%)
 	 * @param other - 法
 	 * @returns 剰余
+	 * @throws {TypeError} BigFloatComplexが渡された場合
 	 */
 	public mod(other: BigFloatValue): BigFloat;
 	public mod(other: BigFloatComplex): never;
@@ -2036,6 +2051,7 @@ export class BigFloat {
 	 * 冪乗を計算する
 	 * @param exponent - 指数
 	 * @returns 冪乗の結果
+	 * @throws {RangeError} 負の数の非整数冪を計算しようとした場合
 	 */
 	public pow(exponent: BigFloatValue): BigFloat;
 	public pow(exponent: BigFloatComplex): BigFloatComplex;
@@ -2141,6 +2157,7 @@ export class BigFloat {
 	/**
 	 * 平方根を計算する
 	 * @returns 平方根
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 */
 	public sqrt(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -2269,6 +2286,7 @@ export class BigFloat {
 	 * n乗根を計算する
 	 * @param n - 指数
 	 * @returns n乗根
+	 * @throws {RangeError} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
 	 */
 	public nthRoot(n: number | bigint): BigFloat {
 		const bn = BigInt(n);
@@ -2661,6 +2679,7 @@ export class BigFloat {
 	 * @param precision - 精度
 	 * @param maxSteps - 最大ステップ数
 	 * @returns 角度(ラジアン)
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
 	 */
 	protected static _atan(x: bigint, precision: bigint, maxSteps: bigint): bigint {
 		const scale = this._getPow10(precision);
@@ -2892,6 +2911,7 @@ export class BigFloat {
 	/**
 	 * 逆双曲線余弦(acosh)を計算する
 	 * @returns 逆双曲線余弦
+	 * @throws {RangeError} 入力が範囲外([1, ∞))の場合
 	 */
 	public acosh(): BigFloat {
 		if (!this._isFiniteState()) {
@@ -2913,6 +2933,7 @@ export class BigFloat {
 	/**
 	 * 逆双曲線正接(atanh)を計算する
 	 * @returns 逆双曲線正接
+	 * @throws {RangeError} 入力が範囲外([-1, 1])の場合
 	 */
 	public atanh(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -3211,6 +3232,7 @@ export class BigFloat {
 	/**
 	 * 自然対数(ln)を計算する
 	 * @returns ln(x)
+	 * @throws {RangeError} 値が0以下の場合
 	 */
 	public ln(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -3332,6 +3354,7 @@ export class BigFloat {
 	/**
 	 * 2を底とする対数(log2)を計算する
 	 * @returns log2(x)
+	 * @throws {RangeError} 値が0以下の場合
 	 */
 	public log2(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -3373,6 +3396,7 @@ export class BigFloat {
 	/**
 	 * 10を底とする対数(log10)を計算する
 	 * @returns log10(x)
+	 * @throws {RangeError} 値が0以下の場合
 	 */
 	public log10(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -3415,6 +3439,7 @@ export class BigFloat {
 	/**
 	 * ln(1 + x) を計算する
 	 * @returns ln(1 + x)
+	 * @throws {RangeError} 値が0以下の場合
 	 */
 	public log1p(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -3821,6 +3846,7 @@ export class BigFloat {
 	 * Math.hypot() 相当
 	 * @param values - 値の列
 	 * @returns sqrt(sum(x_i^2))
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値を含む引数が渡されたとき
 	 */
 	public static hypot(...values: BigFloatValue[]): BigFloat {
 		if (values.length === 0) return new this(0);
@@ -3906,6 +3932,7 @@ export class BigFloat {
 	 * Math.max() 相当
 	 * @param args - 数値のリスト
 	 * @returns 最大値
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値を含む引数が渡されたとき
 	 */
 	public static max(...args: BigFloatAggregateArgs): BigFloat {
 		const values = this._normalizeArgs(args);
@@ -3931,6 +3958,7 @@ export class BigFloat {
 	 * Math.min() 相当
 	 * @param args - 数値のリスト
 	 * @returns 最小値
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値を含む引数が渡されたとき
 	 */
 	public static min(...args: BigFloatAggregateArgs): BigFloat {
 		const values = this._normalizeArgs(args);
@@ -4430,6 +4458,7 @@ export class BigFloat {
 	 * @param s - 値
 	 * @param precision - 精度
 	 * @returns zeta(s)
+	 * @throws {RangeError} s <= 1 の場合
 	 */
 	protected static _zetaPositive(s: bigint, precision: bigint): bigint {
 		const scale = this._getPow10(precision);
@@ -4465,6 +4494,7 @@ export class BigFloat {
 	 * @param s - 値
 	 * @param precision - 精度
 	 * @returns zeta(s)
+	 * @throws {RangeError} s === 1 の場合
 	 */
 	protected static _zetaEta(s: bigint, precision: bigint): bigint {
 		const scale = this._getPow10(precision);
@@ -4497,6 +4527,7 @@ export class BigFloat {
 	 * @param s - 値
 	 * @param precision - 精度
 	 * @returns zeta(s)
+	 * @throws {RangeError} s = 1 の場合
 	 */
 	protected static _zeta(s: bigint, precision: bigint): bigint {
 		const scale = this._getPow10(precision);
@@ -4619,6 +4650,7 @@ export class BigFloat {
 	/**
 	 * Riemann zeta 関数を計算する
 	 * @returns zeta(this)
+	 * @throws {RangeError} this = 1 の場合
 	 */
 	public zeta(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;

@@ -57,7 +57,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return resolved;
 	}
 
-	/** 次元を正規化する */
+	/**
+	 * 次元を正規化する
+	 * @throws {RangeError} size が負または非有限の場合
+	 */
 	protected static _normalizeSize(size: number, name: string): number {
 		if (!Number.isFinite(size)) throw new RangeError(`${name} must be finite`);
 		const normalized = Math.trunc(size);
@@ -65,7 +68,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return normalized;
 	}
 
-	/** 生配列が長方形か検証する */
+	/**
+	 * 生配列が長方形か検証する
+	 * @throws {RangeError} 行列の行が同じ長さを持たない場合
+	 */
 	protected static _assertRectangularRaw(rows: BigFloatValue[][]): void {
 		if (rows.length === 0) return;
 		const columnCount = rows[0].length;
@@ -74,19 +80,28 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		}
 	}
 
-	/** 同形状か検証する */
+	/**
+	 * 同形状か検証する
+	 * @throws {RangeError} 行列の形状が異なる場合
+	 */
 	protected static _assertSameShape(left: BigFloatMatrix, right: BigFloatMatrix): void {
 		if (left.rowCount !== right.rowCount || left.columnCount !== right.columnCount) {
 			throw new RangeError("Matrix shapes must match");
 		}
 	}
 
-	/** 正方行列か検証する */
+	/**
+	 * 正方行列か検証する
+	 * @throws {RangeError} 行列が正方行列でない場合
+	 */
 	protected static _assertSquare(matrix: BigFloatMatrix): void {
 		if (!matrix.isSquare()) throw new RangeError("Matrix must be square");
 	}
 
-	/** 行列積可能か検証する */
+	/**
+	 * 行列積可能か検証する
+	 * @throws {RangeError} 行列の内積次元が一致しない場合
+	 */
 	protected static _assertMultipliable(left: BigFloatMatrix, right: BigFloatMatrix): void {
 		if (left.columnCount !== right.rowCount) throw new RangeError("Inner matrix dimensions must agree");
 	}
@@ -207,7 +222,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return this.from(rows, precision);
 	}
 
-	/** 列ベクトル群から生成する */
+	/**
+	 * 列ベクトル群から生成する
+	 * @throws {RangeError} 列ベクトルの長さが異なる場合
+	 */
 	public static fromColumns(columns: BigFloatMatrixSource, precision?: PrecisionValue): BigFloatMatrix {
 		const rawColumns = Array.from(columns, (column) => Array.from(column));
 		if (rawColumns.length === 0) return this.empty();
@@ -258,7 +276,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return this._fromBigFloatGrid(entries.map((value, row) => entries.map((_, column) => (row === column ? this._toBigFloat(value, resolvedPrecision) : new BigFloat(0, resolvedPrecision)))));
 	}
 
-	/** 乱数行列を生成する */
+	/**
+	 * 乱数行列を生成する
+	 * @throws {RangeError} max < min の場合
+	 */
 	public static random(rowCount: number, columnCount: number, options: BigFloatMatrixRandomOptions = {}): BigFloatMatrix {
 		const normalizedRows = this._normalizeSize(rowCount, "Row count");
 		const normalizedColumns = this._normalizeSize(columnCount, "Column count");
@@ -403,7 +424,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return true;
 	}
 
-	/** 行方向に連結する */
+	/**
+	 * 行方向に連結する
+	 * @throws {RangeError} 列数が一致しない場合
+	 */
 	public concatRows(...others: BigFloatMatrixOperand[]): this {
 		const values = this.toArray();
 		for (const other of others) {
@@ -414,7 +438,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return BigFloatMatrix._fromBigFloatGrid(values) as this;
 	}
 
-	/** 列方向に連結する */
+	/**
+	 * 列方向に連結する
+	 * @throws {RangeError} 行数が一致しない場合
+	 */
 	public concatColumns(...others: BigFloatMatrixOperand[]): this {
 		let result = this.clone();
 		for (const other of others) {
@@ -694,7 +721,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return this._mapValues((value) => value.factorial());
 	}
 
-	/** 最大値を返す */
+	/**
+	 * 最大値を返す
+	 * @throws {TypeError} 行列が空の場合
+	 */
 	public max(): BigFloat {
 		if (this.isEmpty()) throw new TypeError("No arguments provided");
 		let result = this._values[0][0];
@@ -706,7 +736,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return result.clone();
 	}
 
-	/** 最小値を返す */
+	/**
+	 * 最小値を返す
+	 * @throws {TypeError} 行列が空の場合
+	 */
 	public min(): BigFloat {
 		if (this.isEmpty()) throw new TypeError("No arguments provided");
 		let result = this._values[0][0];
@@ -782,7 +815,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return BigFloatMatrix._fromBigFloatGrid(values) as this;
 	}
 
-	/** ベクトル積を計算する */
+	/**
+	 * ベクトル積を計算する
+	 * @throws {RangeError} 内部次元が一致しない場合
+	 */
 	public mulVector(vector: BigFloatVector | Iterable<BigFloatValue>): BigFloatVector {
 		const rhs = BigFloatMatrix._coerceVector(vector, this._flattenValues());
 		if (this.columnCount !== rhs.length) throw new RangeError("Inner matrix dimensions must agree");
@@ -840,7 +876,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return this.solveMatrix(identity) as this;
 	}
 
-	/** 連立方程式 Ax=b を解く */
+	/**
+	 * 連立方程式 Ax=b を解く
+	 * @throws {RangeError} 行列が特異な場合
+	 */
 	public solveVector(rhs: BigFloatVector | Iterable<BigFloatValue>): BigFloatVector {
 		BigFloatMatrix._assertSquare(this);
 		const vector = BigFloatMatrix._coerceVector(rhs, this._flattenValues());
@@ -849,7 +888,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return solution.column(0) ?? BigFloatVector.empty();
 	}
 
-	/** 連立方程式 AX=B を解く */
+	/**
+	 * 連立方程式 AX=B を解く
+	 * @throws {RangeError} 右辺の行数が一致しない場合
+	 */
 	public solveMatrix(rhs: BigFloatMatrixOperand): this {
 		BigFloatMatrix._assertSquare(this);
 		const right = BigFloatMatrix._coerceMatrix(rhs, this._flattenValues());
@@ -868,7 +910,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return BigFloatMatrix._fromBigFloatGrid(values.map((row) => row.slice(size))) as this;
 	}
 
-	/** 行列累乗を返す */
+	/**
+	 * 行列累乗を返す
+	 * @throws {RangeError} 指数が整数でない場合
+	 */
 	public matrixPow(exponent: number): this {
 		BigFloatMatrix._assertSquare(this);
 		if (!Number.isFinite(exponent) || !Number.isInteger(exponent)) throw new RangeError("Matrix exponent must be an integer");

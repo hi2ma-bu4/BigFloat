@@ -74,6 +74,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * ベクトル長を正規化する
 	 * @param length - ベクトル長
 	 * @returns 正規化済みベクトル長
+	 * @throws {RangeError} ベクトル長が有限でない場合、または負の場合
 	 */
 	protected static _normalizeLength(length: number): number {
 		if (!Number.isFinite(length)) throw new RangeError("Vector length must be finite");
@@ -214,6 +215,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @param index - 1を置く位置
 	 * @param precision - 精度
 	 * @returns BigFloatVector
+	 * @throws {RangeError} index が範囲外の場合
 	 */
 	public static basis(length: number, index: number, precision?: PrecisionValue): BigFloatVector {
 		const normalizedLength = this._normalizeLength(length);
@@ -257,6 +259,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @param length - ベクトル長
 	 * @param options - 生成オプション
 	 * @returns BigFloatVector
+	 * @throws {RangeError} options.max < options.min の場合
 	 */
 	public static random(length: number, options: BigFloatVectorRandomOptions = {}): BigFloatVector {
 		const normalizedLength = this._normalizeLength(length);
@@ -858,6 +861,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	/**
 	 * 最大値を返す
 	 * @returns 最大値
+	 * @throws {TypeError} ベクトルが空の場合
 	 */
 	public max(): BigFloat {
 		if (this.isEmpty()) throw new TypeError("No arguments provided");
@@ -871,6 +875,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	/**
 	 * 最小値を返す
 	 * @returns 最小値
+	 * @throws {TypeError} ベクトルが空の場合
 	 */
 	public min(): BigFloat {
 		if (this.isEmpty()) throw new TypeError("No arguments provided");
@@ -950,6 +955,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	/**
 	 * 正規化ベクトルを返す
 	 * @returns 正規化ベクトル
+	 * @throws {RangeError} ベクトル長がゼロの場合
 	 */
 	public normalize(): this {
 		const length = this.norm();
@@ -979,6 +985,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * 射影ベクトルを返す
 	 * @param other - 射影先ベクトル
 	 * @returns 射影ベクトル
+	 * @throws {RangeError} 射影先ベクトルがゼロベクトルの場合
 	 */
 	public projectOnto(other: BigFloatVectorOperand): this {
 		const vector = BigFloatVector._coerceVector(other, this._values);
@@ -992,6 +999,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * 2ベクトルのなす角を返す
 	 * @param other - 対象ベクトル
 	 * @returns 角度
+	 * @throws {RangeError} いずれかのベクトルがゼロベクトルの場合
 	 */
 	public angleTo(other: BigFloatVectorOperand): BigFloat {
 		const vector = BigFloatVector._coerceVector(other, this._values);
@@ -1007,6 +1015,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * 3次元外積を返す
 	 * @param other - 対象ベクトル
 	 * @returns 外積ベクトル
+	 * @throws {RangeError} いずれかのベクトルが3次元でない場合
 	 */
 	public cross(other: BigFloatVectorOperand): this {
 		const vector = BigFloatVector._coerceVector(other, this._values);

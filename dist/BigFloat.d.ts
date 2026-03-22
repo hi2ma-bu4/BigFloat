@@ -223,6 +223,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @param count - 要素数
 	 * @param options - 生成オプション
 	 * @returns BigFloatStreamインスタンス
+	 * @throws {RangeError} optionsの範囲が不正な場合
 	 */
 	static random(count: number, options?: BigFloatStreamRandomOptions): BigFloatStream;
 	/**
@@ -254,6 +255,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @param step - ステップ
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
+	 * @throws {RangeError} stepが0の場合
 	 */
 	static range(start: BigFloatStreamValue, end?: BigFloatStreamValue, step?: BigFloatStreamValue, precision?: PrecisionValue): BigFloatStream;
 	/**
@@ -675,11 +677,13 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 要素の最大値を返す (終端操作)
 	 * @returns 最大値
+	 * @throws {TypeError} 要素が存在しない場合
 	 */
 	max(): BigFloat;
 	/**
 	 * 要素の最小値を返す (終端操作)
 	 * @returns 最小値
+	 * @throws {TypeError} 要素が存在しない場合
 	 */
 	min(): BigFloat;
 	/**
@@ -755,6 +759,7 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * ベクトル長を正規化する
 	 * @param length - ベクトル長
 	 * @returns 正規化済みベクトル長
+	 * @throws {RangeError} ベクトル長が有限でない場合、または負の場合
 	 */
 	protected static _normalizeLength(length: number): number;
 	/**
@@ -835,6 +840,7 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @param index - 1を置く位置
 	 * @param precision - 精度
 	 * @returns BigFloatVector
+	 * @throws {RangeError} index が範囲外の場合
 	 */
 	static basis(length: number, index: number, precision?: PrecisionValue): BigFloatVector;
 	/**
@@ -851,6 +857,7 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @param length - ベクトル長
 	 * @param options - 生成オプション
 	 * @returns BigFloatVector
+	 * @throws {RangeError} options.max < options.min の場合
 	 */
 	static random(length: number, options?: BigFloatVectorRandomOptions): BigFloatVector;
 	/**
@@ -1211,11 +1218,13 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	/**
 	 * 最大値を返す
 	 * @returns 最大値
+	 * @throws {TypeError} ベクトルが空の場合
 	 */
 	max(): BigFloat;
 	/**
 	 * 最小値を返す
 	 * @returns 最小値
+	 * @throws {TypeError} ベクトルが空の場合
 	 */
 	min(): BigFloat;
 	/**
@@ -1252,6 +1261,7 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	/**
 	 * 正規化ベクトルを返す
 	 * @returns 正規化ベクトル
+	 * @throws {RangeError} ベクトル長がゼロの場合
 	 */
 	normalize(): this;
 	/**
@@ -1270,18 +1280,21 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * 射影ベクトルを返す
 	 * @param other - 射影先ベクトル
 	 * @returns 射影ベクトル
+	 * @throws {RangeError} 射影先ベクトルがゼロベクトルの場合
 	 */
 	projectOnto(other: BigFloatVectorOperand): this;
 	/**
 	 * 2ベクトルのなす角を返す
 	 * @param other - 対象ベクトル
 	 * @returns 角度
+	 * @throws {RangeError} いずれかのベクトルがゼロベクトルの場合
 	 */
 	angleTo(other: BigFloatVectorOperand): BigFloat;
 	/**
 	 * 3次元外積を返す
 	 * @param other - 対象ベクトル
 	 * @returns 外積ベクトル
+	 * @throws {RangeError} いずれかのベクトルが3次元でない場合
 	 */
 	cross(other: BigFloatVectorOperand): this;
 }
@@ -1332,12 +1345,18 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	};
 	/** 第2引数を精度として解釈すべきか */
 	protected static _shouldTreatSecondArgumentAsPrecision(value: BigFloatComplexValue, imagOrPrecision: BigFloatValue | PrecisionValue | undefined): boolean;
-	/** 複素数文字列を解析する */
+	/**
+	 * 複素数文字列を解析する
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
 	protected static _parseComplexString(value: string): {
 		realPart: BigFloatValue;
 		imagPart: BigFloatValue;
 	} | null;
-	/** 虚部係数を正規化する */
+	/**
+	 * 虚部係数を正規化する
+	 * @throws {SyntaxError} 係数が無効な場合
+	 */
 	protected static _normalizeImaginaryCoefficient(value: string, original: string): BigFloatValue;
 	/** 値を複素数へ変換する */
 	protected static _toComplex(value: BigFloatComplexValue, precision?: bigint): BigFloatComplex;
@@ -1419,7 +1438,10 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	arg(): BigFloat;
 	/** 符号複素数を返す */
 	sign(): BigFloatComplex;
-	/** 正規化する */
+	/**
+	 * 正規化する
+	 * @throws {RangeError} ゼロ複素数を正規化しようとした場合
+	 */
 	normalize(): BigFloatComplex;
 	/** 距離を返す */
 	distanceTo(other: BigFloatComplexValue): BigFloat;
@@ -1435,7 +1457,10 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	sub(other: BigFloatComplexValue): BigFloatComplex;
 	/** 乗算する */
 	mul(other: BigFloatComplexValue): BigFloatComplex;
-	/** 除算する */
+	/**
+	 * 除算する
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 */
 	div(other: BigFloatComplexValue): BigFloatComplex;
 	/** 実数で除算する */
 	protected divByReal(value: BigFloatValue): BigFloatComplex;
@@ -1447,11 +1472,17 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	exp(): BigFloatComplex;
 	/** exp(z)-1 を計算する */
 	expm1(): BigFloatComplex;
-	/** 自然対数を計算する */
+	/**
+	 * 自然対数を計算する
+	 * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+	 */
 	ln(): BigFloatComplex;
 	/** 対数を計算する */
 	log(base: BigFloatComplexValue): BigFloatComplex;
-	/** 冪乗を計算する */
+	/**
+	 * 冪乗を計算する
+	 * @throws {RangeError} ゼロ複素数を非正の実数以外の指数で冪乗しようとした場合
+	 */
 	pow(exponent: BigFloatComplexValue): BigFloatComplex;
 	/** 平方根を計算する */
 	sqrt(): BigFloatComplex;
@@ -1459,7 +1490,10 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	cbrt(): BigFloatComplex;
 	/** 主値の n 乗根を計算する */
 	nthRoot(n: number | bigint): BigFloatComplex;
-	/** n 乗根を全て返す */
+	/**
+	 * n 乗根を全て返す
+	 * @throws {RangeError} n <= 0 の場合
+	 */
 	nthRoots(n: number | bigint): BigFloatComplex[];
 	/** 正弦を計算する */
 	sin(): BigFloatComplex;
@@ -1612,7 +1646,7 @@ export declare class BigFloat {
 	 * @param state - 特殊値状態
 	 * @param precision - 結果の精度
 	 * @returns 生成された特殊値インスタンス
-	 * @throws {Error} 特殊値が無効な場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
 	 */
 	protected static _createSpecialValue(state: SpecialValueState, precision: bigint): BigFloat;
 	/**
@@ -1620,7 +1654,7 @@ export declare class BigFloat {
 	 * @param state - 特殊値状態
 	 * @param precision - 結果の精度
 	 * @returns 特殊値状態を持つ結果
-	 * @throws {Error} 特殊値が無効な場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
 	 */
 	protected _specialResult(state: SpecialValueState, precision?: bigint): BigFloat;
 	/**
@@ -1646,14 +1680,20 @@ export declare class BigFloat {
 	/**
 	 * 特殊値が無効な設定で特殊値を扱っていないかを検証する
 	 * @param values - 検証対象の値
-	 * @throws {Error} 特殊値が無効で対象に特殊値が含まれる場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
 	 */
 	protected _ensureSpecialValuesEnabled(...values: BigFloat[]): void;
 	/** BigFloatComplex らしい値か判定する */
 	protected static _isComplexValue(value: unknown): value is BigFloatComplex;
-	/** 複素数モードが無効な場合は例外にする */
+	/**
+	 * 複素数モードが無効な場合は例外にする
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 */
 	protected _assertComplexNumbersEnabled(operation: string): void;
-	/** 複素数オペランドを解決する */
+	/**
+	 * 複素数オペランドを解決する
+	 * @throws {TypeError}
+	 */
 	protected _complexOperand(other: unknown, operation: string): BigFloatComplex | null;
 	/** 自身を複素数へ昇格する */
 	protected _toComplexLike(other: BigFloatComplex): BigFloatComplex;
@@ -1751,7 +1791,7 @@ export declare class BigFloat {
 	 * @param base - 基数
 	 * @returns 変換されたBigFloatインスタンス
 	 * @throws {RangeError} 基数が2から36の範囲外の場合
-	 * @throws {Error} 不正な文字が含まれている場合
+	 * @throws {SyntaxError} 不正な文字が含まれている場合
 	 */
 	static parseFloat(str: BigFloatValue, precision?: PrecisionValue, base?: number): BigFloat;
 	/**
@@ -1877,6 +1917,7 @@ export declare class BigFloat {
 	 * @param degree - 乗根の次数
 	 * @param decimalShift - 値に追加で掛かっている 10 の指数
 	 * @returns ニュートン法用の初期値
+	 * @throws {RangeError} degree が正の整数でない場合
 	 */
 	protected static _estimatePositiveRoot(value: bigint, degree: bigint, decimalShift?: bigint): bigint;
 	/**
@@ -1901,6 +1942,7 @@ export declare class BigFloat {
 	 * 比較演算
 	 * @param other - 比較対象
 	 * @returns 比較結果 (-1, 0, 1)
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値を比較しようとしたとき
 	 */
 	compare(other: BigFloatValue): number;
 	/**
@@ -2034,7 +2076,7 @@ export declare class BigFloat {
 	 * 除算する (/)
 	 * @param other - 除算する値
 	 * @returns 除算結果
-	 * @throws {Error} ゼロ除算の場合
+	 * @throws {DivisionByZeroError} ゼロ除算の場合
 	 */
 	div(other: BigFloatValue): BigFloat;
 	div(other: BigFloatComplex): BigFloatComplex;
@@ -2061,6 +2103,7 @@ export declare class BigFloat {
 	 * 剰余を計算する (%)
 	 * @param other - 法
 	 * @returns 剰余
+	 * @throws {TypeError} BigFloatComplexが渡された場合
 	 */
 	mod(other: BigFloatValue): BigFloat;
 	mod(other: BigFloatComplex): never;
@@ -2128,6 +2171,7 @@ export declare class BigFloat {
 	 * 冪乗を計算する
 	 * @param exponent - 指数
 	 * @returns 冪乗の結果
+	 * @throws {RangeError} 負の数の非整数冪を計算しようとした場合
 	 */
 	pow(exponent: BigFloatValue): BigFloat;
 	pow(exponent: BigFloatComplex): BigFloatComplex;
@@ -2142,6 +2186,7 @@ export declare class BigFloat {
 	/**
 	 * 平方根を計算する
 	 * @returns 平方根
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 */
 	sqrt(): BigFloat;
 	/**
@@ -2162,6 +2207,7 @@ export declare class BigFloat {
 	 * n乗根を計算する
 	 * @param n - 指数
 	 * @returns n乗根
+	 * @throws {RangeError} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
 	 */
 	nthRoot(n: number | bigint): BigFloat;
 	/**
@@ -2245,6 +2291,7 @@ export declare class BigFloat {
 	 * @param precision - 精度
 	 * @param maxSteps - 最大ステップ数
 	 * @returns 角度(ラジアン)
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
 	 */
 	protected static _atan(x: bigint, precision: bigint, maxSteps: bigint): bigint;
 	/**
@@ -2290,11 +2337,13 @@ export declare class BigFloat {
 	/**
 	 * 逆双曲線余弦(acosh)を計算する
 	 * @returns 逆双曲線余弦
+	 * @throws {RangeError} 入力が範囲外([1, ∞))の場合
 	 */
 	acosh(): BigFloat;
 	/**
 	 * 逆双曲線正接(atanh)を計算する
 	 * @returns 逆双曲線正接
+	 * @throws {RangeError} 入力が範囲外([-1, 1])の場合
 	 */
 	atanh(): BigFloat;
 	/**
@@ -2371,6 +2420,7 @@ export declare class BigFloat {
 	/**
 	 * 自然対数(ln)を計算する
 	 * @returns ln(x)
+	 * @throws {RangeError} 値が0以下の場合
 	 */
 	ln(): BigFloat;
 	/**
@@ -2400,6 +2450,7 @@ export declare class BigFloat {
 	/**
 	 * 2を底とする対数(log2)を計算する
 	 * @returns log2(x)
+	 * @throws {RangeError} 値が0以下の場合
 	 */
 	log2(): BigFloat;
 	/**
@@ -2413,6 +2464,7 @@ export declare class BigFloat {
 	/**
 	 * 10を底とする対数(log10)を計算する
 	 * @returns log10(x)
+	 * @throws {RangeError} 値が0以下の場合
 	 */
 	log10(): BigFloat;
 	/**
@@ -2426,6 +2478,7 @@ export declare class BigFloat {
 	/**
 	 * ln(1 + x) を計算する
 	 * @returns ln(1 + x)
+	 * @throws {RangeError} 値が0以下の場合
 	 */
 	log1p(): BigFloat;
 	/**
@@ -2607,6 +2660,7 @@ export declare class BigFloat {
 	 * Math.hypot() 相当
 	 * @param values - 値の列
 	 * @returns sqrt(sum(x_i^2))
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値を含む引数が渡されたとき
 	 */
 	static hypot(...values: BigFloatValue[]): BigFloat;
 	/**
@@ -2648,12 +2702,14 @@ export declare class BigFloat {
 	 * Math.max() 相当
 	 * @param args - 数値のリスト
 	 * @returns 最大値
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値を含む引数が渡されたとき
 	 */
 	static max(...args: BigFloatAggregateArgs): BigFloat;
 	/**
 	 * Math.min() 相当
 	 * @param args - 数値のリスト
 	 * @returns 最小値
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値を含む引数が渡されたとき
 	 */
 	static min(...args: BigFloatAggregateArgs): BigFloat;
 	/**
@@ -2843,6 +2899,7 @@ export declare class BigFloat {
 	 * @param s - 値
 	 * @param precision - 精度
 	 * @returns zeta(s)
+	 * @throws {RangeError} s <= 1 の場合
 	 */
 	protected static _zetaPositive(s: bigint, precision: bigint): bigint;
 	/**
@@ -2850,6 +2907,7 @@ export declare class BigFloat {
 	 * @param s - 値
 	 * @param precision - 精度
 	 * @returns zeta(s)
+	 * @throws {RangeError} s === 1 の場合
 	 */
 	protected static _zetaEta(s: bigint, precision: bigint): bigint;
 	/**
@@ -2857,6 +2915,7 @@ export declare class BigFloat {
 	 * @param s - 値
 	 * @param precision - 精度
 	 * @returns zeta(s)
+	 * @throws {RangeError} s = 1 の場合
 	 */
 	protected static _zeta(s: bigint, precision: bigint): bigint;
 	/**
@@ -2875,6 +2934,7 @@ export declare class BigFloat {
 	/**
 	 * Riemann zeta 関数を計算する
 	 * @returns zeta(this)
+	 * @throws {RangeError} this = 1 の場合
 	 */
 	zeta(): BigFloat;
 	/**
@@ -3136,15 +3196,30 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	protected static _toBigFloat(value: BigFloatValue, precision?: bigint): BigFloat;
 	/** 精度を解決する */
 	protected static _resolvePrecision(values: BigFloatValue[], precision?: PrecisionValue): bigint;
-	/** 次元を正規化する */
+	/**
+	 * 次元を正規化する
+	 * @throws {RangeError} size が負または非有限の場合
+	 */
 	protected static _normalizeSize(size: number, name: string): number;
-	/** 生配列が長方形か検証する */
+	/**
+	 * 生配列が長方形か検証する
+	 * @throws {RangeError} 行列の行が同じ長さを持たない場合
+	 */
 	protected static _assertRectangularRaw(rows: BigFloatValue[][]): void;
-	/** 同形状か検証する */
+	/**
+	 * 同形状か検証する
+	 * @throws {RangeError} 行列の形状が異なる場合
+	 */
 	protected static _assertSameShape(left: BigFloatMatrix, right: BigFloatMatrix): void;
-	/** 正方行列か検証する */
+	/**
+	 * 正方行列か検証する
+	 * @throws {RangeError} 行列が正方行列でない場合
+	 */
 	protected static _assertSquare(matrix: BigFloatMatrix): void;
-	/** 行列積可能か検証する */
+	/**
+	 * 行列積可能か検証する
+	 * @throws {RangeError} 行列の内積次元が一致しない場合
+	 */
 	protected static _assertMultipliable(left: BigFloatMatrix, right: BigFloatMatrix): void;
 	/** 微小値を返す */
 	protected static _epsilon(precision: bigint): BigFloat;
@@ -3169,7 +3244,10 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	static from(rows: BigFloatMatrixSource, precision?: PrecisionValue): BigFloatMatrix;
 	/** 行ベクトル群から生成する */
 	static fromRows(rows: BigFloatMatrixSource, precision?: PrecisionValue): BigFloatMatrix;
-	/** 列ベクトル群から生成する */
+	/**
+	 * 列ベクトル群から生成する
+	 * @throws {RangeError} 列ベクトルの長さが異なる場合
+	 */
 	static fromColumns(columns: BigFloatMatrixSource, precision?: PrecisionValue): BigFloatMatrix;
 	/** 行の並びから生成する */
 	static of(...rows: BigFloatValue[][]): BigFloatMatrix;
@@ -3183,7 +3261,10 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	static identity(size: number, precision?: PrecisionValue): BigFloatMatrix;
 	/** 対角行列を生成する */
 	static diagonal(values: Iterable<BigFloatValue>, precision?: PrecisionValue): BigFloatMatrix;
-	/** 乱数行列を生成する */
+	/**
+	 * 乱数行列を生成する
+	 * @throws {RangeError} max < min の場合
+	 */
 	static random(rowCount: number, columnCount: number, options?: BigFloatMatrixRandomOptions): BigFloatMatrix;
 	/** 行数 */
 	get rowCount(): number;
@@ -3230,9 +3311,15 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	some(fn: (value: BigFloat, row: number, column: number) => boolean): boolean;
 	/** すべての要素が条件を満たすか */
 	every(fn: (value: BigFloat, row: number, column: number) => boolean): boolean;
-	/** 行方向に連結する */
+	/**
+	 * 行方向に連結する
+	 * @throws {RangeError} 列数が一致しない場合
+	 */
 	concatRows(...others: BigFloatMatrixOperand[]): this;
-	/** 列方向に連結する */
+	/**
+	 * 列方向に連結する
+	 * @throws {RangeError} 行数が一致しない場合
+	 */
 	concatColumns(...others: BigFloatMatrixOperand[]): this;
 	/** 行スライス */
 	sliceRows(start?: number, end?: number): this;
@@ -3338,9 +3425,15 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	zeta(): this;
 	/** 階乗を計算する */
 	factorial(): this;
-	/** 最大値を返す */
+	/**
+	 * 最大値を返す
+	 * @throws {TypeError} 行列が空の場合
+	 */
 	max(): BigFloat;
-	/** 最小値を返す */
+	/**
+	 * 最小値を返す
+	 * @throws {TypeError} 行列が空の場合
+	 */
 	min(): BigFloat;
 	/** 合計を返す */
 	sum(): BigFloat;
@@ -3358,7 +3451,10 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	frobeniusNorm(): BigFloat;
 	/** 行列積を計算する */
 	matmul(other: BigFloatMatrixOperand): this;
-	/** ベクトル積を計算する */
+	/**
+	 * ベクトル積を計算する
+	 * @throws {RangeError} 内部次元が一致しない場合
+	 */
 	mulVector(vector: BigFloatVector | Iterable<BigFloatValue>): BigFloatVector;
 	/** 行列式を返す */
 	determinant(): BigFloat;
@@ -3366,11 +3462,20 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	rank(): number;
 	/** 逆行列を返す */
 	inverse(): this;
-	/** 連立方程式 Ax=b を解く */
+	/**
+	 * 連立方程式 Ax=b を解く
+	 * @throws {RangeError} 行列が特異な場合
+	 */
 	solveVector(rhs: BigFloatVector | Iterable<BigFloatValue>): BigFloatVector;
-	/** 連立方程式 AX=B を解く */
+	/**
+	 * 連立方程式 AX=B を解く
+	 * @throws {RangeError} 右辺の行数が一致しない場合
+	 */
 	solveMatrix(rhs: BigFloatMatrixOperand): this;
-	/** 行列累乗を返す */
+	/**
+	 * 行列累乗を返す
+	 * @throws {RangeError} 指数が整数でない場合
+	 */
 	matrixPow(exponent: number): this;
 }
 /**

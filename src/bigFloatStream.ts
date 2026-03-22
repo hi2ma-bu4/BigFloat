@@ -373,6 +373,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param count - 要素数
 	 * @param options - 生成オプション
 	 * @returns BigFloatStreamインスタンス
+	 * @throws {RangeError} optionsの範囲が不正な場合
 	 */
 	public static random(count: number, options: BigFloatStreamRandomOptions = {}): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -467,6 +468,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param step - ステップ
 	 * @param precision - 精度
 	 * @returns BigFloatStreamインスタンス
+	 * @throws {RangeError} stepが0の場合
 	 */
 	public static range(start: BigFloatStreamValue, end?: BigFloatStreamValue, step: BigFloatStreamValue = 1, precision?: PrecisionValue): BigFloatStream {
 		const actualStart = end === undefined ? 0 : start;
@@ -1257,6 +1259,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 要素の最大値を返す (終端操作)
 	 * @returns 最大値
+	 * @throws {TypeError} 要素が存在しない場合
 	 */
 	public max(): BigFloat {
 		const iter = this[Symbol.iterator]();
@@ -1273,6 +1276,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 要素の最小値を返す (終端操作)
 	 * @returns 最小値
+	 * @throws {TypeError} 要素が存在しない場合
 	 */
 	public min(): BigFloat {
 		const iter = this[Symbol.iterator]();

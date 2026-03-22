@@ -110,7 +110,10 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return typeof value === "object" && value !== null;
 	}
 
-	/** 複素数文字列を解析する */
+	/**
+	 * 複素数文字列を解析する
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
 	protected static _parseComplexString(value: string): { realPart: BigFloatValue; imagPart: BigFloatValue } | null {
 		const normalized = value.trim().replace(/\s+/g, "");
 		if (!/[iI]/.test(normalized)) return null;
@@ -139,7 +142,10 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		};
 	}
 
-	/** 虚部係数を正規化する */
+	/**
+	 * 虚部係数を正規化する
+	 * @throws {SyntaxError} 係数が無効な場合
+	 */
 	protected static _normalizeImaginaryCoefficient(value: string, original: string): BigFloatValue {
 		if (value === "" || value === "+") return 1;
 		if (value === "-") return -1;
@@ -362,7 +368,10 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return this.div(this.abs());
 	}
 
-	/** 正規化する */
+	/**
+	 * 正規化する
+	 * @throws {RangeError} ゼロ複素数を正規化しようとした場合
+	 */
 	public normalize(): BigFloatComplex {
 		if (this.isZero()) throw new RangeError("Cannot normalize zero complex");
 		return this.div(this.abs());
@@ -417,7 +426,10 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return BigFloatComplex._fromBigFloats(real, imag);
 	}
 
-	/** 除算する */
+	/**
+	 * 除算する
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 */
 	public div(other: BigFloatComplexValue): BigFloatComplex {
 		const rhs = BigFloatComplex._toComplex(other, this._precision);
 		const denominator = rhs.absSquared();
@@ -451,7 +463,10 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return this.exp().sub(1);
 	}
 
-	/** 自然対数を計算する */
+	/**
+	 * 自然対数を計算する
+	 * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+	 */
 	public ln(): BigFloatComplex {
 		if (this.isZero()) throw new RangeError("ln(0) is undefined");
 		return BigFloatComplex._fromBigFloats(this.abs().ln(), this.arg());
@@ -462,7 +477,10 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return this.ln().div(BigFloatComplex._toComplex(base, this._precision).ln());
 	}
 
-	/** 冪乗を計算する */
+	/**
+	 * 冪乗を計算する
+	 * @throws {RangeError} ゼロ複素数を非正の実数以外の指数で冪乗しようとした場合
+	 */
 	public pow(exponent: BigFloatComplexValue): BigFloatComplex {
 		const rhs = BigFloatComplex._toComplex(exponent, this._precision);
 		if (rhs.isZero()) return BigFloatComplex.one(this._precision);
@@ -496,7 +514,10 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return roots[0];
 	}
 
-	/** n 乗根を全て返す */
+	/**
+	 * n 乗根を全て返す
+	 * @throws {RangeError} n <= 0 の場合
+	 */
 	public nthRoots(n: number | bigint): BigFloatComplex[] {
 		const degree = typeof n === "number" ? Math.trunc(n) : Number(n);
 		if (!Number.isFinite(degree) || degree <= 0 || !Number.isInteger(degree)) throw new RangeError("Root degree must be a positive integer");
