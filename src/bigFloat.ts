@@ -1,3 +1,4 @@
+import type { BigFloatComplex } from "./bigFloatComplex";
 import { CacheNotInitializedError, DivisionByZeroError, NumericalComputationError, PrecisionMismatchError, SpecialValuesDisabledError } from "./error";
 import { RoundingMode, SpecialValueState, type BigFloatAggregateArgs, type BigFloatOptions, type BigFloatValue, type PrecisionValue } from "./types";
 
@@ -14,6 +15,8 @@ type BigFloatCacheEntry = {
 export class BigFloatConfig {
 	/** 精度の不一致を許容するかどうか */
 	public allowPrecisionMismatch: boolean;
+	/** BigFloatComplex との相互運用を許容するかどうか */
+	public allowComplexNumbers: boolean;
 	/** 破壊的な計算(自身の上書き)をするかどうか */
 	public mutateResult: boolean;
 	/** Infinity/NaN の特殊値を許容するかどうか */
@@ -30,8 +33,9 @@ export class BigFloatConfig {
 	/**
 	 * @param options - 設定オプション
 	 */
-	public constructor({ allowPrecisionMismatch = false, mutateResult = false, allowSpecialValues = true, roundingMode = RoundingMode.TRUNCATE, extraPrecision = 6n, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n }: BigFloatOptions = {}) {
+	public constructor({ allowPrecisionMismatch = false, allowComplexNumbers = false, mutateResult = false, allowSpecialValues = true, roundingMode = RoundingMode.TRUNCATE, extraPrecision = 6n, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n }: BigFloatOptions = {}) {
 		this.allowPrecisionMismatch = allowPrecisionMismatch;
+		this.allowComplexNumbers = allowComplexNumbers;
 		this.mutateResult = mutateResult;
 		this.allowSpecialValues = allowSpecialValues;
 		this.roundingMode = roundingMode;
@@ -47,6 +51,7 @@ export class BigFloatConfig {
 	public clone(): BigFloatConfig {
 		return new BigFloatConfig({
 			allowPrecisionMismatch: this.allowPrecisionMismatch,
+			allowComplexNumbers: this.allowComplexNumbers,
 			mutateResult: this.mutateResult,
 			allowSpecialValues: this.allowSpecialValues,
 			roundingMode: this.roundingMode,
@@ -61,6 +66,13 @@ export class BigFloatConfig {
 	 */
 	public toggleMismatch(): void {
 		this.allowPrecisionMismatch = !this.allowPrecisionMismatch;
+	}
+
+	/**
+	 * BigFloatComplex との相互運用を許容するかどうかを切り替える
+	 */
+	public toggleComplexNumbers(): void {
+		this.allowComplexNumbers = !this.allowComplexNumbers;
 	}
 
 	/**
@@ -265,6 +277,35 @@ export class BigFloat {
 				throw new SpecialValuesDisabledError("Special values are disabled");
 			}
 		}
+	}
+
+	/** BigFloatComplex らしい値か判定する */
+	protected static _isComplexValue(value: unknown): value is BigFloatComplex {
+		if (typeof value !== "object" || value === null) return false;
+		const candidate = value as Partial<BigFloatComplex>;
+		return typeof candidate.conjugate === "function" && typeof candidate.real === "object" && typeof candidate.imag === "object";
+	}
+
+	/** 複素数モードが無効な場合は例外にする */
+	protected _assertComplexNumbersEnabled(operation: string): void {
+		const construct = this.constructor as BigFloatConstructor;
+		if (!construct.config.allowComplexNumbers) {
+			throw new TypeError(`BigFloat.${operation} does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.`);
+		}
+	}
+
+	/** 複素数オペランドを解決する */
+	protected _complexOperand(other: unknown, operation: string): BigFloatComplex | null {
+		if (!(this.constructor as typeof BigFloat)._isComplexValue(other)) return null;
+		this._assertComplexNumbersEnabled(operation);
+		return other;
+	}
+
+	/** 自身を複素数へ昇格する */
+	protected _toComplexLike(other: BigFloatComplex): BigFloatComplex {
+		const precision = this._precision > other.precision ? this._precision : other.precision;
+		const ComplexCtor = other.constructor as new (value?: unknown, imag?: unknown, precision?: PrecisionValue) => BigFloatComplex;
+		return new ComplexCtor(this, 0, precision);
 	}
 
 	/**
@@ -1312,11 +1353,14 @@ export class BigFloat {
 	 * @param other - 比較対象
 	 * @returns 相対差
 	 */
-	public relativeDiff(other: BigFloatValue): BigFloat {
+	public relativeDiff(other: BigFloatValue | BigFloatComplex): BigFloat {
+		const complex = this._complexOperand(other, "relativeDiff");
+		if (complex) return this._toComplexLike(complex).relativeDiff(complex);
+		const value = other as BigFloatValue;
 		const construct = this.constructor as BigFloatConstructor;
-		const diff = this.absoluteDiff(other);
+		const diff = this.absoluteDiff(value);
 		const absA = this.abs();
-		const absB = (other instanceof BigFloat ? other : new construct(other, this._precision)).abs();
+		const absB = (value instanceof BigFloat ? value : new construct(value, this._precision)).abs();
 		const denominator = absA.gt(absB) ? absA : absB;
 		if (denominator.isZero()) return new construct(0n, this._precision);
 		return diff.div(denominator);
@@ -1327,12 +1371,15 @@ export class BigFloat {
 	 * @param other - 比較対象
 	 * @returns 絶対差
 	 */
-	public absoluteDiff(other: BigFloatValue): BigFloat {
-		const bfB = other instanceof BigFloat ? other : new (this.constructor as BigFloatConstructor)(other, this._precision);
+	public absoluteDiff(other: BigFloatValue | BigFloatComplex): BigFloat {
+		const complex = this._complexOperand(other, "absoluteDiff");
+		if (complex) return this._toComplexLike(complex).absoluteDiff(complex);
+		const value = other as BigFloatValue;
+		const bfB = value instanceof BigFloat ? value : new (this.constructor as BigFloatConstructor)(value, this._precision);
 		if (!this._isFiniteState() || !bfB._isFiniteState()) {
 			return this.sub(bfB).abs();
 		}
-		const [a, b] = this._align(other);
+		const [a, b] = this._align(value);
 		const res = a.clone();
 		res.mantissa = a.mantissa > b.mantissa ? a.mantissa - b.mantissa : b.mantissa - a.mantissa;
 		res.softNormalize();
@@ -1345,10 +1392,13 @@ export class BigFloat {
 	 * @param other - 比較対象
 	 * @returns 非一致度 (%)
 	 */
-	public percentDiff(other: BigFloatValue): BigFloat {
+	public percentDiff(other: BigFloatValue | BigFloatComplex): BigFloat {
+		const complex = this._complexOperand(other, "percentDiff");
+		if (complex) return this._toComplexLike(complex).percentDiff(complex);
+		const value = other as BigFloatValue;
 		const construct = this.constructor as BigFloatConstructor;
-		const diff = this.absoluteDiff(other);
-		const absB = (other instanceof BigFloat ? other : new construct(other, this._precision)).abs();
+		const diff = this.absoluteDiff(value);
+		const absB = (value instanceof BigFloat ? value : new construct(value, this._precision)).abs();
 		if (absB.isZero()) return new construct(0n, this._precision);
 		return diff.div(absB).mul(100);
 	}
@@ -1516,9 +1566,14 @@ export class BigFloat {
 	 * @param other - 加算する値
 	 * @returns 加算結果
 	 */
-	public add(other: BigFloatValue): BigFloat {
+	public add(other: BigFloatValue): BigFloat;
+	public add(other: BigFloatComplex): BigFloatComplex;
+	public add(other: BigFloatValue | BigFloatComplex): BigFloat | BigFloatComplex {
+		const complex = this._complexOperand(other, "add");
+		if (complex) return complex.add(this);
+		const value = other as BigFloatValue;
 		const construct = this.constructor as BigFloatConstructor;
-		const bfB = other instanceof BigFloat ? other : new construct(other, this._precision);
+		const bfB = value instanceof BigFloat ? value : new construct(value, this._precision);
 		const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
 		if (!this._isFiniteState() || !bfB._isFiniteState()) {
 			this._ensureSpecialValuesEnabled(this, bfB);
@@ -1530,7 +1585,7 @@ export class BigFloat {
 			return this._specialResult(this._isInfinityState() ? this._specialState : bfB._specialState, resultPrecision);
 		}
 		const mutate = construct.config.mutateResult;
-		const [a, b] = this._align(other, mutate);
+		const [a, b] = this._align(value, mutate);
 		a.mantissa += b.mantissa;
 		a.softNormalize();
 		a._applyPrecision();
@@ -1542,9 +1597,14 @@ export class BigFloat {
 	 * @param other - 減算する値
 	 * @returns 減算結果
 	 */
-	public sub(other: BigFloatValue): BigFloat {
+	public sub(other: BigFloatValue): BigFloat;
+	public sub(other: BigFloatComplex): BigFloatComplex;
+	public sub(other: BigFloatValue | BigFloatComplex): BigFloat | BigFloatComplex {
+		const complex = this._complexOperand(other, "sub");
+		if (complex) return this._toComplexLike(complex).sub(complex);
+		const value = other as BigFloatValue;
 		const construct = this.constructor as BigFloatConstructor;
-		const bfB = other instanceof BigFloat ? other : new construct(other, this._precision);
+		const bfB = value instanceof BigFloat ? value : new construct(value, this._precision);
 		const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
 		if (!this._isFiniteState() || !bfB._isFiniteState()) {
 			this._ensureSpecialValuesEnabled(this, bfB);
@@ -1557,7 +1617,7 @@ export class BigFloat {
 			return this._specialResult(bfB._specialState === SpecialValueState.POSITIVE_INFINITY ? SpecialValueState.NEGATIVE_INFINITY : SpecialValueState.POSITIVE_INFINITY, resultPrecision);
 		}
 		const mutate = construct.config.mutateResult;
-		const [a, b] = this._align(other, mutate);
+		const [a, b] = this._align(value, mutate);
 		a.mantissa -= b.mantissa;
 		a.softNormalize();
 		a._applyPrecision();
@@ -1569,10 +1629,15 @@ export class BigFloat {
 	 * @param other - 乗算する値
 	 * @returns 乗算結果
 	 */
-	public mul(other: BigFloatValue): BigFloat {
+	public mul(other: BigFloatValue): BigFloat;
+	public mul(other: BigFloatComplex): BigFloatComplex;
+	public mul(other: BigFloatValue | BigFloatComplex): BigFloat | BigFloatComplex {
+		const complex = this._complexOperand(other, "mul");
+		if (complex) return complex.mul(this);
+		const value = other as BigFloatValue;
 		const construct = this.constructor as BigFloatConstructor;
-		if (!(other instanceof BigFloat)) {
-			other = new construct(other, this._precision);
+		if (!(value instanceof BigFloat)) {
+			other = new construct(value, this._precision);
 		}
 		const bfB = other as BigFloat;
 		const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
@@ -1606,10 +1671,15 @@ export class BigFloat {
 	 * @returns 除算結果
 	 * @throws {Error} ゼロ除算の場合
 	 */
-	public div(other: BigFloatValue): BigFloat {
+	public div(other: BigFloatValue): BigFloat;
+	public div(other: BigFloatComplex): BigFloatComplex;
+	public div(other: BigFloatValue | BigFloatComplex): BigFloat | BigFloatComplex {
+		const complex = this._complexOperand(other, "div");
+		if (complex) return this._toComplexLike(complex).div(complex);
+		const value = other as BigFloatValue;
 		const construct = this.constructor as BigFloatConstructor;
-		if (!(other instanceof BigFloat)) {
-			other = new construct(other, this._precision);
+		if (!(value instanceof BigFloat)) {
+			other = new construct(value, this._precision);
 		}
 		const bfB = other as BigFloat;
 		const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
@@ -1741,9 +1811,17 @@ export class BigFloat {
 	 * @param other - 法
 	 * @returns 剰余
 	 */
-	public mod(other: BigFloatValue): BigFloat {
+	public mod(other: BigFloatValue): BigFloat;
+	public mod(other: BigFloatComplex): never;
+	public mod(other: BigFloatValue | BigFloatComplex): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
-		const bfB = other instanceof BigFloat ? other : new construct(other, this._precision);
+		const complex = construct._isComplexValue(other) ? other : null;
+		if (complex) {
+			this._assertComplexNumbersEnabled("mod");
+			throw new TypeError("BigFloat.mod does not support BigFloatComplex operands");
+		}
+		const value = other as BigFloatValue;
+		const bfB = value instanceof BigFloat ? value : new construct(value, this._precision);
 		const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
 		if (!this._isFiniteState() || !bfB._isFiniteState()) {
 			this._ensureSpecialValuesEnabled(this, bfB);
@@ -1755,7 +1833,7 @@ export class BigFloat {
 			return this._specialResult(SpecialValueState.NAN, resultPrecision);
 		}
 		const mutate = construct.config.mutateResult;
-		const [a, b] = this._align(other, mutate);
+		const [a, b] = this._align(value, mutate);
 		const result = construct._mod(a.mantissa, b.mantissa);
 		a.mantissa = result;
 		a.softNormalize();
@@ -1959,9 +2037,14 @@ export class BigFloat {
 	 * @param exponent - 指数
 	 * @returns 冪乗の結果
 	 */
-	public pow(exponent: BigFloatValue): BigFloat {
+	public pow(exponent: BigFloatValue): BigFloat;
+	public pow(exponent: BigFloatComplex): BigFloatComplex;
+	public pow(exponent: BigFloatValue | BigFloatComplex): BigFloat | BigFloatComplex {
+		const complex = this._complexOperand(exponent, "pow");
+		if (complex) return this._toComplexLike(complex).pow(complex);
+		const exponentValue = exponent as BigFloatValue;
 		const construct = this.constructor as BigFloatConstructor;
-		const bfB = exponent instanceof BigFloat ? exponent : new construct(exponent, this._precision);
+		const bfB = exponentValue instanceof BigFloat ? exponentValue : new construct(exponentValue, this._precision);
 		const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
 
 		// 整数指数チェック

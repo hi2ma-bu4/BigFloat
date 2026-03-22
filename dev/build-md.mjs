@@ -275,6 +275,97 @@ function formatFunctionLike(node, symbol, nameOverride = "") {
 	return lines.join("\n");
 }
 
+function mergeJsDocInfos(infos) {
+	const merged = {
+		description: "",
+		tags: {
+			params: [],
+			returns: "",
+			throws: [],
+			examples: [],
+			others: [],
+		},
+	};
+
+	const params = new Map();
+	const throwSet = new Set();
+	const exampleSet = new Set();
+	const otherSet = new Set();
+
+	for (const info of infos) {
+		if (!merged.description && info.description) merged.description = info.description;
+		if (!merged.tags.returns && info.tags.returns) merged.tags.returns = info.tags.returns;
+		for (const param of info.tags.params) {
+			if (!params.has(param.name)) params.set(param.name, param);
+		}
+		for (const throwText of info.tags.throws) {
+			if (!throwText || throwSet.has(throwText)) continue;
+			throwSet.add(throwText);
+			merged.tags.throws.push(throwText);
+		}
+		for (const example of info.tags.examples) {
+			if (!example || exampleSet.has(example)) continue;
+			exampleSet.add(example);
+			merged.tags.examples.push(example);
+		}
+		for (const other of info.tags.others) {
+			const key = `${other.name}:${other.text}`;
+			if (otherSet.has(key)) continue;
+			otherSet.add(key);
+			merged.tags.others.push(other);
+		}
+	}
+
+	merged.tags.params = Array.from(params.values());
+	return merged;
+}
+
+function isOverloadDeclaration(node) {
+	return (ts.isMethodDeclaration(node) || ts.isConstructorDeclaration(node) || ts.isFunctionDeclaration(node)) && !node.body;
+}
+
+function selectPublicSignatures(nodes) {
+	const overloads = nodes.filter((node) => isOverloadDeclaration(node));
+	return overloads.length > 0 ? overloads : nodes;
+}
+
+function formatOverloadedFunctionLike(nodes, symbol, title) {
+	const declarations = selectPublicSignatures(nodes);
+	const docs = mergeJsDocInfos(nodes.map((node) => getJsDocInfo(node, symbol)));
+	const signatures = declarations
+		.map((node) => {
+			const signature = checker.getSignatureFromDeclaration(node);
+			return signature ? formatSignature(signature, true, title) : "";
+		})
+		.filter(Boolean);
+	const lines = [`#### \`${title}\``, "", "```ts", ...signatures, "```"];
+
+	if (docs.description) {
+		lines.push("", docs.description);
+	}
+
+	if (docs.tags.params.length > 0) {
+		lines.push("", "**Parameters**");
+		for (const param of docs.tags.params) {
+			lines.push(`- \`${param.name}\`: ${param.text || "説明なし"}`);
+		}
+	}
+
+	if (docs.tags.returns) {
+		lines.push("", `**Returns**: ${docs.tags.returns}`);
+	}
+
+	for (const throwText of docs.tags.throws) {
+		lines.push("", `**Throws**: ${throwText}`);
+	}
+
+	for (const example of docs.tags.examples) {
+		lines.push("", "**Example**", "", "```ts", example, "```");
+	}
+
+	return lines.join("\n");
+}
+
 function formatProperty(node, symbol, title) {
 	const docs = getJsDocInfo(node, symbol);
 	const type = checker.getTypeAtLocation(node);
@@ -313,6 +404,21 @@ function getClassMembers(classDecl) {
 	return { constructors, staticProperties, staticMethods, instanceProperties, instanceMethods };
 }
 
+function groupMembersByName(members) {
+	const groups = [];
+	const map = new Map();
+	for (const member of members) {
+		const name = ts.isConstructorDeclaration(member) ? "constructor" : getMemberName(member);
+		if (!map.has(name)) {
+			const group = { name, members: [] };
+			map.set(name, group);
+			groups.push(group);
+		}
+		map.get(name).members.push(member);
+	}
+	return groups;
+}
+
 function formatClass(symbol, classDecl) {
 	const docs = getJsDocInfo(classDecl, symbol);
 	const lines = [`## \`${symbol.getName()}\``, ""];
@@ -327,8 +433,8 @@ function formatClass(symbol, classDecl) {
 
 	if (constructors.length > 0) {
 		lines.push("", "### Constructor", "");
-		for (const ctor of constructors) {
-			lines.push(formatFunctionLike(ctor, symbol, "constructor"), "");
+		for (const group of groupMembersByName(constructors)) {
+			lines.push(formatOverloadedFunctionLike(group.members, symbol, group.name), "");
 		}
 	}
 
@@ -342,9 +448,9 @@ function formatClass(symbol, classDecl) {
 
 	if (staticMethods.length > 0) {
 		lines.push("", "### Static Methods", "");
-		for (const member of staticMethods) {
-			const memberSymbol = checker.getSymbolAtLocation(member.name);
-			lines.push(formatFunctionLike(member, memberSymbol, getMemberName(member)), "");
+		for (const group of groupMembersByName(staticMethods)) {
+			const memberSymbol = checker.getSymbolAtLocation(group.members[0].name);
+			lines.push(formatOverloadedFunctionLike(group.members, memberSymbol, group.name), "");
 		}
 	}
 
@@ -358,9 +464,9 @@ function formatClass(symbol, classDecl) {
 
 	if (instanceMethods.length > 0) {
 		lines.push("", "### Instance Methods", "");
-		for (const member of instanceMethods) {
-			const memberSymbol = checker.getSymbolAtLocation(member.name);
-			lines.push(formatFunctionLike(member, memberSymbol, getMemberName(member)), "");
+		for (const group of groupMembersByName(instanceMethods)) {
+			const memberSymbol = checker.getSymbolAtLocation(group.members[0].name);
+			lines.push(formatOverloadedFunctionLike(group.members, memberSymbol, group.name), "");
 		}
 	}
 

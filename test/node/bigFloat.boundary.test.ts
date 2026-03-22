@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BigFloat, BigFloatConfig, PrecisionMismatchError, RoundingMode } from "../../dist/BigFloat.js";
+import { BigFloat, BigFloatComplex, BigFloatConfig, PrecisionMismatchError, RoundingMode } from "../../dist/BigFloat.js";
 
 const HIGH_PRECISION = 80;
 const ULTRA_PRECISION = 120;
@@ -67,6 +67,7 @@ function capturePiRefineWorkPrecision(construct: typeof BigFloat, seedPrecision:
 test("BigFloatConfig clones and toggles every option", () => {
 	const config = new BigFloatConfig({
 		allowPrecisionMismatch: true,
+		allowComplexNumbers: true,
 		mutateResult: true,
 		allowSpecialValues: false,
 		roundingMode: RoundingMode.HALF_DOWN,
@@ -80,6 +81,7 @@ test("BigFloatConfig clones and toggles every option", () => {
 	assert.deepStrictEqual(
 		{
 			allowPrecisionMismatch: clone.allowPrecisionMismatch,
+			allowComplexNumbers: clone.allowComplexNumbers,
 			mutateResult: clone.mutateResult,
 			allowSpecialValues: clone.allowSpecialValues,
 			roundingMode: clone.roundingMode,
@@ -89,6 +91,7 @@ test("BigFloatConfig clones and toggles every option", () => {
 		},
 		{
 			allowPrecisionMismatch: true,
+			allowComplexNumbers: true,
 			mutateResult: true,
 			allowSpecialValues: false,
 			roundingMode: RoundingMode.HALF_DOWN,
@@ -99,16 +102,20 @@ test("BigFloatConfig clones and toggles every option", () => {
 	);
 
 	config.toggleMismatch();
+	config.toggleComplexNumbers();
 	config.toggleMutation();
 	assert.equal(config.allowPrecisionMismatch, false);
+	assert.equal(config.allowComplexNumbers, false);
 	assert.equal(config.mutateResult, false);
 	assert.equal(clone.allowPrecisionMismatch, true);
+	assert.equal(clone.allowComplexNumbers, true);
 	assert.equal(clone.mutateResult, true);
 });
 
 test("BigFloat class cloning isolates configuration, instance cloning, and copy helpers", () => {
 	const Derived = BigFloat.clone();
 	Derived.config.allowPrecisionMismatch = true;
+	Derived.config.allowComplexNumbers = true;
 	Derived.config.mutateResult = true;
 	Derived.config.allowSpecialValues = false;
 	Derived.config.roundingMode = RoundingMode.UP;
@@ -117,6 +124,7 @@ test("BigFloat class cloning isolates configuration, instance cloning, and copy 
 	Derived.config.lnMaxSteps = 9n;
 
 	assert.equal(BigFloat.config.allowPrecisionMismatch, false);
+	assert.equal(BigFloat.config.allowComplexNumbers, false);
 	assert.equal(BigFloat.config.mutateResult, false);
 	assert.equal(BigFloat.config.allowSpecialValues, true);
 	assert.equal(BigFloat.config.roundingMode, RoundingMode.TRUNCATE);
@@ -235,6 +243,40 @@ test("BigFloat precision mismatch and mutation options change result precision s
 
 	assert.strictEqual(mutated, mutatingValue);
 	assert.equal(mutatingValue.toString(), "2");
+});
+
+test("BigFloat rejects complex operands by default and promotes to BigFloatComplex when enabled", () => {
+	const complex = new BigFloatComplex("2i", HIGH_PRECISION);
+	const real = new BigFloat(2, HIGH_PRECISION);
+
+	assert.throws(() => real.add(complex), /allowComplexNumbers/);
+	assert.throws(() => real.absoluteDiff(complex), /allowComplexNumbers/);
+
+	const ComplexEnabled = BigFloat.clone();
+	ComplexEnabled.config.allowComplexNumbers = true;
+
+	const enabledReal = new ComplexEnabled(2, HIGH_PRECISION);
+	const enabledComplex = new BigFloatComplex("2i", HIGH_PRECISION);
+	const epsilon = tolerance(HIGH_PRECISION, 12);
+
+	const sum = enabledReal.add(enabledComplex);
+	const diff = enabledReal.sub(enabledComplex);
+	const product = enabledReal.mul(enabledComplex);
+	const quotient = enabledReal.div(new BigFloatComplex("1+i", HIGH_PRECISION));
+	const powered = enabledReal.pow(enabledComplex);
+
+	if (!(sum instanceof BigFloatComplex && diff instanceof BigFloatComplex && product instanceof BigFloatComplex && quotient instanceof BigFloatComplex && powered instanceof BigFloatComplex)) {
+		assert.fail("expected complex-enabled arithmetic to return BigFloatComplex");
+	}
+	assert.equal(sum.toString(10, HIGH_PRECISION), "2 + 2i");
+	assert.equal(diff.toString(10, HIGH_PRECISION), "2 - 2i");
+	assert.equal(product.toString(10, HIGH_PRECISION), "4i");
+	assert.ok(quotient.sub(new BigFloatComplex(1, -1, HIGH_PRECISION)).abs().lt(epsilon));
+	assert.ok(powered.sub(new BigFloatComplex(2, 0, HIGH_PRECISION).pow(enabledComplex)).abs().lt(epsilon));
+	assert.ok(enabledReal.relativeDiff(enabledComplex).sub(new BigFloatComplex(2, 0, HIGH_PRECISION).relativeDiff(enabledComplex)).abs().lt(epsilon));
+	assert.ok(enabledReal.absoluteDiff(enabledComplex).sub(new BigFloatComplex(2, 0, HIGH_PRECISION).absoluteDiff(enabledComplex)).abs().lt(epsilon));
+	assert.ok(enabledReal.percentDiff(enabledComplex).sub(new BigFloatComplex(2, 0, HIGH_PRECISION).percentDiff(enabledComplex)).abs().lt(epsilon));
+	assert.throws(() => enabledReal.mod(enabledComplex), /does not support BigFloatComplex operands/);
 });
 
 test("BigFloat rounding modes and integer rounding helpers cover signed tie cases", () => {

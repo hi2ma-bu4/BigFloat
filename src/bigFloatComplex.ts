@@ -587,3 +587,16 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return one.add(this).ln().sub(one.sub(this).ln()).div(2);
 	}
 }
+
+/**
+ * BigFloatComplex を作成する
+ * @param real - 実部または複素数表現
+ * @param imag - 虚部
+ * @param precision - 精度
+ * @returns BigFloatComplex インスタンス
+ */
+export function bigFloatComplex(value?: BigFloatComplexValue, precision?: PrecisionValue): BigFloatComplex;
+export function bigFloatComplex(real: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue): BigFloatComplex;
+export function bigFloatComplex(real: BigFloatComplexValue = 0, imagOrPrecision?: BigFloatValue | PrecisionValue, precision?: PrecisionValue): BigFloatComplex {
+	return new BigFloatComplex(real, imagOrPrecision, precision);
+}

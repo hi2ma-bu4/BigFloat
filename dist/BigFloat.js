@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.3.4
+ * BigFloat 1.3.5
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -50,6 +50,8 @@ var SpecialValueState = /* @__PURE__ */ ((SpecialValueState2) => {
 var BigFloatConfig = class _BigFloatConfig {
   /** 精度の不一致を許容するかどうか */
   allowPrecisionMismatch;
+  /** BigFloatComplex との相互運用を許容するかどうか */
+  allowComplexNumbers;
   /** 破壊的な計算(自身の上書き)をするかどうか */
   mutateResult;
   /** Infinity/NaN の特殊値を許容するかどうか */
@@ -65,8 +67,9 @@ var BigFloatConfig = class _BigFloatConfig {
   /**
    * @param options - 設定オプション
    */
-  constructor({ allowPrecisionMismatch = false, mutateResult = false, allowSpecialValues = true, roundingMode = 0 /* TRUNCATE */, extraPrecision = 6n, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n } = {}) {
+  constructor({ allowPrecisionMismatch = false, allowComplexNumbers = false, mutateResult = false, allowSpecialValues = true, roundingMode = 0 /* TRUNCATE */, extraPrecision = 6n, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n } = {}) {
     this.allowPrecisionMismatch = allowPrecisionMismatch;
+    this.allowComplexNumbers = allowComplexNumbers;
     this.mutateResult = mutateResult;
     this.allowSpecialValues = allowSpecialValues;
     this.roundingMode = roundingMode;
@@ -81,6 +84,7 @@ var BigFloatConfig = class _BigFloatConfig {
   clone() {
     return new _BigFloatConfig({
       allowPrecisionMismatch: this.allowPrecisionMismatch,
+      allowComplexNumbers: this.allowComplexNumbers,
       mutateResult: this.mutateResult,
       allowSpecialValues: this.allowSpecialValues,
       roundingMode: this.roundingMode,
@@ -94,6 +98,12 @@ var BigFloatConfig = class _BigFloatConfig {
    */
   toggleMismatch() {
     this.allowPrecisionMismatch = !this.allowPrecisionMismatch;
+  }
+  /**
+   * BigFloatComplex との相互運用を許容するかどうかを切り替える
+   */
+  toggleComplexNumbers() {
+    this.allowComplexNumbers = !this.allowComplexNumbers;
   }
   /**
    * 破壊的な計算(自身の上書き)をするかどうかを切り替える
@@ -275,6 +285,31 @@ var BigFloat = class _BigFloat {
         throw new SpecialValuesDisabledError("Special values are disabled");
       }
     }
+  }
+  /** BigFloatComplex らしい値か判定する */
+  static _isComplexValue(value) {
+    if (typeof value !== "object" || value === null) return false;
+    const candidate = value;
+    return typeof candidate.conjugate === "function" && typeof candidate.real === "object" && typeof candidate.imag === "object";
+  }
+  /** 複素数モードが無効な場合は例外にする */
+  _assertComplexNumbersEnabled(operation) {
+    const construct = this.constructor;
+    if (!construct.config.allowComplexNumbers) {
+      throw new TypeError(`BigFloat.${operation} does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.`);
+    }
+  }
+  /** 複素数オペランドを解決する */
+  _complexOperand(other, operation) {
+    if (!this.constructor._isComplexValue(other)) return null;
+    this._assertComplexNumbersEnabled(operation);
+    return other;
+  }
+  /** 自身を複素数へ昇格する */
+  _toComplexLike(other) {
+    const precision = this._precision > other.precision ? this._precision : other.precision;
+    const ComplexCtor = other.constructor;
+    return new ComplexCtor(this.clone(), 0, precision);
   }
   /**
    * 特殊値を考慮してnumberへ変換する
@@ -1177,46 +1212,40 @@ var BigFloat = class _BigFloat {
   isNegative() {
     return this._specialState === 2 /* NEGATIVE_INFINITY */ || this._isFiniteState() && this.mantissa < 0n;
   }
-  /**
-   * 相対差を計算する
-   * @param other - 比較対象
-   * @returns 相対差
-   */
   relativeDiff(other) {
+    const complex = this._complexOperand(other, "relativeDiff");
+    if (complex) return this._toComplexLike(complex).relativeDiff(complex);
+    const value = other;
     const construct = this.constructor;
-    const diff = this.absoluteDiff(other);
+    const diff = this.absoluteDiff(value);
     const absA = this.abs();
-    const absB = (other instanceof _BigFloat ? other : new construct(other, this._precision)).abs();
+    const absB = (value instanceof _BigFloat ? value : new construct(value, this._precision)).abs();
     const denominator = absA.gt(absB) ? absA : absB;
     if (denominator.isZero()) return new construct(0n, this._precision);
     return diff.div(denominator);
   }
-  /**
-   * 絶対差を計算する
-   * @param other - 比較対象
-   * @returns 絶対差
-   */
   absoluteDiff(other) {
-    const bfB = other instanceof _BigFloat ? other : new this.constructor(other, this._precision);
+    const complex = this._complexOperand(other, "absoluteDiff");
+    if (complex) return this._toComplexLike(complex).absoluteDiff(complex);
+    const value = other;
+    const bfB = value instanceof _BigFloat ? value : new this.constructor(value, this._precision);
     if (!this._isFiniteState() || !bfB._isFiniteState()) {
       return this.sub(bfB).abs();
     }
-    const [a, b] = this._align(other);
+    const [a, b] = this._align(value);
     const res = a.clone();
     res.mantissa = a.mantissa > b.mantissa ? a.mantissa - b.mantissa : b.mantissa - a.mantissa;
     res.softNormalize();
     res._applyPrecision();
     return this._makeResultFromInstance(res);
   }
-  /**
-   * 差分の非一致度を計算する (百分率)
-   * @param other - 比較対象
-   * @returns 非一致度 (%)
-   */
   percentDiff(other) {
+    const complex = this._complexOperand(other, "percentDiff");
+    if (complex) return this._toComplexLike(complex).percentDiff(complex);
+    const value = other;
     const construct = this.constructor;
-    const diff = this.absoluteDiff(other);
-    const absB = (other instanceof _BigFloat ? other : new construct(other, this._precision)).abs();
+    const diff = this.absoluteDiff(value);
+    const absB = (value instanceof _BigFloat ? value : new construct(value, this._precision)).abs();
     if (absB.isZero()) return new construct(0n, this._precision);
     return diff.div(absB).mul(100);
   }
@@ -1345,17 +1374,12 @@ var BigFloat = class _BigFloat {
     const expStr = exp >= 0 ? `e+${exp}` : `e${exp}`;
     return `${signStr}${formattedMantissa}${expStr}`;
   }
-  // ====================================================================================================
-  // * 四則演算・基本関数
-  // ====================================================================================================
-  /**
-   * 加算する (+)
-   * @param other - 加算する値
-   * @returns 加算結果
-   */
   add(other) {
+    const complex = this._complexOperand(other, "add");
+    if (complex) return complex.add(this);
+    const value = other;
     const construct = this.constructor;
-    const bfB = other instanceof _BigFloat ? other : new construct(other, this._precision);
+    const bfB = value instanceof _BigFloat ? value : new construct(value, this._precision);
     const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
     if (!this._isFiniteState() || !bfB._isFiniteState()) {
       this._ensureSpecialValuesEnabled(this, bfB);
@@ -1367,20 +1391,18 @@ var BigFloat = class _BigFloat {
       return this._specialResult(this._isInfinityState() ? this._specialState : bfB._specialState, resultPrecision);
     }
     const mutate = construct.config.mutateResult;
-    const [a, b] = this._align(other, mutate);
+    const [a, b] = this._align(value, mutate);
     a.mantissa += b.mantissa;
     a.softNormalize();
     a._applyPrecision();
     return a;
   }
-  /**
-   * 減算する (-)
-   * @param other - 減算する値
-   * @returns 減算結果
-   */
   sub(other) {
+    const complex = this._complexOperand(other, "sub");
+    if (complex) return this._toComplexLike(complex).sub(complex);
+    const value = other;
     const construct = this.constructor;
-    const bfB = other instanceof _BigFloat ? other : new construct(other, this._precision);
+    const bfB = value instanceof _BigFloat ? value : new construct(value, this._precision);
     const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
     if (!this._isFiniteState() || !bfB._isFiniteState()) {
       this._ensureSpecialValuesEnabled(this, bfB);
@@ -1393,21 +1415,19 @@ var BigFloat = class _BigFloat {
       return this._specialResult(bfB._specialState === 1 /* POSITIVE_INFINITY */ ? 2 /* NEGATIVE_INFINITY */ : 1 /* POSITIVE_INFINITY */, resultPrecision);
     }
     const mutate = construct.config.mutateResult;
-    const [a, b] = this._align(other, mutate);
+    const [a, b] = this._align(value, mutate);
     a.mantissa -= b.mantissa;
     a.softNormalize();
     a._applyPrecision();
     return a;
   }
-  /**
-   * 乗算する (*)
-   * @param other - 乗算する値
-   * @returns 乗算結果
-   */
   mul(other) {
+    const complex = this._complexOperand(other, "mul");
+    if (complex) return complex.mul(this);
+    const value = other;
     const construct = this.constructor;
-    if (!(other instanceof _BigFloat)) {
-      other = new construct(other, this._precision);
+    if (!(value instanceof _BigFloat)) {
+      other = new construct(value, this._precision);
     }
     const bfB = other;
     const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
@@ -1433,16 +1453,13 @@ var BigFloat = class _BigFloat {
     res._applyPrecision();
     return res;
   }
-  /**
-   * 除算する (/)
-   * @param other - 除算する値
-   * @returns 除算結果
-   * @throws {Error} ゼロ除算の場合
-   */
   div(other) {
+    const complex = this._complexOperand(other, "div");
+    if (complex) return this._toComplexLike(complex).div(complex);
+    const value = other;
     const construct = this.constructor;
-    if (!(other instanceof _BigFloat)) {
-      other = new construct(other, this._precision);
+    if (!(value instanceof _BigFloat)) {
+      other = new construct(value, this._precision);
     }
     const bfB = other;
     const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
@@ -1549,14 +1566,15 @@ var BigFloat = class _BigFloat {
     const r = x % m;
     return r < 0n ? r + m : r;
   }
-  /**
-   * 剰余を計算する (%)
-   * @param other - 法
-   * @returns 剰余
-   */
   mod(other) {
+    const complex = this.constructor._isComplexValue(other) ? other : null;
+    if (complex) {
+      this._assertComplexNumbersEnabled("mod");
+      throw new TypeError("BigFloat.mod does not support BigFloatComplex operands");
+    }
+    const value = other;
     const construct = this.constructor;
-    const bfB = other instanceof _BigFloat ? other : new construct(other, this._precision);
+    const bfB = value instanceof _BigFloat ? value : new construct(value, this._precision);
     const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
     if (!this._isFiniteState() || !bfB._isFiniteState()) {
       this._ensureSpecialValuesEnabled(this, bfB);
@@ -1568,7 +1586,7 @@ var BigFloat = class _BigFloat {
       return this._specialResult(3 /* NAN */, resultPrecision);
     }
     const mutate = construct.config.mutateResult;
-    const [a, b] = this._align(other, mutate);
+    const [a, b] = this._align(value, mutate);
     const result = construct._mod(a.mantissa, b.mantissa);
     a.mantissa = result;
     a.softNormalize();
@@ -1752,14 +1770,12 @@ var BigFloat = class _BigFloat {
     const mul = lnBase * exponent / scale;
     return this._exp(mul, precision);
   }
-  /**
-   * 冪乗を計算する
-   * @param exponent - 指数
-   * @returns 冪乗の結果
-   */
   pow(exponent) {
+    const complex = this._complexOperand(exponent, "pow");
+    if (complex) return this._toComplexLike(complex).pow(complex);
+    const exponentValue = exponent;
     const construct = this.constructor;
-    const bfB = exponent instanceof _BigFloat ? exponent : new construct(exponent, this._precision);
+    const bfB = exponentValue instanceof _BigFloat ? exponentValue : new construct(exponentValue, this._precision);
     const resultPrecision = this._precision > bfB._precision ? this._precision : bfB._precision;
     if (bfB.isZero()) return new construct(1, resultPrecision);
     if (!this._isFiniteState() || !bfB._isFiniteState()) {
@@ -6630,6 +6646,484 @@ var BigFloatVector = class _BigFloatVector {
   }
 };
 
+// src/bigFloatComplex.ts
+var BigFloatComplex = class _BigFloatComplex {
+  /** 実部 */
+  _real;
+  /** 虚部 */
+  _imag;
+  /** 精度 */
+  _precision;
+  constructor(real = 0, imagOrPrecision, precision) {
+    const { imagPartValue, precisionValue } = _BigFloatComplex._normalizeArguments(real, imagOrPrecision, precision, arguments.length);
+    const { realPart, imagPart } = _BigFloatComplex._normalizeParts(real, imagPartValue);
+    const resolvedPrecision = _BigFloatComplex._resolvePrecision([realPart, imagPart], precisionValue);
+    this._real = _BigFloatComplex._toBigFloat(realPart, resolvedPrecision);
+    this._imag = _BigFloatComplex._toBigFloat(imagPart, resolvedPrecision);
+    this._precision = resolvedPrecision;
+  }
+  /** BigFloat へ変換する */
+  static _toBigFloat(value, precision) {
+    if (value instanceof BigFloat) {
+      const cloned = value.clone();
+      if (precision === void 0 || cloned._precision === precision) return cloned;
+      return cloned.changePrecision(precision);
+    }
+    return new BigFloat(value, precision ?? BigFloat.DEFAULT_PRECISION);
+  }
+  /** 精度を解決する */
+  static _resolvePrecision(values, precision) {
+    if (precision !== void 0) return BigInt(precision);
+    let resolved = BigFloat.DEFAULT_PRECISION;
+    for (const value of values) {
+      if (value instanceof BigFloat && value._precision > resolved) resolved = value._precision;
+    }
+    return resolved;
+  }
+  /** 内部 BigFloat から生成する */
+  static _fromBigFloats(real, imag) {
+    const complex = Object.create(_BigFloatComplex.prototype);
+    const precision = real._precision > imag._precision ? real._precision : imag._precision;
+    complex._real = real._precision === precision ? real.clone() : real.clone().changePrecision(precision);
+    complex._imag = imag._precision === precision ? imag.clone() : imag.clone().changePrecision(precision);
+    complex._precision = precision;
+    return complex;
+  }
+  /** 複素数表現を正規化する */
+  static _normalizeParts(value, imag) {
+    if (value instanceof _BigFloatComplex) return { realPart: value._real, imagPart: value._imag };
+    if (Array.isArray(value)) return { realPart: value[0] ?? 0, imagPart: value[1] ?? 0 };
+    if (typeof value === "string") {
+      const parsed = this._parseComplexString(value);
+      if (parsed !== null) return parsed;
+      return { realPart: value, imagPart: imag ?? 0 };
+    }
+    if (value instanceof BigFloat || typeof value === "number" || typeof value === "bigint") {
+      return { realPart: value, imagPart: imag ?? 0 };
+    }
+    if (typeof value === "object" && value !== null) {
+      const objectValue = value;
+      return {
+        realPart: objectValue.re ?? objectValue.real ?? 0,
+        imagPart: objectValue.im ?? objectValue.imag ?? 0
+      };
+    }
+    return { realPart: 0, imagPart: imag ?? 0 };
+  }
+  /** 引数を正規化する */
+  static _normalizeArguments(value, imagOrPrecision, precision, argCount = 0) {
+    if (argCount <= 1) return { imagPartValue: 0, precisionValue: precision };
+    if (precision !== void 0) return { imagPartValue: imagOrPrecision, precisionValue: precision };
+    if (argCount === 2 && this._shouldTreatSecondArgumentAsPrecision(value, imagOrPrecision)) {
+      return { imagPartValue: 0, precisionValue: imagOrPrecision };
+    }
+    return { imagPartValue: imagOrPrecision, precisionValue: precision };
+  }
+  /** 第2引数を精度として解釈すべきか */
+  static _shouldTreatSecondArgumentAsPrecision(value, imagOrPrecision) {
+    if (typeof imagOrPrecision !== "number" && typeof imagOrPrecision !== "bigint") return false;
+    if (value instanceof _BigFloatComplex) return true;
+    if (Array.isArray(value)) return true;
+    if (typeof value === "string") return this._parseComplexString(value) !== null;
+    return typeof value === "object" && value !== null;
+  }
+  /** 複素数文字列を解析する */
+  static _parseComplexString(value) {
+    const normalized = value.trim().replace(/\s+/g, "");
+    if (!/[iI]/.test(normalized)) return null;
+    if (!/[iI]$/.test(normalized) || (normalized.match(/[iI]/g)?.length ?? 0) !== 1) {
+      throw new SyntaxError(`Invalid complex string: ${value}`);
+    }
+    const body = normalized.slice(0, -1);
+    if (body === "") return { realPart: 0, imagPart: 1 };
+    if (body === "+") return { realPart: 0, imagPart: 1 };
+    if (body === "-") return { realPart: 0, imagPart: -1 };
+    let splitIndex = -1;
+    for (let i = 1; i < body.length; i++) {
+      const char = body[i];
+      if ((char === "+" || char === "-") && body[i - 1] !== "e" && body[i - 1] !== "E") splitIndex = i;
+    }
+    if (splitIndex === -1) return { realPart: 0, imagPart: this._normalizeImaginaryCoefficient(body, value) };
+    const realPart = body.slice(0, splitIndex);
+    const imagPart = body.slice(splitIndex);
+    if (realPart === "") throw new SyntaxError(`Invalid complex string: ${value}`);
+    return {
+      realPart,
+      imagPart: this._normalizeImaginaryCoefficient(imagPart, value)
+    };
+  }
+  /** 虚部係数を正規化する */
+  static _normalizeImaginaryCoefficient(value, original) {
+    if (value === "" || value === "+") return 1;
+    if (value === "-") return -1;
+    if (/[iI]/.test(value)) throw new SyntaxError(`Invalid complex string: ${original}`);
+    return value;
+  }
+  /** 値を複素数へ変換する */
+  static _toComplex(value, precision) {
+    if (value instanceof _BigFloatComplex) {
+      if (precision === void 0 || value._precision === precision) return value.clone();
+      return value.changePrecision(precision);
+    }
+    if (precision === void 0) return new _BigFloatComplex(value);
+    if (this._shouldTreatSecondArgumentAsPrecision(value, precision)) return new _BigFloatComplex(value, precision);
+    return new _BigFloatComplex(value, 0, precision);
+  }
+  /** 複素数定数 0 */
+  static zero(precision = 20) {
+    return new _BigFloatComplex(0, 0, precision);
+  }
+  /** 複素数定数 1 */
+  static one(precision = 20) {
+    return new _BigFloatComplex(1, 0, precision);
+  }
+  /** 複素数定数 i */
+  static i(precision = 20) {
+    return new _BigFloatComplex(0, 1, precision);
+  }
+  /** e を返す */
+  static e(precision = 20) {
+    return new _BigFloatComplex(BigFloat.e(precision), 0, precision);
+  }
+  /** pi を返す */
+  static pi(precision = 20) {
+    return new _BigFloatComplex(BigFloat.pi(precision), 0, precision);
+  }
+  /** tau を返す */
+  static tau(precision = 20) {
+    return new _BigFloatComplex(BigFloat.tau(precision), 0, precision);
+  }
+  static from(value, imag, precision) {
+    if (precision !== void 0) return new _BigFloatComplex(value, imag, precision);
+    if (imag === void 0) return new _BigFloatComplex(value);
+    if (this._shouldTreatSecondArgumentAsPrecision(value, imag)) return new _BigFloatComplex(value, imag);
+    return new _BigFloatComplex(value, imag);
+  }
+  /** 値の並びから生成する */
+  static of(real, imag = 0, precision) {
+    return new _BigFloatComplex(real, imag, precision);
+  }
+  /** 極形式から生成する */
+  static fromPolar(magnitude, angle, precision) {
+    const resolvedPrecision = this._resolvePrecision([magnitude, angle], precision);
+    const r = this._toBigFloat(magnitude, resolvedPrecision);
+    const theta = this._toBigFloat(angle, resolvedPrecision);
+    return this._fromBigFloats(r.mul(theta.cos()), r.mul(theta.sin()));
+  }
+  /** 複素数の総和を返す */
+  static sum(values, precision) {
+    let result = precision === void 0 ? this.zero() : this.zero(precision);
+    for (const value of values) result = result.add(value);
+    return result;
+  }
+  /** 複素数の総積を返す */
+  static product(values, precision) {
+    let result = precision === void 0 ? this.one() : this.one(precision);
+    for (const value of values) result = result.mul(value);
+    return result;
+  }
+  /** 複素数の平均を返す */
+  static average(values, precision) {
+    let count = 0;
+    let total = precision === void 0 ? this.zero() : this.zero(precision);
+    for (const value of values) {
+      total = total.add(value);
+      count++;
+    }
+    if (count === 0) return precision === void 0 ? this.zero() : this.zero(precision);
+    return total.div(count);
+  }
+  /** 実部 */
+  get real() {
+    return this._real.clone();
+  }
+  /** 虚部 */
+  get imag() {
+    return this._imag.clone();
+  }
+  /** 精度 */
+  get precision() {
+    return this._precision;
+  }
+  /** 複製する */
+  clone() {
+    return _BigFloatComplex._fromBigFloats(this._real, this._imag);
+  }
+  /** 精度を変更する */
+  changePrecision(precision) {
+    const precisionBig = BigInt(precision);
+    return _BigFloatComplex._fromBigFloats(this._real.clone().changePrecision(precisionBig), this._imag.clone().changePrecision(precisionBig));
+  }
+  /** 配列へ変換する */
+  toArray() {
+    return [this._real.clone(), this._imag.clone()];
+  }
+  /** ベクトルへ変換する */
+  toVector() {
+    return BigFloatVector.from([this._real.clone(), this._imag.clone()]);
+  }
+  /** 極形式へ変換する */
+  toPolar() {
+    return { magnitude: this.abs(), angle: this.arg() };
+  }
+  /** JSON へ変換する */
+  toJSON() {
+    return { re: this._real.toString(), im: this._imag.toString() };
+  }
+  /** 文字列化する */
+  toString(base = 10, precision = this._precision) {
+    const real = this._real.toString(base, precision);
+    const imag = this._imag.toString(base, precision);
+    if (this._imag.isZero()) return real;
+    if (this._real.isZero()) {
+      if (imag === "1") return "i";
+      if (imag === "-1") return "-i";
+      return `${imag}i`;
+    }
+    const imagAbs = this._imag.abs().toString(base, precision);
+    const imagLabel = imagAbs === "1" ? "i" : `${imagAbs}i`;
+    return this._imag.isNegative() ? `${real} - ${imagLabel}` : `${real} + ${imagLabel}`;
+  }
+  /** イテレータ */
+  [Symbol.iterator]() {
+    return this.toArray()[Symbol.iterator]();
+  }
+  /** 一致判定 */
+  equals(other) {
+    const rhs = _BigFloatComplex._toComplex(other, this._precision);
+    return this._real.eq(rhs._real) && this._imag.eq(rhs._imag);
+  }
+  /** 別値判定 */
+  ne(other) {
+    return !this.equals(other);
+  }
+  /** ゼロ判定 */
+  isZero() {
+    return this._real.isZero() && this._imag.isZero();
+  }
+  /** 純実数判定 */
+  isReal() {
+    return this._imag.isZero();
+  }
+  /** 純虚数判定 */
+  isImaginary() {
+    return this._real.isZero() && !this._imag.isZero();
+  }
+  /** 共役複素数を返す */
+  conjugate() {
+    return _BigFloatComplex._fromBigFloats(this._real, this._imag.neg());
+  }
+  /** 符号反転する */
+  neg() {
+    return _BigFloatComplex._fromBigFloats(this._real.neg(), this._imag.neg());
+  }
+  /** 絶対値の二乗を返す */
+  absSquared() {
+    return this._real.mul(this._real).add(this._imag.mul(this._imag));
+  }
+  /** 絶対値を返す */
+  abs() {
+    return this.absSquared().sqrt();
+  }
+  /** 偏角を返す */
+  arg() {
+    if (this.isZero()) return new BigFloat(0, this._precision);
+    return this._imag.atan2(this._real);
+  }
+  /** 符号複素数を返す */
+  sign() {
+    if (this.isZero()) return _BigFloatComplex.zero(this._precision);
+    return this.div(this.abs());
+  }
+  /** 正規化する */
+  normalize() {
+    if (this.isZero()) throw new RangeError("Cannot normalize zero complex");
+    return this.div(this.abs());
+  }
+  /** 距離を返す */
+  distanceTo(other) {
+    return this.sub(other).abs();
+  }
+  /** 相対差を返す */
+  relativeDiff(other) {
+    const rhs = _BigFloatComplex._toComplex(other, this._precision);
+    const diff = this.sub(rhs).abs();
+    const lhsAbs = this.abs();
+    const rhsAbs = rhs.abs();
+    const denominator = lhsAbs.gt(rhsAbs) ? lhsAbs : rhsAbs;
+    if (denominator.isZero()) return new BigFloat(0, this._precision);
+    return diff.div(denominator);
+  }
+  /** 絶対差を返す */
+  absoluteDiff(other) {
+    return this.sub(other).abs();
+  }
+  /** 百分率差分を返す */
+  percentDiff(other) {
+    const rhs = _BigFloatComplex._toComplex(other, this._precision);
+    const rhsAbs = rhs.abs();
+    if (rhsAbs.isZero()) return new BigFloat(0, this._precision);
+    return this.absoluteDiff(rhs).div(rhsAbs).mul(100);
+  }
+  /** 加算する */
+  add(other) {
+    const rhs = _BigFloatComplex._toComplex(other, this._precision);
+    return _BigFloatComplex._fromBigFloats(this._real.add(rhs._real), this._imag.add(rhs._imag));
+  }
+  /** 減算する */
+  sub(other) {
+    const rhs = _BigFloatComplex._toComplex(other, this._precision);
+    return _BigFloatComplex._fromBigFloats(this._real.sub(rhs._real), this._imag.sub(rhs._imag));
+  }
+  /** 乗算する */
+  mul(other) {
+    const rhs = _BigFloatComplex._toComplex(other, this._precision);
+    const real = this._real.mul(rhs._real).sub(this._imag.mul(rhs._imag));
+    const imag = this._real.mul(rhs._imag).add(this._imag.mul(rhs._real));
+    return _BigFloatComplex._fromBigFloats(real, imag);
+  }
+  /** 除算する */
+  div(other) {
+    const rhs = _BigFloatComplex._toComplex(other, this._precision);
+    const denominator = rhs.absSquared();
+    if (denominator.isZero()) throw new RangeError("Division by zero complex");
+    return this.mul(rhs.conjugate()).divByReal(denominator);
+  }
+  /** 実数で除算する */
+  divByReal(value) {
+    return _BigFloatComplex._fromBigFloats(this._real.div(value), this._imag.div(value));
+  }
+  /** 逆数を返す */
+  reciprocal() {
+    return _BigFloatComplex.one(this._precision).div(this);
+  }
+  /** 回転する */
+  rotate(angle) {
+    return this.mul(_BigFloatComplex.fromPolar(1, angle, this._precision));
+  }
+  /** 指数関数を計算する */
+  exp() {
+    const realExp = this._real.exp();
+    return _BigFloatComplex._fromBigFloats(realExp.mul(this._imag.cos()), realExp.mul(this._imag.sin()));
+  }
+  /** exp(z)-1 を計算する */
+  expm1() {
+    return this.exp().sub(1);
+  }
+  /** 自然対数を計算する */
+  ln() {
+    if (this.isZero()) throw new RangeError("ln(0) is undefined");
+    return _BigFloatComplex._fromBigFloats(this.abs().ln(), this.arg());
+  }
+  /** 対数を計算する */
+  log(base) {
+    return this.ln().div(_BigFloatComplex._toComplex(base, this._precision).ln());
+  }
+  /** 冪乗を計算する */
+  pow(exponent) {
+    const rhs = _BigFloatComplex._toComplex(exponent, this._precision);
+    if (rhs.isZero()) return _BigFloatComplex.one(this._precision);
+    if (this.isZero()) {
+      if (rhs.isReal() && rhs._real.gt(0)) return _BigFloatComplex.zero(this._precision);
+      throw new RangeError("0 cannot be raised to this exponent");
+    }
+    return this.ln().mul(rhs).exp();
+  }
+  /** 平方根を計算する */
+  sqrt() {
+    if (this.isZero()) return _BigFloatComplex.zero(this._precision);
+    const radius = this.abs();
+    const two = new BigFloat(2, this._precision);
+    const real = radius.add(this._real).div(two).sqrt();
+    const imagMagnitude = radius.sub(this._real).div(two).sqrt();
+    const imagSign = this._imag.isZero() && this._real.isNegative() ? new BigFloat(1, this._precision) : this._imag.sign();
+    const imag = imagSign.mul(imagMagnitude);
+    return _BigFloatComplex._fromBigFloats(real, imag);
+  }
+  /** 立方根を計算する */
+  cbrt() {
+    return this.nthRoot(3);
+  }
+  /** 主値の n 乗根を計算する */
+  nthRoot(n) {
+    const roots = this.nthRoots(n);
+    return roots[0];
+  }
+  /** n 乗根を全て返す */
+  nthRoots(n) {
+    const degree = typeof n === "number" ? Math.trunc(n) : Number(n);
+    if (!Number.isFinite(degree) || degree <= 0 || !Number.isInteger(degree)) throw new RangeError("Root degree must be a positive integer");
+    if (this.isZero()) return [_BigFloatComplex.zero(this._precision)];
+    const count = BigInt(degree);
+    const magnitude = this.abs().nthRoot(count);
+    const angle = this.arg();
+    const tau = BigFloat.tau(this._precision);
+    return Array.from({ length: degree }, (_, index) => _BigFloatComplex.fromPolar(magnitude, angle.add(tau.mul(index)).div(count), this._precision));
+  }
+  /** 正弦を計算する */
+  sin() {
+    return _BigFloatComplex._fromBigFloats(this._real.sin().mul(this._imag.cosh()), this._real.cos().mul(this._imag.sinh()));
+  }
+  /** 余弦を計算する */
+  cos() {
+    return _BigFloatComplex._fromBigFloats(this._real.cos().mul(this._imag.cosh()), this._real.sin().mul(this._imag.sinh()).neg());
+  }
+  /** 正接を計算する */
+  tan() {
+    return this.sin().div(this.cos());
+  }
+  /** 双曲線正弦を計算する */
+  sinh() {
+    return _BigFloatComplex._fromBigFloats(this._real.sinh().mul(this._imag.cos()), this._real.cosh().mul(this._imag.sin()));
+  }
+  /** 双曲線余弦を計算する */
+  cosh() {
+    return _BigFloatComplex._fromBigFloats(this._real.cosh().mul(this._imag.cos()), this._real.sinh().mul(this._imag.sin()));
+  }
+  /** 双曲線正接を計算する */
+  tanh() {
+    return this.sinh().div(this.cosh());
+  }
+  /** 逆正弦を計算する */
+  asin() {
+    const i = _BigFloatComplex.i(this._precision);
+    const one = _BigFloatComplex.one(this._precision);
+    return i.neg().mul(
+      i.mul(this).add(one.sub(this.mul(this)).sqrt()).ln()
+    );
+  }
+  /** 逆余弦を計算する */
+  acos() {
+    const halfPi = _BigFloatComplex.pi(this._precision).div(2);
+    return halfPi.sub(this.asin());
+  }
+  /** 逆正接を計算する */
+  atan() {
+    const i = _BigFloatComplex.i(this._precision);
+    const one = _BigFloatComplex.one(this._precision);
+    return i.mul(
+      one.sub(i.mul(this)).ln().sub(one.add(i.mul(this)).ln())
+    ).div(2);
+  }
+  /** 逆双曲線正弦を計算する */
+  asinh() {
+    return this.mul(this).add(1).sqrt().add(this).ln();
+  }
+  /** 逆双曲線余弦を計算する */
+  acosh() {
+    const one = _BigFloatComplex.one(this._precision);
+    return this.add(this.add(one).sqrt().mul(this.sub(one).sqrt())).ln();
+  }
+  /** 逆双曲線正接を計算する */
+  atanh() {
+    const one = _BigFloatComplex.one(this._precision);
+    return one.add(this).ln().sub(one.sub(this).ln()).div(2);
+  }
+};
+function bigFloatComplex(real = 0, imagOrPrecision, precision) {
+  return new BigFloatComplex(real, imagOrPrecision, precision);
+}
+
 // src/bigFloatMatrix.ts
 var BigFloatMatrix = class _BigFloatMatrix {
   /** 内部要素 */
@@ -7375,481 +7869,6 @@ var BigFloatMatrix = class _BigFloatMatrix {
     return result;
   }
 };
-
-// src/bigFloatComplex.ts
-var BigFloatComplex = class _BigFloatComplex {
-  /** 実部 */
-  _real;
-  /** 虚部 */
-  _imag;
-  /** 精度 */
-  _precision;
-  constructor(real = 0, imagOrPrecision, precision) {
-    const { imagPartValue, precisionValue } = _BigFloatComplex._normalizeArguments(real, imagOrPrecision, precision, arguments.length);
-    const { realPart, imagPart } = _BigFloatComplex._normalizeParts(real, imagPartValue);
-    const resolvedPrecision = _BigFloatComplex._resolvePrecision([realPart, imagPart], precisionValue);
-    this._real = _BigFloatComplex._toBigFloat(realPart, resolvedPrecision);
-    this._imag = _BigFloatComplex._toBigFloat(imagPart, resolvedPrecision);
-    this._precision = resolvedPrecision;
-  }
-  /** BigFloat へ変換する */
-  static _toBigFloat(value, precision) {
-    if (value instanceof BigFloat) {
-      const cloned = value.clone();
-      if (precision === void 0 || cloned._precision === precision) return cloned;
-      return cloned.changePrecision(precision);
-    }
-    return new BigFloat(value, precision ?? BigFloat.DEFAULT_PRECISION);
-  }
-  /** 精度を解決する */
-  static _resolvePrecision(values, precision) {
-    if (precision !== void 0) return BigInt(precision);
-    let resolved = BigFloat.DEFAULT_PRECISION;
-    for (const value of values) {
-      if (value instanceof BigFloat && value._precision > resolved) resolved = value._precision;
-    }
-    return resolved;
-  }
-  /** 内部 BigFloat から生成する */
-  static _fromBigFloats(real, imag) {
-    const complex = Object.create(_BigFloatComplex.prototype);
-    const precision = real._precision > imag._precision ? real._precision : imag._precision;
-    complex._real = real._precision === precision ? real.clone() : real.clone().changePrecision(precision);
-    complex._imag = imag._precision === precision ? imag.clone() : imag.clone().changePrecision(precision);
-    complex._precision = precision;
-    return complex;
-  }
-  /** 複素数表現を正規化する */
-  static _normalizeParts(value, imag) {
-    if (value instanceof _BigFloatComplex) return { realPart: value._real, imagPart: value._imag };
-    if (Array.isArray(value)) return { realPart: value[0] ?? 0, imagPart: value[1] ?? 0 };
-    if (typeof value === "string") {
-      const parsed = this._parseComplexString(value);
-      if (parsed !== null) return parsed;
-      return { realPart: value, imagPart: imag ?? 0 };
-    }
-    if (value instanceof BigFloat || typeof value === "number" || typeof value === "bigint") {
-      return { realPart: value, imagPart: imag ?? 0 };
-    }
-    if (typeof value === "object" && value !== null) {
-      const objectValue = value;
-      return {
-        realPart: objectValue.re ?? objectValue.real ?? 0,
-        imagPart: objectValue.im ?? objectValue.imag ?? 0
-      };
-    }
-    return { realPart: 0, imagPart: imag ?? 0 };
-  }
-  /** 引数を正規化する */
-  static _normalizeArguments(value, imagOrPrecision, precision, argCount = 0) {
-    if (argCount <= 1) return { imagPartValue: 0, precisionValue: precision };
-    if (precision !== void 0) return { imagPartValue: imagOrPrecision, precisionValue: precision };
-    if (argCount === 2 && this._shouldTreatSecondArgumentAsPrecision(value, imagOrPrecision)) {
-      return { imagPartValue: 0, precisionValue: imagOrPrecision };
-    }
-    return { imagPartValue: imagOrPrecision, precisionValue: precision };
-  }
-  /** 第2引数を精度として解釈すべきか */
-  static _shouldTreatSecondArgumentAsPrecision(value, imagOrPrecision) {
-    if (typeof imagOrPrecision !== "number" && typeof imagOrPrecision !== "bigint") return false;
-    if (value instanceof _BigFloatComplex) return true;
-    if (Array.isArray(value)) return true;
-    if (typeof value === "string") return this._parseComplexString(value) !== null;
-    return typeof value === "object" && value !== null;
-  }
-  /** 複素数文字列を解析する */
-  static _parseComplexString(value) {
-    const normalized = value.trim().replace(/\s+/g, "");
-    if (!/[iI]/.test(normalized)) return null;
-    if (!/[iI]$/.test(normalized) || (normalized.match(/[iI]/g)?.length ?? 0) !== 1) {
-      throw new SyntaxError(`Invalid complex string: ${value}`);
-    }
-    const body = normalized.slice(0, -1);
-    if (body === "") return { realPart: 0, imagPart: 1 };
-    if (body === "+") return { realPart: 0, imagPart: 1 };
-    if (body === "-") return { realPart: 0, imagPart: -1 };
-    let splitIndex = -1;
-    for (let i = 1; i < body.length; i++) {
-      const char = body[i];
-      if ((char === "+" || char === "-") && body[i - 1] !== "e" && body[i - 1] !== "E") splitIndex = i;
-    }
-    if (splitIndex === -1) return { realPart: 0, imagPart: this._normalizeImaginaryCoefficient(body, value) };
-    const realPart = body.slice(0, splitIndex);
-    const imagPart = body.slice(splitIndex);
-    if (realPart === "") throw new SyntaxError(`Invalid complex string: ${value}`);
-    return {
-      realPart,
-      imagPart: this._normalizeImaginaryCoefficient(imagPart, value)
-    };
-  }
-  /** 虚部係数を正規化する */
-  static _normalizeImaginaryCoefficient(value, original) {
-    if (value === "" || value === "+") return 1;
-    if (value === "-") return -1;
-    if (/[iI]/.test(value)) throw new SyntaxError(`Invalid complex string: ${original}`);
-    return value;
-  }
-  /** 値を複素数へ変換する */
-  static _toComplex(value, precision) {
-    if (value instanceof _BigFloatComplex) {
-      if (precision === void 0 || value._precision === precision) return value.clone();
-      return value.changePrecision(precision);
-    }
-    if (precision === void 0) return new _BigFloatComplex(value);
-    if (this._shouldTreatSecondArgumentAsPrecision(value, precision)) return new _BigFloatComplex(value, precision);
-    return new _BigFloatComplex(value, 0, precision);
-  }
-  /** 複素数定数 0 */
-  static zero(precision = 20) {
-    return new _BigFloatComplex(0, 0, precision);
-  }
-  /** 複素数定数 1 */
-  static one(precision = 20) {
-    return new _BigFloatComplex(1, 0, precision);
-  }
-  /** 複素数定数 i */
-  static i(precision = 20) {
-    return new _BigFloatComplex(0, 1, precision);
-  }
-  /** e を返す */
-  static e(precision = 20) {
-    return new _BigFloatComplex(BigFloat.e(precision), 0, precision);
-  }
-  /** pi を返す */
-  static pi(precision = 20) {
-    return new _BigFloatComplex(BigFloat.pi(precision), 0, precision);
-  }
-  /** tau を返す */
-  static tau(precision = 20) {
-    return new _BigFloatComplex(BigFloat.tau(precision), 0, precision);
-  }
-  static from(value, imag, precision) {
-    if (precision !== void 0) return new _BigFloatComplex(value, imag, precision);
-    if (imag === void 0) return new _BigFloatComplex(value);
-    if (this._shouldTreatSecondArgumentAsPrecision(value, imag)) return new _BigFloatComplex(value, imag);
-    return new _BigFloatComplex(value, imag);
-  }
-  /** 値の並びから生成する */
-  static of(real, imag = 0, precision) {
-    return new _BigFloatComplex(real, imag, precision);
-  }
-  /** 極形式から生成する */
-  static fromPolar(magnitude, angle, precision) {
-    const resolvedPrecision = this._resolvePrecision([magnitude, angle], precision);
-    const r = this._toBigFloat(magnitude, resolvedPrecision);
-    const theta = this._toBigFloat(angle, resolvedPrecision);
-    return this._fromBigFloats(r.mul(theta.cos()), r.mul(theta.sin()));
-  }
-  /** 複素数の総和を返す */
-  static sum(values, precision) {
-    let result = precision === void 0 ? this.zero() : this.zero(precision);
-    for (const value of values) result = result.add(value);
-    return result;
-  }
-  /** 複素数の総積を返す */
-  static product(values, precision) {
-    let result = precision === void 0 ? this.one() : this.one(precision);
-    for (const value of values) result = result.mul(value);
-    return result;
-  }
-  /** 複素数の平均を返す */
-  static average(values, precision) {
-    let count = 0;
-    let total = precision === void 0 ? this.zero() : this.zero(precision);
-    for (const value of values) {
-      total = total.add(value);
-      count++;
-    }
-    if (count === 0) return precision === void 0 ? this.zero() : this.zero(precision);
-    return total.div(count);
-  }
-  /** 実部 */
-  get real() {
-    return this._real.clone();
-  }
-  /** 虚部 */
-  get imag() {
-    return this._imag.clone();
-  }
-  /** 精度 */
-  get precision() {
-    return this._precision;
-  }
-  /** 複製する */
-  clone() {
-    return _BigFloatComplex._fromBigFloats(this._real, this._imag);
-  }
-  /** 精度を変更する */
-  changePrecision(precision) {
-    const precisionBig = BigInt(precision);
-    return _BigFloatComplex._fromBigFloats(this._real.clone().changePrecision(precisionBig), this._imag.clone().changePrecision(precisionBig));
-  }
-  /** 配列へ変換する */
-  toArray() {
-    return [this._real.clone(), this._imag.clone()];
-  }
-  /** ベクトルへ変換する */
-  toVector() {
-    return BigFloatVector.from([this._real.clone(), this._imag.clone()]);
-  }
-  /** 極形式へ変換する */
-  toPolar() {
-    return { magnitude: this.abs(), angle: this.arg() };
-  }
-  /** JSON へ変換する */
-  toJSON() {
-    return { re: this._real.toString(), im: this._imag.toString() };
-  }
-  /** 文字列化する */
-  toString(base = 10, precision = this._precision) {
-    const real = this._real.toString(base, precision);
-    const imag = this._imag.toString(base, precision);
-    if (this._imag.isZero()) return real;
-    if (this._real.isZero()) {
-      if (imag === "1") return "i";
-      if (imag === "-1") return "-i";
-      return `${imag}i`;
-    }
-    const imagAbs = this._imag.abs().toString(base, precision);
-    const imagLabel = imagAbs === "1" ? "i" : `${imagAbs}i`;
-    return this._imag.isNegative() ? `${real} - ${imagLabel}` : `${real} + ${imagLabel}`;
-  }
-  /** イテレータ */
-  [Symbol.iterator]() {
-    return this.toArray()[Symbol.iterator]();
-  }
-  /** 一致判定 */
-  equals(other) {
-    const rhs = _BigFloatComplex._toComplex(other, this._precision);
-    return this._real.eq(rhs._real) && this._imag.eq(rhs._imag);
-  }
-  /** 別値判定 */
-  ne(other) {
-    return !this.equals(other);
-  }
-  /** ゼロ判定 */
-  isZero() {
-    return this._real.isZero() && this._imag.isZero();
-  }
-  /** 純実数判定 */
-  isReal() {
-    return this._imag.isZero();
-  }
-  /** 純虚数判定 */
-  isImaginary() {
-    return this._real.isZero() && !this._imag.isZero();
-  }
-  /** 共役複素数を返す */
-  conjugate() {
-    return _BigFloatComplex._fromBigFloats(this._real, this._imag.neg());
-  }
-  /** 符号反転する */
-  neg() {
-    return _BigFloatComplex._fromBigFloats(this._real.neg(), this._imag.neg());
-  }
-  /** 絶対値の二乗を返す */
-  absSquared() {
-    return this._real.mul(this._real).add(this._imag.mul(this._imag));
-  }
-  /** 絶対値を返す */
-  abs() {
-    return this.absSquared().sqrt();
-  }
-  /** 偏角を返す */
-  arg() {
-    if (this.isZero()) return new BigFloat(0, this._precision);
-    return this._imag.atan2(this._real);
-  }
-  /** 符号複素数を返す */
-  sign() {
-    if (this.isZero()) return _BigFloatComplex.zero(this._precision);
-    return this.div(this.abs());
-  }
-  /** 正規化する */
-  normalize() {
-    if (this.isZero()) throw new RangeError("Cannot normalize zero complex");
-    return this.div(this.abs());
-  }
-  /** 距離を返す */
-  distanceTo(other) {
-    return this.sub(other).abs();
-  }
-  /** 相対差を返す */
-  relativeDiff(other) {
-    const rhs = _BigFloatComplex._toComplex(other, this._precision);
-    const diff = this.sub(rhs).abs();
-    const lhsAbs = this.abs();
-    const rhsAbs = rhs.abs();
-    const denominator = lhsAbs.gt(rhsAbs) ? lhsAbs : rhsAbs;
-    if (denominator.isZero()) return new BigFloat(0, this._precision);
-    return diff.div(denominator);
-  }
-  /** 絶対差を返す */
-  absoluteDiff(other) {
-    return this.sub(other).abs();
-  }
-  /** 百分率差分を返す */
-  percentDiff(other) {
-    const rhs = _BigFloatComplex._toComplex(other, this._precision);
-    const rhsAbs = rhs.abs();
-    if (rhsAbs.isZero()) return new BigFloat(0, this._precision);
-    return this.absoluteDiff(rhs).div(rhsAbs).mul(100);
-  }
-  /** 加算する */
-  add(other) {
-    const rhs = _BigFloatComplex._toComplex(other, this._precision);
-    return _BigFloatComplex._fromBigFloats(this._real.add(rhs._real), this._imag.add(rhs._imag));
-  }
-  /** 減算する */
-  sub(other) {
-    const rhs = _BigFloatComplex._toComplex(other, this._precision);
-    return _BigFloatComplex._fromBigFloats(this._real.sub(rhs._real), this._imag.sub(rhs._imag));
-  }
-  /** 乗算する */
-  mul(other) {
-    const rhs = _BigFloatComplex._toComplex(other, this._precision);
-    const real = this._real.mul(rhs._real).sub(this._imag.mul(rhs._imag));
-    const imag = this._real.mul(rhs._imag).add(this._imag.mul(rhs._real));
-    return _BigFloatComplex._fromBigFloats(real, imag);
-  }
-  /** 除算する */
-  div(other) {
-    const rhs = _BigFloatComplex._toComplex(other, this._precision);
-    const denominator = rhs.absSquared();
-    if (denominator.isZero()) throw new RangeError("Division by zero complex");
-    return this.mul(rhs.conjugate()).divByReal(denominator);
-  }
-  /** 実数で除算する */
-  divByReal(value) {
-    return _BigFloatComplex._fromBigFloats(this._real.div(value), this._imag.div(value));
-  }
-  /** 逆数を返す */
-  reciprocal() {
-    return _BigFloatComplex.one(this._precision).div(this);
-  }
-  /** 回転する */
-  rotate(angle) {
-    return this.mul(_BigFloatComplex.fromPolar(1, angle, this._precision));
-  }
-  /** 指数関数を計算する */
-  exp() {
-    const realExp = this._real.exp();
-    return _BigFloatComplex._fromBigFloats(realExp.mul(this._imag.cos()), realExp.mul(this._imag.sin()));
-  }
-  /** exp(z)-1 を計算する */
-  expm1() {
-    return this.exp().sub(1);
-  }
-  /** 自然対数を計算する */
-  ln() {
-    if (this.isZero()) throw new RangeError("ln(0) is undefined");
-    return _BigFloatComplex._fromBigFloats(this.abs().ln(), this.arg());
-  }
-  /** 対数を計算する */
-  log(base) {
-    return this.ln().div(_BigFloatComplex._toComplex(base, this._precision).ln());
-  }
-  /** 冪乗を計算する */
-  pow(exponent) {
-    const rhs = _BigFloatComplex._toComplex(exponent, this._precision);
-    if (rhs.isZero()) return _BigFloatComplex.one(this._precision);
-    if (this.isZero()) {
-      if (rhs.isReal() && rhs._real.gt(0)) return _BigFloatComplex.zero(this._precision);
-      throw new RangeError("0 cannot be raised to this exponent");
-    }
-    return this.ln().mul(rhs).exp();
-  }
-  /** 平方根を計算する */
-  sqrt() {
-    if (this.isZero()) return _BigFloatComplex.zero(this._precision);
-    const radius = this.abs();
-    const two = new BigFloat(2, this._precision);
-    const real = radius.add(this._real).div(two).sqrt();
-    const imagMagnitude = radius.sub(this._real).div(two).sqrt();
-    const imagSign = this._imag.isZero() && this._real.isNegative() ? new BigFloat(1, this._precision) : this._imag.sign();
-    const imag = imagSign.mul(imagMagnitude);
-    return _BigFloatComplex._fromBigFloats(real, imag);
-  }
-  /** 立方根を計算する */
-  cbrt() {
-    return this.nthRoot(3);
-  }
-  /** 主値の n 乗根を計算する */
-  nthRoot(n) {
-    const roots = this.nthRoots(n);
-    return roots[0];
-  }
-  /** n 乗根を全て返す */
-  nthRoots(n) {
-    const degree = typeof n === "number" ? Math.trunc(n) : Number(n);
-    if (!Number.isFinite(degree) || degree <= 0 || !Number.isInteger(degree)) throw new RangeError("Root degree must be a positive integer");
-    if (this.isZero()) return [_BigFloatComplex.zero(this._precision)];
-    const count = BigInt(degree);
-    const magnitude = this.abs().nthRoot(count);
-    const angle = this.arg();
-    const tau = BigFloat.tau(this._precision);
-    return Array.from({ length: degree }, (_, index) => _BigFloatComplex.fromPolar(magnitude, angle.add(tau.mul(index)).div(count), this._precision));
-  }
-  /** 正弦を計算する */
-  sin() {
-    return _BigFloatComplex._fromBigFloats(this._real.sin().mul(this._imag.cosh()), this._real.cos().mul(this._imag.sinh()));
-  }
-  /** 余弦を計算する */
-  cos() {
-    return _BigFloatComplex._fromBigFloats(this._real.cos().mul(this._imag.cosh()), this._real.sin().mul(this._imag.sinh()).neg());
-  }
-  /** 正接を計算する */
-  tan() {
-    return this.sin().div(this.cos());
-  }
-  /** 双曲線正弦を計算する */
-  sinh() {
-    return _BigFloatComplex._fromBigFloats(this._real.sinh().mul(this._imag.cos()), this._real.cosh().mul(this._imag.sin()));
-  }
-  /** 双曲線余弦を計算する */
-  cosh() {
-    return _BigFloatComplex._fromBigFloats(this._real.cosh().mul(this._imag.cos()), this._real.sinh().mul(this._imag.sin()));
-  }
-  /** 双曲線正接を計算する */
-  tanh() {
-    return this.sinh().div(this.cosh());
-  }
-  /** 逆正弦を計算する */
-  asin() {
-    const i = _BigFloatComplex.i(this._precision);
-    const one = _BigFloatComplex.one(this._precision);
-    return i.neg().mul(
-      i.mul(this).add(one.sub(this.mul(this)).sqrt()).ln()
-    );
-  }
-  /** 逆余弦を計算する */
-  acos() {
-    const halfPi = _BigFloatComplex.pi(this._precision).div(2);
-    return halfPi.sub(this.asin());
-  }
-  /** 逆正接を計算する */
-  atan() {
-    const i = _BigFloatComplex.i(this._precision);
-    const one = _BigFloatComplex.one(this._precision);
-    return i.mul(
-      one.sub(i.mul(this)).ln().sub(one.add(i.mul(this)).ln())
-    ).div(2);
-  }
-  /** 逆双曲線正弦を計算する */
-  asinh() {
-    return this.mul(this).add(1).sqrt().add(this).ln();
-  }
-  /** 逆双曲線余弦を計算する */
-  acosh() {
-    const one = _BigFloatComplex.one(this._precision);
-    return this.add(this.add(one).sqrt().mul(this.sub(one).sqrt())).ln();
-  }
-  /** 逆双曲線正接を計算する */
-  atanh() {
-    const one = _BigFloatComplex.one(this._precision);
-    return one.add(this).ln().sub(one.sub(this).ln()).div(2);
-  }
-};
 export {
   BigFloat,
   BigFloatComplex,
@@ -7865,6 +7884,7 @@ export {
   RoundingMode,
   SpecialValueState,
   SpecialValuesDisabledError,
-  bigFloat
+  bigFloat,
+  bigFloatComplex
 };
 //# sourceMappingURL=BigFloat.js.map

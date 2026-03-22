@@ -40,6 +40,8 @@ export enum SpecialValueState {
 export interface BigFloatOptions {
 	/** 精度の不一致を許容するかどうか */
 	allowPrecisionMismatch?: boolean;
+	/** BigFloatComplex との相互運用を許容するかどうか */
+	allowComplexNumbers?: boolean;
 	/** 破壊的な計算(自身の上書き)をするかどうか */
 	mutateResult?: boolean;
 	/** Infinity/NaN の特殊値を許容するかどうか */
