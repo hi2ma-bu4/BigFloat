@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.2.15
+ * BigFloat 1.3.1
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -5300,6 +5300,30 @@ var BigFloatStream = class _BigFloatStream {
     return this.map((x) => x.clone().changePrecision(precisionBig));
   }
   /**
+   * 各要素と指定値の相対差を計算する
+   * @param other - 比較対象
+   * @returns 相対差を要素ごとに計算したストリーム
+   */
+  relativeDiff(other) {
+    return this.map((x) => x.relativeDiff(other));
+  }
+  /**
+   * 各要素と指定値の絶対差を計算する
+   * @param other - 比較対象
+   * @returns 絶対差を要素ごとに計算したストリーム
+   */
+  absoluteDiff(other) {
+    return this.map((x) => x.absoluteDiff(other));
+  }
+  /**
+   * 各要素と指定値の百分率差分を計算する
+   * @param other - 比較対象
+   * @returns 百分率差分を要素ごとに計算したストリーム
+   */
+  percentDiff(other) {
+    return this.map((x) => x.percentDiff(other));
+  }
+  /**
    * 各要素に加算する
    * @param other - 加算する値
    * @returns 加算後のストリーム
@@ -5354,6 +5378,13 @@ var BigFloatStream = class _BigFloatStream {
     return this.map((x) => x.abs());
   }
   /**
+   * 各要素の符号を取得する
+   * @returns 符号後のストリーム
+   */
+  sign() {
+    return this.map((x) => x.sign());
+  }
+  /**
    * 各要素の逆数を取得する
    * @returns 逆数後のストリーム
    */
@@ -5389,6 +5420,218 @@ var BigFloatStream = class _BigFloatStream {
    */
   nthRoot(n) {
     return this.map((x) => x.nthRoot(n));
+  }
+  /**
+   * 各要素を切り下げる
+   * @returns 切り下げ後のストリーム
+   */
+  floor() {
+    return this.map((x) => x.floor());
+  }
+  /**
+   * 各要素を切り上げる
+   * @returns 切り上げ後のストリーム
+   */
+  ceil() {
+    return this.map((x) => x.ceil());
+  }
+  /**
+   * 各要素を四捨五入する
+   * @returns 四捨五入後のストリーム
+   */
+  round() {
+    return this.map((x) => x.round());
+  }
+  /**
+   * 各要素を0方向へ切り捨てる
+   * @returns 切り捨て後のストリーム
+   */
+  trunc() {
+    return this.map((x) => x.trunc());
+  }
+  /**
+   * 各要素をFloat32相当に丸める
+   * @returns Float32相当へ丸めたストリーム
+   */
+  fround() {
+    return this.map((x) => x.fround());
+  }
+  /**
+   * 各要素の先頭ゼロビット数を取得する
+   * @returns 先頭ゼロビット数のストリーム
+   */
+  clz32() {
+    return this.map((x) => x.clz32());
+  }
+  /**
+   * 各要素の正弦を計算する
+   * @returns 正弦後のストリーム
+   */
+  sin() {
+    return this.map((x) => x.sin());
+  }
+  /**
+   * 各要素の余弦を計算する
+   * @returns 余弦後のストリーム
+   */
+  cos() {
+    return this.map((x) => x.cos());
+  }
+  /**
+   * 各要素の正接を計算する
+   * @returns 正接後のストリーム
+   */
+  tan() {
+    return this.map((x) => x.tan());
+  }
+  /**
+   * 各要素の逆正弦を計算する
+   * @returns 逆正弦後のストリーム
+   */
+  asin() {
+    return this.map((x) => x.asin());
+  }
+  /**
+   * 各要素の逆余弦を計算する
+   * @returns 逆余弦後のストリーム
+   */
+  acos() {
+    return this.map((x) => x.acos());
+  }
+  /**
+   * 各要素の逆正接を計算する
+   * @returns 逆正接後のストリーム
+   */
+  atan() {
+    return this.map((x) => x.atan());
+  }
+  /**
+   * 各要素と指定値から逆正接を計算する
+   * @param x - x座標
+   * @returns 逆正接後のストリーム
+   */
+  atan2(x) {
+    return this.map((value) => value.atan2(x));
+  }
+  /**
+   * 各要素の双曲線正弦を計算する
+   * @returns 双曲線正弦後のストリーム
+   */
+  sinh() {
+    return this.map((x) => x.sinh());
+  }
+  /**
+   * 各要素の双曲線余弦を計算する
+   * @returns 双曲線余弦後のストリーム
+   */
+  cosh() {
+    return this.map((x) => x.cosh());
+  }
+  /**
+   * 各要素の双曲線正接を計算する
+   * @returns 双曲線正接後のストリーム
+   */
+  tanh() {
+    return this.map((x) => x.tanh());
+  }
+  /**
+   * 各要素の逆双曲線正弦を計算する
+   * @returns 逆双曲線正弦後のストリーム
+   */
+  asinh() {
+    return this.map((x) => x.asinh());
+  }
+  /**
+   * 各要素の逆双曲線余弦を計算する
+   * @returns 逆双曲線余弦後のストリーム
+   */
+  acosh() {
+    return this.map((x) => x.acosh());
+  }
+  /**
+   * 各要素の逆双曲線正接を計算する
+   * @returns 逆双曲線正接後のストリーム
+   */
+  atanh() {
+    return this.map((x) => x.atanh());
+  }
+  /**
+   * 各要素の指数関数を計算する
+   * @returns 指数関数適用後のストリーム
+   */
+  exp() {
+    return this.map((x) => x.exp());
+  }
+  /**
+   * 各要素の2冪指数関数を計算する
+   * @returns 2冪指数関数適用後のストリーム
+   */
+  exp2() {
+    return this.map((x) => x.exp2());
+  }
+  /**
+   * 各要素のexp(x)-1を計算する
+   * @returns expm1適用後のストリーム
+   */
+  expm1() {
+    return this.map((x) => x.expm1());
+  }
+  /**
+   * 各要素の自然対数を計算する
+   * @returns 自然対数後のストリーム
+   */
+  ln() {
+    return this.map((x) => x.ln());
+  }
+  /**
+   * 各要素の任意底対数を計算する
+   * @param base - 底
+   * @returns 対数後のストリーム
+   */
+  log(base) {
+    return this.map((x) => x.log(base));
+  }
+  /**
+   * 各要素の底2対数を計算する
+   * @returns 底2対数後のストリーム
+   */
+  log2() {
+    return this.map((x) => x.log2());
+  }
+  /**
+   * 各要素の底10対数を計算する
+   * @returns 底10対数後のストリーム
+   */
+  log10() {
+    return this.map((x) => x.log10());
+  }
+  /**
+   * 各要素のlog(1+x)を計算する
+   * @returns log1p適用後のストリーム
+   */
+  log1p() {
+    return this.map((x) => x.log1p());
+  }
+  /**
+   * 各要素のガンマ関数を計算する
+   * @returns ガンマ関数適用後のストリーム
+   */
+  gamma() {
+    return this.map((x) => x.gamma());
+  }
+  /**
+   * 各要素のゼータ関数を計算する
+   * @returns ゼータ関数適用後のストリーム
+   */
+  zeta() {
+    return this.map((x) => x.zeta());
+  }
+  /**
+   * 各要素の階乗を計算する
+   * @returns 階乗後のストリーム
+   */
+  factorial() {
+    return this.map((x) => x.factorial());
   }
   /**
    * 要素の最大値を返す (終端操作)

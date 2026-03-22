@@ -2027,6 +2027,24 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 */
 	changePrecision(precision: PrecisionValue): this;
 	/**
+	 * 各要素と指定値の相対差を計算する
+	 * @param other - 比較対象
+	 * @returns 相対差を要素ごとに計算したストリーム
+	 */
+	relativeDiff(other: BigFloatValue): this;
+	/**
+	 * 各要素と指定値の絶対差を計算する
+	 * @param other - 比較対象
+	 * @returns 絶対差を要素ごとに計算したストリーム
+	 */
+	absoluteDiff(other: BigFloatValue): this;
+	/**
+	 * 各要素と指定値の百分率差分を計算する
+	 * @param other - 比較対象
+	 * @returns 百分率差分を要素ごとに計算したストリーム
+	 */
+	percentDiff(other: BigFloatValue): this;
+	/**
 	 * 各要素に加算する
 	 * @param other - 加算する値
 	 * @returns 加算後のストリーム
@@ -2067,6 +2085,11 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 */
 	abs(): this;
 	/**
+	 * 各要素の符号を取得する
+	 * @returns 符号後のストリーム
+	 */
+	sign(): this;
+	/**
 	 * 各要素の逆数を取得する
 	 * @returns 逆数後のストリーム
 	 */
@@ -2093,6 +2116,158 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns n乗根後のストリーム
 	 */
 	nthRoot(n: number | bigint): this;
+	/**
+	 * 各要素を切り下げる
+	 * @returns 切り下げ後のストリーム
+	 */
+	floor(): this;
+	/**
+	 * 各要素を切り上げる
+	 * @returns 切り上げ後のストリーム
+	 */
+	ceil(): this;
+	/**
+	 * 各要素を四捨五入する
+	 * @returns 四捨五入後のストリーム
+	 */
+	round(): this;
+	/**
+	 * 各要素を0方向へ切り捨てる
+	 * @returns 切り捨て後のストリーム
+	 */
+	trunc(): this;
+	/**
+	 * 各要素をFloat32相当に丸める
+	 * @returns Float32相当へ丸めたストリーム
+	 */
+	fround(): this;
+	/**
+	 * 各要素の先頭ゼロビット数を取得する
+	 * @returns 先頭ゼロビット数のストリーム
+	 */
+	clz32(): this;
+	/**
+	 * 各要素の正弦を計算する
+	 * @returns 正弦後のストリーム
+	 */
+	sin(): this;
+	/**
+	 * 各要素の余弦を計算する
+	 * @returns 余弦後のストリーム
+	 */
+	cos(): this;
+	/**
+	 * 各要素の正接を計算する
+	 * @returns 正接後のストリーム
+	 */
+	tan(): this;
+	/**
+	 * 各要素の逆正弦を計算する
+	 * @returns 逆正弦後のストリーム
+	 */
+	asin(): this;
+	/**
+	 * 各要素の逆余弦を計算する
+	 * @returns 逆余弦後のストリーム
+	 */
+	acos(): this;
+	/**
+	 * 各要素の逆正接を計算する
+	 * @returns 逆正接後のストリーム
+	 */
+	atan(): this;
+	/**
+	 * 各要素と指定値から逆正接を計算する
+	 * @param x - x座標
+	 * @returns 逆正接後のストリーム
+	 */
+	atan2(x: BigFloatValue): this;
+	/**
+	 * 各要素の双曲線正弦を計算する
+	 * @returns 双曲線正弦後のストリーム
+	 */
+	sinh(): this;
+	/**
+	 * 各要素の双曲線余弦を計算する
+	 * @returns 双曲線余弦後のストリーム
+	 */
+	cosh(): this;
+	/**
+	 * 各要素の双曲線正接を計算する
+	 * @returns 双曲線正接後のストリーム
+	 */
+	tanh(): this;
+	/**
+	 * 各要素の逆双曲線正弦を計算する
+	 * @returns 逆双曲線正弦後のストリーム
+	 */
+	asinh(): this;
+	/**
+	 * 各要素の逆双曲線余弦を計算する
+	 * @returns 逆双曲線余弦後のストリーム
+	 */
+	acosh(): this;
+	/**
+	 * 各要素の逆双曲線正接を計算する
+	 * @returns 逆双曲線正接後のストリーム
+	 */
+	atanh(): this;
+	/**
+	 * 各要素の指数関数を計算する
+	 * @returns 指数関数適用後のストリーム
+	 */
+	exp(): this;
+	/**
+	 * 各要素の2冪指数関数を計算する
+	 * @returns 2冪指数関数適用後のストリーム
+	 */
+	exp2(): this;
+	/**
+	 * 各要素のexp(x)-1を計算する
+	 * @returns expm1適用後のストリーム
+	 */
+	expm1(): this;
+	/**
+	 * 各要素の自然対数を計算する
+	 * @returns 自然対数後のストリーム
+	 */
+	ln(): this;
+	/**
+	 * 各要素の任意底対数を計算する
+	 * @param base - 底
+	 * @returns 対数後のストリーム
+	 */
+	log(base: BigFloatValue): this;
+	/**
+	 * 各要素の底2対数を計算する
+	 * @returns 底2対数後のストリーム
+	 */
+	log2(): this;
+	/**
+	 * 各要素の底10対数を計算する
+	 * @returns 底10対数後のストリーム
+	 */
+	log10(): this;
+	/**
+	 * 各要素のlog(1+x)を計算する
+	 * @returns log1p適用後のストリーム
+	 */
+	log1p(): this;
+	/**
+	 * 各要素のガンマ関数を計算する
+	 * @returns ガンマ関数適用後のストリーム
+	 */
+	gamma(): this;
+	/**
+	 * 各要素のゼータ関数を計算する
+	 * @returns ゼータ関数適用後のストリーム
+	 */
+	zeta(): this;
+	/**
+	 * 各要素の階乗を計算する
+	 * @returns 階乗後のストリーム
+	 */
+	factorial(): this;
 	/**
 	 * 要素の最大値を返す (終端操作)
 	 * @returns 最大値

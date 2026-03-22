@@ -2376,6 +2376,45 @@ changePrecision(precision: number | bigint): BigFloatStream
 
 **Returns**: 精度が変更されたストリーム
 
+#### `relativeDiff`
+
+```ts
+relativeDiff(other: string | number | bigint | BigFloat): BigFloatStream
+```
+
+各要素と指定値の相対差を計算する
+
+**Parameters**
+- `other`: 比較対象
+
+**Returns**: 相対差を要素ごとに計算したストリーム
+
+#### `absoluteDiff`
+
+```ts
+absoluteDiff(other: string | number | bigint | BigFloat): BigFloatStream
+```
+
+各要素と指定値の絶対差を計算する
+
+**Parameters**
+- `other`: 比較対象
+
+**Returns**: 絶対差を要素ごとに計算したストリーム
+
+#### `percentDiff`
+
+```ts
+percentDiff(other: string | number | bigint | BigFloat): BigFloatStream
+```
+
+各要素と指定値の百分率差分を計算する
+
+**Parameters**
+- `other`: 比較対象
+
+**Returns**: 百分率差分を要素ごとに計算したストリーム
+
 #### `add`
 
 ```ts
@@ -2461,6 +2500,16 @@ abs(): BigFloatStream
 
 **Returns**: 絶対値後のストリーム
 
+#### `sign`
+
+```ts
+sign(): BigFloatStream
+```
+
+各要素の符号を取得する
+
+**Returns**: 符号後のストリーム
+
 #### `reciprocal`
 
 ```ts
@@ -2516,6 +2565,312 @@ nthRoot(n: number | bigint): BigFloatStream
 - `n`: 指数
 
 **Returns**: n乗根後のストリーム
+
+#### `floor`
+
+```ts
+floor(): BigFloatStream
+```
+
+各要素を切り下げる
+
+**Returns**: 切り下げ後のストリーム
+
+#### `ceil`
+
+```ts
+ceil(): BigFloatStream
+```
+
+各要素を切り上げる
+
+**Returns**: 切り上げ後のストリーム
+
+#### `round`
+
+```ts
+round(): BigFloatStream
+```
+
+各要素を四捨五入する
+
+**Returns**: 四捨五入後のストリーム
+
+#### `trunc`
+
+```ts
+trunc(): BigFloatStream
+```
+
+各要素を0方向へ切り捨てる
+
+**Returns**: 切り捨て後のストリーム
+
+#### `fround`
+
+```ts
+fround(): BigFloatStream
+```
+
+各要素をFloat32相当に丸める
+
+**Returns**: Float32相当へ丸めたストリーム
+
+#### `clz32`
+
+```ts
+clz32(): BigFloatStream
+```
+
+各要素の先頭ゼロビット数を取得する
+
+**Returns**: 先頭ゼロビット数のストリーム
+
+#### `sin`
+
+```ts
+sin(): BigFloatStream
+```
+
+各要素の正弦を計算する
+
+**Returns**: 正弦後のストリーム
+
+#### `cos`
+
+```ts
+cos(): BigFloatStream
+```
+
+各要素の余弦を計算する
+
+**Returns**: 余弦後のストリーム
+
+#### `tan`
+
+```ts
+tan(): BigFloatStream
+```
+
+各要素の正接を計算する
+
+**Returns**: 正接後のストリーム
+
+#### `asin`
+
+```ts
+asin(): BigFloatStream
+```
+
+各要素の逆正弦を計算する
+
+**Returns**: 逆正弦後のストリーム
+
+#### `acos`
+
+```ts
+acos(): BigFloatStream
+```
+
+各要素の逆余弦を計算する
+
+**Returns**: 逆余弦後のストリーム
+
+#### `atan`
+
+```ts
+atan(): BigFloatStream
+```
+
+各要素の逆正接を計算する
+
+**Returns**: 逆正接後のストリーム
+
+#### `atan2`
+
+```ts
+atan2(x: string | number | bigint | BigFloat): BigFloatStream
+```
+
+各要素と指定値から逆正接を計算する
+
+**Parameters**
+- `x`: x座標
+
+**Returns**: 逆正接後のストリーム
+
+#### `sinh`
+
+```ts
+sinh(): BigFloatStream
+```
+
+各要素の双曲線正弦を計算する
+
+**Returns**: 双曲線正弦後のストリーム
+
+#### `cosh`
+
+```ts
+cosh(): BigFloatStream
+```
+
+各要素の双曲線余弦を計算する
+
+**Returns**: 双曲線余弦後のストリーム
+
+#### `tanh`
+
+```ts
+tanh(): BigFloatStream
+```
+
+各要素の双曲線正接を計算する
+
+**Returns**: 双曲線正接後のストリーム
+
+#### `asinh`
+
+```ts
+asinh(): BigFloatStream
+```
+
+各要素の逆双曲線正弦を計算する
+
+**Returns**: 逆双曲線正弦後のストリーム
+
+#### `acosh`
+
+```ts
+acosh(): BigFloatStream
+```
+
+各要素の逆双曲線余弦を計算する
+
+**Returns**: 逆双曲線余弦後のストリーム
+
+#### `atanh`
+
+```ts
+atanh(): BigFloatStream
+```
+
+各要素の逆双曲線正接を計算する
+
+**Returns**: 逆双曲線正接後のストリーム
+
+#### `exp`
+
+```ts
+exp(): BigFloatStream
+```
+
+各要素の指数関数を計算する
+
+**Returns**: 指数関数適用後のストリーム
+
+#### `exp2`
+
+```ts
+exp2(): BigFloatStream
+```
+
+各要素の2冪指数関数を計算する
+
+**Returns**: 2冪指数関数適用後のストリーム
+
+#### `expm1`
+
+```ts
+expm1(): BigFloatStream
+```
+
+各要素のexp(x)-1を計算する
+
+**Returns**: expm1適用後のストリーム
+
+#### `ln`
+
+```ts
+ln(): BigFloatStream
+```
+
+各要素の自然対数を計算する
+
+**Returns**: 自然対数後のストリーム
+
+#### `log`
+
+```ts
+log(base: string | number | bigint | BigFloat): BigFloatStream
+```
+
+各要素の任意底対数を計算する
+
+**Parameters**
+- `base`: 底
+
+**Returns**: 対数後のストリーム
+
+#### `log2`
+
+```ts
+log2(): BigFloatStream
+```
+
+各要素の底2対数を計算する
+
+**Returns**: 底2対数後のストリーム
+
+#### `log10`
+
+```ts
+log10(): BigFloatStream
+```
+
+各要素の底10対数を計算する
+
+**Returns**: 底10対数後のストリーム
+
+#### `log1p`
+
+```ts
+log1p(): BigFloatStream
+```
+
+各要素のlog(1+x)を計算する
+
+**Returns**: log1p適用後のストリーム
+
+#### `gamma`
+
+```ts
+gamma(): BigFloatStream
+```
+
+各要素のガンマ関数を計算する
+
+**Returns**: ガンマ関数適用後のストリーム
+
+#### `zeta`
+
+```ts
+zeta(): BigFloatStream
+```
+
+各要素のゼータ関数を計算する
+
+**Returns**: ゼータ関数適用後のストリーム
+
+#### `factorial`
+
+```ts
+factorial(): BigFloatStream
+```
+
+各要素の階乗を計算する
+
+**Returns**: 階乗後のストリーム
 
 #### `max`
 
