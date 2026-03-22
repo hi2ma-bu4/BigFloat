@@ -8,6 +8,7 @@
 - [`BigFloat`](#bigfloat-1)
 - [`BigFloatConfig`](#bigfloatconfig)
 - [`BigFloatStream`](#bigfloatstream)
+- [`BigFloatVector`](#bigfloatvector)
 - [`BigFloatError`](#bigfloaterror)
 - [`CacheNotInitializedError`](#cachenotinitializederror)
 - [`DivisionByZeroError`](#divisionbyzeroerror)
@@ -2951,6 +2952,1063 @@ stddev(): BigFloat
 要素の標準偏差を返す (終端操作)
 
 **Returns**: 標準偏差
+
+<a id="bigfloatvector"></a>
+
+## `BigFloatVector`
+
+BigFloat を固定長ベクトルとして扱うクラス
+
+```ts
+class BigFloatVector
+```
+
+### Constructor
+
+#### `constructor`
+
+```ts
+constructor(values?: Iterable<BigFloatValue>, precision?: number | bigint): BigFloatVector
+```
+
+BigFloat を固定長ベクトルとして扱うクラス
+
+**Parameters**
+- `values`: 要素列
+- `precision`: 変換時の精度
+
+### Static Methods
+
+#### `empty`
+
+```ts
+empty(): BigFloatVector
+```
+
+空ベクトルを生成する
+
+**Returns**: 空ベクトル
+
+#### `from`
+
+```ts
+from(values: Iterable<BigFloatValue>, precision?: number | bigint): BigFloatVector
+```
+
+要素列からベクトルを生成する
+
+**Parameters**
+- `values`: 要素列
+- `precision`: 変換時の精度
+
+**Returns**: BigFloatVector
+
+#### `fromStream`
+
+```ts
+fromStream(stream: BigFloatStream): BigFloatVector
+```
+
+Stream からベクトルを生成する
+
+**Parameters**
+- `stream`: 変換元ストリーム
+
+**Returns**: BigFloatVector
+
+#### `of`
+
+```ts
+of(...values: string | number | bigint | BigFloat[]): BigFloatVector
+```
+
+値の並びからベクトルを生成する
+
+**Parameters**
+- `values`: 要素列
+
+**Returns**: BigFloatVector
+
+#### `fill`
+
+```ts
+fill(length: number, value: string | number | bigint | BigFloat, precision?: number | bigint): BigFloatVector
+```
+
+指定値で埋めたベクトルを生成する
+
+**Parameters**
+- `length`: ベクトル長
+- `value`: 埋める値
+- `precision`: 精度
+
+**Returns**: BigFloatVector
+
+#### `zeros`
+
+```ts
+zeros(length: number, precision?: number | bigint): BigFloatVector
+```
+
+0ベクトルを生成する
+
+**Parameters**
+- `length`: ベクトル長
+- `precision`: 精度
+
+**Returns**: BigFloatVector
+
+#### `ones`
+
+```ts
+ones(length: number, precision?: number | bigint): BigFloatVector
+```
+
+1ベクトルを生成する
+
+**Parameters**
+- `length`: ベクトル長
+- `precision`: 精度
+
+**Returns**: BigFloatVector
+
+#### `basis`
+
+```ts
+basis(length: number, index: number, precision?: number | bigint): BigFloatVector
+```
+
+標準基底ベクトルを生成する
+
+**Parameters**
+- `length`: ベクトル長
+- `index`: 1を置く位置
+- `precision`: 精度
+
+**Returns**: BigFloatVector
+
+#### `linspace`
+
+```ts
+linspace(start: string | number | bigint | BigFloat, end: string | number | bigint | BigFloat, count: number, precision?: number | bigint): BigFloatVector
+```
+
+線形補間ベクトルを生成する
+
+**Parameters**
+- `start`: 開始値
+- `end`: 終了値
+- `count`: 要素数
+- `precision`: 精度
+
+**Returns**: BigFloatVector
+
+#### `random`
+
+```ts
+random(length: number, options?: { min?: string | number | bigint | BigFloat; max?: string | number | bigint | BigFloat; precision?: number | bigint }): BigFloatVector
+```
+
+乱数ベクトルを生成する
+
+**Parameters**
+- `length`: ベクトル長
+- `options`: 生成オプション
+
+**Returns**: BigFloatVector
+
+### Instance Properties
+
+#### `length`
+
+```ts
+length: number
+```
+
+ベクトル長
+
+### Instance Methods
+
+#### `dimension`
+
+```ts
+dimension(): number
+```
+
+ベクトルの次元数を返す
+
+**Returns**: 次元数
+
+#### `isEmpty`
+
+```ts
+isEmpty(): boolean
+```
+
+空ベクトルかどうか
+
+**Returns**: 空ならtrue
+
+#### `at`
+
+```ts
+at(index: number): undefined | BigFloat
+```
+
+指定位置の値を取得する
+
+**Parameters**
+- `index`: インデックス
+
+**Returns**: 値またはundefined
+
+#### `clone`
+
+```ts
+clone(): BigFloatVector
+```
+
+ベクトルを複製する
+
+**Returns**: 複製されたベクトル
+
+#### `toArray`
+
+```ts
+toArray(): BigFloat[]
+```
+
+配列へ変換する
+
+**Returns**: 要素配列
+
+#### `toStream`
+
+```ts
+toStream(): BigFloatStream
+```
+
+Stream へ変換する
+
+**Returns**: BigFloatStream
+
+#### `[Symbol.iterator]`
+
+```ts
+[Symbol.iterator](): Iterator<BigFloat, void, undefined>
+```
+
+イテレータ
+
+**Returns**: イテレータ
+
+#### `forEach`
+
+```ts
+forEach(fn: (value: BigFloat, index: number): void): void
+```
+
+各要素に処理を適用する
+
+**Parameters**
+- `fn`: 処理関数
+
+#### `map`
+
+```ts
+map(fn: (value: BigFloat, index: number): string | number | bigint | BigFloat): BigFloatVector
+```
+
+要素ごとに変換する
+
+**Parameters**
+- `fn`: 変換関数
+
+**Returns**: 変換後ベクトル
+
+#### `zipMap`
+
+```ts
+zipMap(other: BigFloatVector | Iterable<BigFloatValue>, fn: (left: BigFloat, right: BigFloat, index: number): string | number | bigint | BigFloat): BigFloatVector
+```
+
+2つのベクトルを要素ごとに変換する
+
+**Parameters**
+- `other`: 対象ベクトル
+- `fn`: 変換関数
+
+**Returns**: 変換後ベクトル
+
+#### `reduce`
+
+```ts
+reduce<U>(fn: (acc: U, value: BigFloat, index: number): U, initial: U): U
+```
+
+畳み込み処理を行う
+
+**Parameters**
+- `fn`: 畳み込み関数
+- `initial`: 初期値
+
+**Returns**: 畳み込み結果
+
+#### `some`
+
+```ts
+some(fn: (value: BigFloat, index: number): boolean): boolean
+```
+
+条件に一致する要素があるか
+
+**Parameters**
+- `fn`: 判定関数
+
+**Returns**: 条件に一致する要素があればtrue
+
+#### `every`
+
+```ts
+every(fn: (value: BigFloat, index: number): boolean): boolean
+```
+
+すべての要素が条件を満たすか
+
+**Parameters**
+- `fn`: 判定関数
+
+**Returns**: すべて満たせばtrue
+
+#### `concat`
+
+```ts
+concat(...others: BigFloatVector | Iterable<BigFloatValue>[]): BigFloatVector
+```
+
+ベクトルを連結する
+
+**Parameters**
+- `others`: 連結対象
+
+**Returns**: 連結後ベクトル
+
+#### `slice`
+
+```ts
+slice(start?: number, end?: number): BigFloatVector
+```
+
+スライスする
+
+**Parameters**
+- `start`: 開始位置
+- `end`: 終了位置
+
+**Returns**: スライス後ベクトル
+
+#### `reverse`
+
+```ts
+reverse(): BigFloatVector
+```
+
+逆順にする
+
+**Returns**: 逆順ベクトル
+
+#### `changePrecision`
+
+```ts
+changePrecision(precision: number | bigint): BigFloatVector
+```
+
+すべての要素の精度を変更する
+
+**Parameters**
+- `precision`: 新しい精度
+
+**Returns**: 精度変更後ベクトル
+
+#### `equals`
+
+```ts
+equals(other: BigFloatVector | Iterable<BigFloatValue>): boolean
+```
+
+ベクトル同士の一致判定
+
+**Parameters**
+- `other`: 比較対象
+
+**Returns**: 一致すればtrue
+
+#### `add`
+
+```ts
+add(other: string | number | bigint | BigFloat | BigFloatVector | Iterable<BigFloatValue>): BigFloatVector
+```
+
+各要素へ加算する
+
+**Parameters**
+- `other`: スカラ値またはベクトル
+
+**Returns**: 加算後ベクトル
+
+#### `sub`
+
+```ts
+sub(other: string | number | bigint | BigFloat | BigFloatVector | Iterable<BigFloatValue>): BigFloatVector
+```
+
+各要素から減算する
+
+**Parameters**
+- `other`: スカラ値またはベクトル
+
+**Returns**: 減算後ベクトル
+
+#### `mul`
+
+```ts
+mul(scalar: string | number | bigint | BigFloat): BigFloatVector
+```
+
+スカラ倍する
+
+**Parameters**
+- `scalar`: スカラ値
+
+**Returns**: 乗算後ベクトル
+
+#### `div`
+
+```ts
+div(scalar: string | number | bigint | BigFloat): BigFloatVector
+```
+
+スカラ除算する
+
+**Parameters**
+- `scalar`: スカラ値
+
+**Returns**: 除算後ベクトル
+
+#### `mod`
+
+```ts
+mod(other: string | number | bigint | BigFloat | BigFloatVector | Iterable<BigFloatValue>): BigFloatVector
+```
+
+剰余を計算する
+
+**Parameters**
+- `other`: スカラ値またはベクトル
+
+**Returns**: 剰余後ベクトル
+
+#### `hadamard`
+
+```ts
+hadamard(other: BigFloatVector | Iterable<BigFloatValue>): BigFloatVector
+```
+
+要素ごとの積を計算する
+
+**Parameters**
+- `other`: 対象ベクトル
+
+**Returns**: Hadamard積
+
+#### `neg`
+
+```ts
+neg(): BigFloatVector
+```
+
+符号を反転する
+
+**Returns**: 反転後ベクトル
+
+#### `abs`
+
+```ts
+abs(): BigFloatVector
+```
+
+絶対値化する
+
+**Returns**: 絶対値ベクトル
+
+#### `sign`
+
+```ts
+sign(): BigFloatVector
+```
+
+符号ベクトルを返す
+
+**Returns**: 符号ベクトル
+
+#### `reciprocal`
+
+```ts
+reciprocal(): BigFloatVector
+```
+
+各要素の逆数を返す
+
+**Returns**: 逆数ベクトル
+
+#### `pow`
+
+```ts
+pow(exponent: string | number | bigint | BigFloat | BigFloatVector | Iterable<BigFloatValue>): BigFloatVector
+```
+
+要素ごとの冪乗を計算する
+
+**Parameters**
+- `exponent`: 指数
+
+**Returns**: 冪乗後ベクトル
+
+#### `sqrt`
+
+```ts
+sqrt(): BigFloatVector
+```
+
+各要素の平方根を計算する
+
+**Returns**: 平方根ベクトル
+
+#### `cbrt`
+
+```ts
+cbrt(): BigFloatVector
+```
+
+各要素の立方根を計算する
+
+**Returns**: 立方根ベクトル
+
+#### `nthRoot`
+
+```ts
+nthRoot(n: number | bigint): BigFloatVector
+```
+
+各要素のn乗根を計算する
+
+**Parameters**
+- `n`: 指数
+
+**Returns**: n乗根ベクトル
+
+#### `floor`
+
+```ts
+floor(): BigFloatVector
+```
+
+各要素を切り下げる
+
+**Returns**: 切り下げ後ベクトル
+
+#### `ceil`
+
+```ts
+ceil(): BigFloatVector
+```
+
+各要素を切り上げる
+
+**Returns**: 切り上げ後ベクトル
+
+#### `round`
+
+```ts
+round(): BigFloatVector
+```
+
+各要素を四捨五入する
+
+**Returns**: 四捨五入後ベクトル
+
+#### `trunc`
+
+```ts
+trunc(): BigFloatVector
+```
+
+各要素を0方向へ切り捨てる
+
+**Returns**: 切り捨て後ベクトル
+
+#### `fround`
+
+```ts
+fround(): BigFloatVector
+```
+
+各要素をFloat32相当に丸める
+
+**Returns**: Float32相当へ丸めたベクトル
+
+#### `clz32`
+
+```ts
+clz32(): BigFloatVector
+```
+
+各要素の先頭ゼロビット数を取得する
+
+**Returns**: 先頭ゼロビット数ベクトル
+
+#### `relativeDiff`
+
+```ts
+relativeDiff(other: string | number | bigint | BigFloat | BigFloatVector | Iterable<BigFloatValue>): BigFloatVector
+```
+
+相対差を計算する
+
+**Parameters**
+- `other`: 比較対象
+
+**Returns**: 相対差ベクトル
+
+#### `absoluteDiff`
+
+```ts
+absoluteDiff(other: string | number | bigint | BigFloat | BigFloatVector | Iterable<BigFloatValue>): BigFloatVector
+```
+
+絶対差を計算する
+
+**Parameters**
+- `other`: 比較対象
+
+**Returns**: 絶対差ベクトル
+
+#### `percentDiff`
+
+```ts
+percentDiff(other: string | number | bigint | BigFloat | BigFloatVector | Iterable<BigFloatValue>): BigFloatVector
+```
+
+百分率差分を計算する
+
+**Parameters**
+- `other`: 比較対象
+
+**Returns**: 百分率差分ベクトル
+
+#### `sin`
+
+```ts
+sin(): BigFloatVector
+```
+
+各要素の正弦を計算する
+
+**Returns**: 正弦ベクトル
+
+#### `cos`
+
+```ts
+cos(): BigFloatVector
+```
+
+各要素の余弦を計算する
+
+**Returns**: 余弦ベクトル
+
+#### `tan`
+
+```ts
+tan(): BigFloatVector
+```
+
+各要素の正接を計算する
+
+**Returns**: 正接ベクトル
+
+#### `asin`
+
+```ts
+asin(): BigFloatVector
+```
+
+各要素の逆正弦を計算する
+
+**Returns**: 逆正弦ベクトル
+
+#### `acos`
+
+```ts
+acos(): BigFloatVector
+```
+
+各要素の逆余弦を計算する
+
+**Returns**: 逆余弦ベクトル
+
+#### `atan`
+
+```ts
+atan(): BigFloatVector
+```
+
+各要素の逆正接を計算する
+
+**Returns**: 逆正接ベクトル
+
+#### `atan2`
+
+```ts
+atan2(x: string | number | bigint | BigFloat | BigFloatVector | Iterable<BigFloatValue>): BigFloatVector
+```
+
+各要素と逆正接を計算する
+
+**Parameters**
+- `x`: x座標
+
+**Returns**: 逆正接ベクトル
+
+#### `sinh`
+
+```ts
+sinh(): BigFloatVector
+```
+
+各要素の双曲線正弦を計算する
+
+**Returns**: 双曲線正弦ベクトル
+
+#### `cosh`
+
+```ts
+cosh(): BigFloatVector
+```
+
+各要素の双曲線余弦を計算する
+
+**Returns**: 双曲線余弦ベクトル
+
+#### `tanh`
+
+```ts
+tanh(): BigFloatVector
+```
+
+各要素の双曲線正接を計算する
+
+**Returns**: 双曲線正接ベクトル
+
+#### `asinh`
+
+```ts
+asinh(): BigFloatVector
+```
+
+各要素の逆双曲線正弦を計算する
+
+**Returns**: 逆双曲線正弦ベクトル
+
+#### `acosh`
+
+```ts
+acosh(): BigFloatVector
+```
+
+各要素の逆双曲線余弦を計算する
+
+**Returns**: 逆双曲線余弦ベクトル
+
+#### `atanh`
+
+```ts
+atanh(): BigFloatVector
+```
+
+各要素の逆双曲線正接を計算する
+
+**Returns**: 逆双曲線正接ベクトル
+
+#### `exp`
+
+```ts
+exp(): BigFloatVector
+```
+
+各要素の指数関数を計算する
+
+**Returns**: 指数関数ベクトル
+
+#### `exp2`
+
+```ts
+exp2(): BigFloatVector
+```
+
+各要素の2冪指数関数を計算する
+
+**Returns**: 2冪指数関数ベクトル
+
+#### `expm1`
+
+```ts
+expm1(): BigFloatVector
+```
+
+各要素のexp(x)-1を計算する
+
+**Returns**: expm1ベクトル
+
+#### `ln`
+
+```ts
+ln(): BigFloatVector
+```
+
+各要素の自然対数を計算する
+
+**Returns**: 自然対数ベクトル
+
+#### `log`
+
+```ts
+log(base: string | number | bigint | BigFloat | BigFloatVector | Iterable<BigFloatValue>): BigFloatVector
+```
+
+各要素の対数を計算する
+
+**Parameters**
+- `base`: 底
+
+**Returns**: 対数ベクトル
+
+#### `log2`
+
+```ts
+log2(): BigFloatVector
+```
+
+各要素の底2対数を計算する
+
+**Returns**: 底2対数ベクトル
+
+#### `log10`
+
+```ts
+log10(): BigFloatVector
+```
+
+各要素の底10対数を計算する
+
+**Returns**: 底10対数ベクトル
+
+#### `log1p`
+
+```ts
+log1p(): BigFloatVector
+```
+
+各要素のlog(1+x)を計算する
+
+**Returns**: log1pベクトル
+
+#### `gamma`
+
+```ts
+gamma(): BigFloatVector
+```
+
+各要素のガンマ関数を計算する
+
+**Returns**: ガンマ関数ベクトル
+
+#### `zeta`
+
+```ts
+zeta(): BigFloatVector
+```
+
+各要素のゼータ関数を計算する
+
+**Returns**: ゼータ関数ベクトル
+
+#### `factorial`
+
+```ts
+factorial(): BigFloatVector
+```
+
+各要素の階乗を計算する
+
+**Returns**: 階乗ベクトル
+
+#### `max`
+
+```ts
+max(): BigFloat
+```
+
+最大値を返す
+
+**Returns**: 最大値
+
+#### `min`
+
+```ts
+min(): BigFloat
+```
+
+最小値を返す
+
+**Returns**: 最小値
+
+#### `sum`
+
+```ts
+sum(): BigFloat
+```
+
+合計を返す
+
+**Returns**: 合計
+
+#### `product`
+
+```ts
+product(): BigFloat
+```
+
+積を返す
+
+**Returns**: 積
+
+#### `average`
+
+```ts
+average(): BigFloat
+```
+
+平均を返す
+
+**Returns**: 平均
+
+#### `dot`
+
+```ts
+dot(other: BigFloatVector | Iterable<BigFloatValue>): BigFloat
+```
+
+内積を返す
+
+**Parameters**
+- `other`: 対象ベクトル
+
+**Returns**: 内積
+
+#### `squaredNorm`
+
+```ts
+squaredNorm(): BigFloat
+```
+
+二乗ノルムを返す
+
+**Returns**: 二乗ノルム
+
+#### `norm`
+
+```ts
+norm(): BigFloat
+```
+
+ノルムを返す
+
+**Returns**: ノルム
+
+#### `normalize`
+
+```ts
+normalize(): BigFloatVector
+```
+
+正規化ベクトルを返す
+
+**Returns**: 正規化ベクトル
+
+#### `squaredDistanceTo`
+
+```ts
+squaredDistanceTo(other: BigFloatVector | Iterable<BigFloatValue>): BigFloat
+```
+
+二乗距離を返す
+
+**Parameters**
+- `other`: 対象ベクトル
+
+**Returns**: 二乗距離
+
+#### `distanceTo`
+
+```ts
+distanceTo(other: BigFloatVector | Iterable<BigFloatValue>): BigFloat
+```
+
+距離を返す
+
+**Parameters**
+- `other`: 対象ベクトル
+
+**Returns**: 距離
+
+#### `projectOnto`
+
+```ts
+projectOnto(other: BigFloatVector | Iterable<BigFloatValue>): BigFloatVector
+```
+
+射影ベクトルを返す
+
+**Parameters**
+- `other`: 射影先ベクトル
+
+**Returns**: 射影ベクトル
+
+#### `angleTo`
+
+```ts
+angleTo(other: BigFloatVector | Iterable<BigFloatValue>): BigFloat
+```
+
+2ベクトルのなす角を返す
+
+**Parameters**
+- `other`: 対象ベクトル
+
+**Returns**: 角度
+
+#### `cross`
+
+```ts
+cross(other: BigFloatVector | Iterable<BigFloatValue>): BigFloatVector
+```
+
+3次元外積を返す
+
+**Parameters**
+- `other`: 対象ベクトル
+
+**Returns**: 外積ベクトル
 
 <a id="bigfloaterror"></a>
 

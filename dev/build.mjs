@@ -1,5 +1,5 @@
+import { generateDtsBundle } from "dts-bundle-generator";
 import { build } from "esbuild";
-import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
@@ -34,25 +34,6 @@ function cleanDir(dirPath) {
 		fs.rmSync(dirPath, { recursive: true, force: true });
 	}
 	fs.mkdirSync(dirPath, { recursive: true });
-}
-
-/**
- * コマンドを同期実行する（失敗時は即終了）
- * @param {string} command
- * @param {string[]} args
- * @param {string} cwd
- * @param {string} [errMes] - エラーメッセージ
- */
-function runCommand(command, args, cwd, errMes) {
-	const result = spawnSync(command, args, {
-		cwd,
-		stdio: "inherit",
-	});
-
-	if (result.status !== 0) {
-		if (errMes) console.error(errMes);
-		process.exit(result.status ?? 1);
-	}
 }
 
 /* -------------------------------------------------------------------------- */
@@ -131,7 +112,17 @@ async function buildJsMin() {
 function buildTypes() {
 	console.log("📐 型定義(.d.ts)生成開始...");
 
-	runCommand("npx", ["dts-bundle-generator", "-o", `${DIST_DIR}/${OUTPUT_FILE_NAME}.d.ts`, ENTRY_FILE], ROOT_DIR, "❌ 型定義のバンドルに失敗しました");
+	const bundles = generateDtsBundle([
+		{
+			filePath: ENTRY_FILE,
+			output: {
+				noBanner: true,
+			},
+		},
+	]);
+	const outputPath = path.join(DIST_DIR, `${OUTPUT_FILE_NAME}.d.ts`);
+	const content = bundles.join("\n");
+	fs.writeFileSync(outputPath, content);
 
 	console.log("┗✅ 型定義生成完了");
 }

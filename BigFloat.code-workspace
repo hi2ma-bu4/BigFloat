@@ -16,6 +16,7 @@
 			"expm",
 			"fround",
 			"Funcs",
+			"hadamard",
 			"hypot",
 			"imul",
 			"linspace",

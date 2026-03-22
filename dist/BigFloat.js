@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.3.1
+ * BigFloat 1.3.2
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -5727,11 +5727,914 @@ var BigFloatStream = class _BigFloatStream {
     return BigFloat.stddev(this.toArray());
   }
 };
+
+// src/bigFloatVector.ts
+var BigFloatVector = class _BigFloatVector {
+  /** 内部要素 */
+  _values;
+  /**
+   * @param values - 要素列
+   * @param precision - 変換時の精度
+   */
+  constructor(values = [], precision) {
+    const array = Array.from(values);
+    const resolvedPrecision = _BigFloatVector._resolvePrecision(array, precision);
+    this._values = array.map((value) => _BigFloatVector._toBigFloat(value, resolvedPrecision));
+  }
+  /**
+   * 内部配列からベクトルを生成する
+   * @param values - 内部所有済みの要素列
+   * @returns BigFloatVector
+   */
+  static _fromBigFloatArray(values) {
+    const vector = Object.create(_BigFloatVector.prototype);
+    vector._values = values;
+    return vector;
+  }
+  /**
+   * 値をBigFloatへ変換する
+   * @param value - 変換対象
+   * @param precision - 明示精度
+   * @returns BigFloat
+   */
+  static _toBigFloat(value, precision) {
+    if (value instanceof BigFloat) {
+      const cloned = value.clone();
+      if (precision === void 0 || cloned._precision === precision) return cloned;
+      return cloned.changePrecision(precision);
+    }
+    return new BigFloat(value, precision ?? 20n);
+  }
+  /**
+   * 精度を解決する
+   * @param values - 値列
+   * @param precision - 明示精度
+   * @returns 解決済み精度
+   */
+  static _resolvePrecision(values, precision) {
+    if (precision !== void 0) return BigInt(precision);
+    let resolved = 20n;
+    for (const value of values) {
+      if (value instanceof BigFloat && value._precision > resolved) {
+        resolved = value._precision;
+      }
+    }
+    return resolved;
+  }
+  /**
+   * ベクトル長を正規化する
+   * @param length - ベクトル長
+   * @returns 正規化済みベクトル長
+   */
+  static _normalizeLength(length) {
+    if (!Number.isFinite(length)) throw new RangeError("Vector length must be finite");
+    const normalized = Math.trunc(length);
+    if (normalized < 0) throw new RangeError("Vector length must be non-negative");
+    return normalized;
+  }
+  /**
+   * 次元一致を検証する
+   * @param left - 左辺
+   * @param right - 右辺
+   * @throws {RangeError} 次元が一致しない場合
+   */
+  static _assertSameLength(left, right) {
+    if (left.length !== right.length) throw new RangeError("Vector dimensions must match");
+  }
+  /**
+   * 任意入力をベクトル化する
+   * @param value - ベクトルまたは要素列
+   * @returns BigFloatVector
+   */
+  static _coerceVector(value, referenceValues = []) {
+    if (value instanceof _BigFloatVector) return value;
+    const array = Array.from(value);
+    const resolvedPrecision = _BigFloatVector._resolvePrecision([...referenceValues, ...array]);
+    return _BigFloatVector.from(array, resolvedPrecision);
+  }
+  /**
+   * 要素ごとの写像を行う
+   * @param fn - 変換関数
+   * @returns 変換後のベクトル
+   */
+  _mapValues(fn) {
+    const values = this._values.map((value, index) => {
+      const mapped = fn(value.clone(), index);
+      return mapped instanceof BigFloat ? mapped.clone() : _BigFloatVector._toBigFloat(mapped, value._precision);
+    });
+    return _BigFloatVector._fromBigFloatArray(values);
+  }
+  /**
+   * 要素ごとの二項演算を行う
+   * @param other - ベクトルまたはスカラ値
+   * @param fn - 変換関数
+   * @returns 演算後のベクトル
+   */
+  _mapWithOperand(other, fn) {
+    if (other instanceof _BigFloatVector || typeof other === "object" && other !== null && Symbol.iterator in other && !(other instanceof BigFloat)) {
+      const vector = _BigFloatVector._coerceVector(other, this._values);
+      _BigFloatVector._assertSameLength(this, vector);
+      const values = this._values.map((value, index) => {
+        const mapped = fn(value.clone(), vector._values[index].clone(), index);
+        return mapped instanceof BigFloat ? mapped.clone() : _BigFloatVector._toBigFloat(mapped, value._precision);
+      });
+      return _BigFloatVector._fromBigFloatArray(values);
+    }
+    return this._mapValues((value, index) => fn(value, _BigFloatVector._toBigFloat(other, value._precision), index));
+  }
+  /**
+   * 空ベクトルを生成する
+   * @returns 空ベクトル
+   */
+  static empty() {
+    return this._fromBigFloatArray([]);
+  }
+  /**
+   * 要素列からベクトルを生成する
+   * @param values - 要素列
+   * @param precision - 変換時の精度
+   * @returns BigFloatVector
+   */
+  static from(values, precision) {
+    return new _BigFloatVector(values, precision);
+  }
+  /**
+   * Stream からベクトルを生成する
+   * @param stream - 変換元ストリーム
+   * @returns BigFloatVector
+   */
+  static fromStream(stream) {
+    return this.from(stream.toArray());
+  }
+  /**
+   * 値の並びからベクトルを生成する
+   * @param values - 要素列
+   * @returns BigFloatVector
+   */
+  static of(...values) {
+    return this.from(values);
+  }
+  /**
+   * 指定値で埋めたベクトルを生成する
+   * @param length - ベクトル長
+   * @param value - 埋める値
+   * @param precision - 精度
+   * @returns BigFloatVector
+   */
+  static fill(length, value, precision) {
+    const normalizedLength = this._normalizeLength(length);
+    if (normalizedLength === 0) return this.empty();
+    const resolvedPrecision = this._resolvePrecision([value], precision);
+    const base = this._toBigFloat(value, resolvedPrecision);
+    return this._fromBigFloatArray(Array.from({ length: normalizedLength }, () => base.clone()));
+  }
+  /**
+   * 0ベクトルを生成する
+   * @param length - ベクトル長
+   * @param precision - 精度
+   * @returns BigFloatVector
+   */
+  static zeros(length, precision) {
+    return this.fill(length, 0, precision);
+  }
+  /**
+   * 1ベクトルを生成する
+   * @param length - ベクトル長
+   * @param precision - 精度
+   * @returns BigFloatVector
+   */
+  static ones(length, precision) {
+    return this.fill(length, 1, precision);
+  }
+  /**
+   * 標準基底ベクトルを生成する
+   * @param length - ベクトル長
+   * @param index - 1を置く位置
+   * @param precision - 精度
+   * @returns BigFloatVector
+   */
+  static basis(length, index, precision) {
+    const normalizedLength = this._normalizeLength(length);
+    const normalizedIndex = Math.trunc(index);
+    if (normalizedIndex < 0 || normalizedIndex >= normalizedLength) throw new RangeError("Basis index out of range");
+    const resolvedPrecision = precision === void 0 ? 20n : BigInt(precision);
+    return this._fromBigFloatArray(Array.from({ length: normalizedLength }, (_, currentIndex) => new BigFloat(currentIndex === normalizedIndex ? 1 : 0, resolvedPrecision)));
+  }
+  /**
+   * 線形補間ベクトルを生成する
+   * @param start - 開始値
+   * @param end - 終了値
+   * @param count - 要素数
+   * @param precision - 精度
+   * @returns BigFloatVector
+   */
+  static linspace(start, end, count, precision) {
+    const normalizedCount = this._normalizeLength(count);
+    if (normalizedCount === 0) return this.empty();
+    const resolvedPrecision = this._resolvePrecision([start, end], precision);
+    const startValue = this._toBigFloat(start, resolvedPrecision);
+    if (normalizedCount === 1) return this._fromBigFloatArray([startValue]);
+    const endValue = this._toBigFloat(end, resolvedPrecision);
+    const step = endValue.sub(startValue).div(normalizedCount - 1);
+    const values = [];
+    let current = startValue.clone();
+    for (let index = 0; index < normalizedCount; index++) {
+      if (index === normalizedCount - 1) {
+        values.push(endValue.clone());
+      } else {
+        values.push(current);
+        current = current.add(step);
+      }
+    }
+    return this._fromBigFloatArray(values);
+  }
+  /**
+   * 乱数ベクトルを生成する
+   * @param length - ベクトル長
+   * @param options - 生成オプション
+   * @returns BigFloatVector
+   */
+  static random(length, options = {}) {
+    const normalizedLength = this._normalizeLength(length);
+    if (normalizedLength === 0) return this.empty();
+    const min = options.min ?? 0;
+    const max = options.max ?? 1;
+    const resolvedPrecision = this._resolvePrecision([min, max], options.precision);
+    const minValue = this._toBigFloat(min, resolvedPrecision);
+    const maxValue = this._toBigFloat(max, resolvedPrecision);
+    const span = maxValue.sub(minValue);
+    if (span.lt(0)) throw new RangeError("Random range requires max >= min");
+    if (span.isZero()) return this.fill(normalizedLength, minValue, resolvedPrecision);
+    const values = Array.from({ length: normalizedLength }, () => minValue.add(span.mul(BigFloat.random(resolvedPrecision))));
+    return this._fromBigFloatArray(values);
+  }
+  /**
+   * ベクトル長
+   */
+  get length() {
+    return this._values.length;
+  }
+  /**
+   * ベクトルの次元数を返す
+   * @returns 次元数
+   */
+  dimension() {
+    return this.length;
+  }
+  /**
+   * 空ベクトルかどうか
+   * @returns 空ならtrue
+   */
+  isEmpty() {
+    return this.length === 0;
+  }
+  /**
+   * 指定位置の値を取得する
+   * @param index - インデックス
+   * @returns 値またはundefined
+   */
+  at(index) {
+    if (index < 0 || index >= this.length) return void 0;
+    return this._values[index].clone();
+  }
+  /**
+   * ベクトルを複製する
+   * @returns 複製されたベクトル
+   */
+  clone() {
+    return _BigFloatVector._fromBigFloatArray(this._values.map((value) => value.clone()));
+  }
+  /**
+   * 配列へ変換する
+   * @returns 要素配列
+   */
+  toArray() {
+    return this._values.map((value) => value.clone());
+  }
+  /**
+   * Stream へ変換する
+   * @returns BigFloatStream
+   */
+  toStream() {
+    return BigFloatStream.from(this.toArray());
+  }
+  /**
+   * イテレータ
+   * @returns イテレータ
+   */
+  [Symbol.iterator]() {
+    return this.toArray()[Symbol.iterator]();
+  }
+  /**
+   * 各要素に処理を適用する
+   * @param fn - 処理関数
+   */
+  forEach(fn) {
+    for (let index = 0; index < this.length; index++) {
+      fn(this._values[index].clone(), index);
+    }
+  }
+  /**
+   * 要素ごとに変換する
+   * @param fn - 変換関数
+   * @returns 変換後ベクトル
+   */
+  map(fn) {
+    return this._mapValues(fn);
+  }
+  /**
+   * 2つのベクトルを要素ごとに変換する
+   * @param other - 対象ベクトル
+   * @param fn - 変換関数
+   * @returns 変換後ベクトル
+   */
+  zipMap(other, fn) {
+    return this._mapWithOperand(other, fn);
+  }
+  /**
+   * 畳み込み処理を行う
+   * @param fn - 畳み込み関数
+   * @param initial - 初期値
+   * @returns 畳み込み結果
+   */
+  reduce(fn, initial) {
+    let acc = initial;
+    for (let index = 0; index < this.length; index++) {
+      acc = fn(acc, this._values[index].clone(), index);
+    }
+    return acc;
+  }
+  /**
+   * 条件に一致する要素があるか
+   * @param fn - 判定関数
+   * @returns 条件に一致する要素があればtrue
+   */
+  some(fn) {
+    for (let index = 0; index < this.length; index++) {
+      if (fn(this._values[index].clone(), index)) return true;
+    }
+    return false;
+  }
+  /**
+   * すべての要素が条件を満たすか
+   * @param fn - 判定関数
+   * @returns すべて満たせばtrue
+   */
+  every(fn) {
+    for (let index = 0; index < this.length; index++) {
+      if (!fn(this._values[index].clone(), index)) return false;
+    }
+    return true;
+  }
+  /**
+   * ベクトルを連結する
+   * @param others - 連結対象
+   * @returns 連結後ベクトル
+   */
+  concat(...others) {
+    const values = this.toArray();
+    for (const other of others) {
+      values.push(..._BigFloatVector._coerceVector(other, this._values).toArray());
+    }
+    return _BigFloatVector._fromBigFloatArray(values);
+  }
+  /**
+   * スライスする
+   * @param start - 開始位置
+   * @param end - 終了位置
+   * @returns スライス後ベクトル
+   */
+  slice(start, end) {
+    return _BigFloatVector._fromBigFloatArray(this._values.slice(start, end).map((value) => value.clone()));
+  }
+  /**
+   * 逆順にする
+   * @returns 逆順ベクトル
+   */
+  reverse() {
+    return _BigFloatVector._fromBigFloatArray(
+      this._values.slice().reverse().map((value) => value.clone())
+    );
+  }
+  /**
+   * すべての要素の精度を変更する
+   * @param precision - 新しい精度
+   * @returns 精度変更後ベクトル
+   */
+  changePrecision(precision) {
+    const precisionBig = BigInt(precision);
+    return this._mapValues((value) => value.changePrecision(precisionBig));
+  }
+  /**
+   * ベクトル同士の一致判定
+   * @param other - 比較対象
+   * @returns 一致すればtrue
+   */
+  equals(other) {
+    const vector = _BigFloatVector._coerceVector(other, this._values);
+    if (this.length !== vector.length) return false;
+    for (let index = 0; index < this.length; index++) {
+      if (!this._values[index].eq(vector._values[index])) return false;
+    }
+    return true;
+  }
+  /**
+   * 各要素へ加算する
+   * @param other - スカラ値またはベクトル
+   * @returns 加算後ベクトル
+   */
+  add(other) {
+    return this._mapWithOperand(other, (left, right) => left.add(right));
+  }
+  /**
+   * 各要素から減算する
+   * @param other - スカラ値またはベクトル
+   * @returns 減算後ベクトル
+   */
+  sub(other) {
+    return this._mapWithOperand(other, (left, right) => left.sub(right));
+  }
+  /**
+   * スカラ倍する
+   * @param scalar - スカラ値
+   * @returns 乗算後ベクトル
+   */
+  mul(scalar) {
+    return this._mapValues((value) => value.mul(scalar));
+  }
+  /**
+   * スカラ除算する
+   * @param scalar - スカラ値
+   * @returns 除算後ベクトル
+   */
+  div(scalar) {
+    return this._mapValues((value) => value.div(scalar));
+  }
+  /**
+   * 剰余を計算する
+   * @param other - スカラ値またはベクトル
+   * @returns 剰余後ベクトル
+   */
+  mod(other) {
+    return this._mapWithOperand(other, (left, right) => left.mod(right));
+  }
+  /**
+   * 要素ごとの積を計算する
+   * @param other - 対象ベクトル
+   * @returns Hadamard積
+   */
+  hadamard(other) {
+    return this._mapWithOperand(other, (left, right) => left.mul(right));
+  }
+  /**
+   * 符号を反転する
+   * @returns 反転後ベクトル
+   */
+  neg() {
+    return this._mapValues((value) => value.neg());
+  }
+  /**
+   * 絶対値化する
+   * @returns 絶対値ベクトル
+   */
+  abs() {
+    return this._mapValues((value) => value.abs());
+  }
+  /**
+   * 符号ベクトルを返す
+   * @returns 符号ベクトル
+   */
+  sign() {
+    return this._mapValues((value) => value.sign());
+  }
+  /**
+   * 各要素の逆数を返す
+   * @returns 逆数ベクトル
+   */
+  reciprocal() {
+    return this._mapValues((value) => value.reciprocal());
+  }
+  /**
+   * 要素ごとの冪乗を計算する
+   * @param exponent - 指数
+   * @returns 冪乗後ベクトル
+   */
+  pow(exponent) {
+    return this._mapWithOperand(exponent, (left, right) => left.pow(right));
+  }
+  /**
+   * 各要素の平方根を計算する
+   * @returns 平方根ベクトル
+   */
+  sqrt() {
+    return this._mapValues((value) => value.sqrt());
+  }
+  /**
+   * 各要素の立方根を計算する
+   * @returns 立方根ベクトル
+   */
+  cbrt() {
+    return this._mapValues((value) => value.cbrt());
+  }
+  /**
+   * 各要素のn乗根を計算する
+   * @param n - 指数
+   * @returns n乗根ベクトル
+   */
+  nthRoot(n) {
+    return this._mapValues((value) => value.nthRoot(n));
+  }
+  /**
+   * 各要素を切り下げる
+   * @returns 切り下げ後ベクトル
+   */
+  floor() {
+    return this._mapValues((value) => value.floor());
+  }
+  /**
+   * 各要素を切り上げる
+   * @returns 切り上げ後ベクトル
+   */
+  ceil() {
+    return this._mapValues((value) => value.ceil());
+  }
+  /**
+   * 各要素を四捨五入する
+   * @returns 四捨五入後ベクトル
+   */
+  round() {
+    return this._mapValues((value) => value.round());
+  }
+  /**
+   * 各要素を0方向へ切り捨てる
+   * @returns 切り捨て後ベクトル
+   */
+  trunc() {
+    return this._mapValues((value) => value.trunc());
+  }
+  /**
+   * 各要素をFloat32相当に丸める
+   * @returns Float32相当へ丸めたベクトル
+   */
+  fround() {
+    return this._mapValues((value) => value.fround());
+  }
+  /**
+   * 各要素の先頭ゼロビット数を取得する
+   * @returns 先頭ゼロビット数ベクトル
+   */
+  clz32() {
+    return this._mapValues((value) => value.clz32());
+  }
+  /**
+   * 相対差を計算する
+   * @param other - 比較対象
+   * @returns 相対差ベクトル
+   */
+  relativeDiff(other) {
+    return this._mapWithOperand(other, (left, right) => left.relativeDiff(right));
+  }
+  /**
+   * 絶対差を計算する
+   * @param other - 比較対象
+   * @returns 絶対差ベクトル
+   */
+  absoluteDiff(other) {
+    return this._mapWithOperand(other, (left, right) => left.absoluteDiff(right));
+  }
+  /**
+   * 百分率差分を計算する
+   * @param other - 比較対象
+   * @returns 百分率差分ベクトル
+   */
+  percentDiff(other) {
+    return this._mapWithOperand(other, (left, right) => left.percentDiff(right));
+  }
+  /**
+   * 各要素の正弦を計算する
+   * @returns 正弦ベクトル
+   */
+  sin() {
+    return this._mapValues((value) => value.sin());
+  }
+  /**
+   * 各要素の余弦を計算する
+   * @returns 余弦ベクトル
+   */
+  cos() {
+    return this._mapValues((value) => value.cos());
+  }
+  /**
+   * 各要素の正接を計算する
+   * @returns 正接ベクトル
+   */
+  tan() {
+    return this._mapValues((value) => value.tan());
+  }
+  /**
+   * 各要素の逆正弦を計算する
+   * @returns 逆正弦ベクトル
+   */
+  asin() {
+    return this._mapValues((value) => value.asin());
+  }
+  /**
+   * 各要素の逆余弦を計算する
+   * @returns 逆余弦ベクトル
+   */
+  acos() {
+    return this._mapValues((value) => value.acos());
+  }
+  /**
+   * 各要素の逆正接を計算する
+   * @returns 逆正接ベクトル
+   */
+  atan() {
+    return this._mapValues((value) => value.atan());
+  }
+  /**
+   * 各要素と逆正接を計算する
+   * @param x - x座標
+   * @returns 逆正接ベクトル
+   */
+  atan2(x) {
+    return this._mapWithOperand(x, (left, right) => left.atan2(right));
+  }
+  /**
+   * 各要素の双曲線正弦を計算する
+   * @returns 双曲線正弦ベクトル
+   */
+  sinh() {
+    return this._mapValues((value) => value.sinh());
+  }
+  /**
+   * 各要素の双曲線余弦を計算する
+   * @returns 双曲線余弦ベクトル
+   */
+  cosh() {
+    return this._mapValues((value) => value.cosh());
+  }
+  /**
+   * 各要素の双曲線正接を計算する
+   * @returns 双曲線正接ベクトル
+   */
+  tanh() {
+    return this._mapValues((value) => value.tanh());
+  }
+  /**
+   * 各要素の逆双曲線正弦を計算する
+   * @returns 逆双曲線正弦ベクトル
+   */
+  asinh() {
+    return this._mapValues((value) => value.asinh());
+  }
+  /**
+   * 各要素の逆双曲線余弦を計算する
+   * @returns 逆双曲線余弦ベクトル
+   */
+  acosh() {
+    return this._mapValues((value) => value.acosh());
+  }
+  /**
+   * 各要素の逆双曲線正接を計算する
+   * @returns 逆双曲線正接ベクトル
+   */
+  atanh() {
+    return this._mapValues((value) => value.atanh());
+  }
+  /**
+   * 各要素の指数関数を計算する
+   * @returns 指数関数ベクトル
+   */
+  exp() {
+    return this._mapValues((value) => value.exp());
+  }
+  /**
+   * 各要素の2冪指数関数を計算する
+   * @returns 2冪指数関数ベクトル
+   */
+  exp2() {
+    return this._mapValues((value) => value.exp2());
+  }
+  /**
+   * 各要素のexp(x)-1を計算する
+   * @returns expm1ベクトル
+   */
+  expm1() {
+    return this._mapValues((value) => value.expm1());
+  }
+  /**
+   * 各要素の自然対数を計算する
+   * @returns 自然対数ベクトル
+   */
+  ln() {
+    return this._mapValues((value) => value.ln());
+  }
+  /**
+   * 各要素の対数を計算する
+   * @param base - 底
+   * @returns 対数ベクトル
+   */
+  log(base) {
+    return this._mapWithOperand(base, (left, right) => left.log(right));
+  }
+  /**
+   * 各要素の底2対数を計算する
+   * @returns 底2対数ベクトル
+   */
+  log2() {
+    return this._mapValues((value) => value.log2());
+  }
+  /**
+   * 各要素の底10対数を計算する
+   * @returns 底10対数ベクトル
+   */
+  log10() {
+    return this._mapValues((value) => value.log10());
+  }
+  /**
+   * 各要素のlog(1+x)を計算する
+   * @returns log1pベクトル
+   */
+  log1p() {
+    return this._mapValues((value) => value.log1p());
+  }
+  /**
+   * 各要素のガンマ関数を計算する
+   * @returns ガンマ関数ベクトル
+   */
+  gamma() {
+    return this._mapValues((value) => value.gamma());
+  }
+  /**
+   * 各要素のゼータ関数を計算する
+   * @returns ゼータ関数ベクトル
+   */
+  zeta() {
+    return this._mapValues((value) => value.zeta());
+  }
+  /**
+   * 各要素の階乗を計算する
+   * @returns 階乗ベクトル
+   */
+  factorial() {
+    return this._mapValues((value) => value.factorial());
+  }
+  /**
+   * 最大値を返す
+   * @returns 最大値
+   */
+  max() {
+    if (this.isEmpty()) throw new TypeError("No arguments provided");
+    let result = this._values[0];
+    for (let index = 1; index < this.length; index++) {
+      if (this._values[index].gt(result)) result = this._values[index];
+    }
+    return result.clone();
+  }
+  /**
+   * 最小値を返す
+   * @returns 最小値
+   */
+  min() {
+    if (this.isEmpty()) throw new TypeError("No arguments provided");
+    let result = this._values[0];
+    for (let index = 1; index < this.length; index++) {
+      if (this._values[index].lt(result)) result = this._values[index];
+    }
+    return result.clone();
+  }
+  /**
+   * 合計を返す
+   * @returns 合計
+   */
+  sum() {
+    if (this.isEmpty()) return new BigFloat(0);
+    let total = this._values[0].clone();
+    for (let index = 1; index < this.length; index++) {
+      total = total.add(this._values[index]);
+    }
+    return total;
+  }
+  /**
+   * 積を返す
+   * @returns 積
+   */
+  product() {
+    if (this.isEmpty()) return new BigFloat(1);
+    let total = this._values[0].clone();
+    for (let index = 1; index < this.length; index++) {
+      total = total.mul(this._values[index]);
+    }
+    return total;
+  }
+  /**
+   * 平均を返す
+   * @returns 平均
+   */
+  average() {
+    if (this.isEmpty()) return new BigFloat(0);
+    return this.sum().div(this.length);
+  }
+  /**
+   * 内積を返す
+   * @param other - 対象ベクトル
+   * @returns 内積
+   */
+  dot(other) {
+    const vector = _BigFloatVector._coerceVector(other, this._values);
+    _BigFloatVector._assertSameLength(this, vector);
+    let total = new BigFloat(0, _BigFloatVector._resolvePrecision([...this._values, ...vector._values]));
+    for (let index = 0; index < this.length; index++) {
+      total = total.add(this._values[index].mul(vector._values[index]));
+    }
+    return total;
+  }
+  /**
+   * 二乗ノルムを返す
+   * @returns 二乗ノルム
+   */
+  squaredNorm() {
+    return this.dot(this);
+  }
+  /**
+   * ノルムを返す
+   * @returns ノルム
+   */
+  norm() {
+    return this.squaredNorm().sqrt();
+  }
+  /**
+   * 正規化ベクトルを返す
+   * @returns 正規化ベクトル
+   */
+  normalize() {
+    const length = this.norm();
+    if (length.isZero()) throw new RangeError("Cannot normalize zero vector");
+    return this.div(length);
+  }
+  /**
+   * 二乗距離を返す
+   * @param other - 対象ベクトル
+   * @returns 二乗距離
+   */
+  squaredDistanceTo(other) {
+    return this.sub(other).squaredNorm();
+  }
+  /**
+   * 距離を返す
+   * @param other - 対象ベクトル
+   * @returns 距離
+   */
+  distanceTo(other) {
+    return this.squaredDistanceTo(other).sqrt();
+  }
+  /**
+   * 射影ベクトルを返す
+   * @param other - 射影先ベクトル
+   * @returns 射影ベクトル
+   */
+  projectOnto(other) {
+    const vector = _BigFloatVector._coerceVector(other, this._values);
+    const denominator = vector.squaredNorm();
+    if (denominator.isZero()) throw new RangeError("Cannot project onto zero vector");
+    const scale = this.dot(vector).div(denominator);
+    return vector.mul(scale);
+  }
+  /**
+   * 2ベクトルのなす角を返す
+   * @param other - 対象ベクトル
+   * @returns 角度
+   */
+  angleTo(other) {
+    const vector = _BigFloatVector._coerceVector(other, this._values);
+    const denominator = this.norm().mul(vector.norm());
+    if (denominator.isZero()) throw new RangeError("Cannot compute angle with zero vector");
+    let cosine = this.dot(vector).div(denominator);
+    if (cosine.gt(1)) cosine = new BigFloat(1, cosine._precision);
+    if (cosine.lt(-1)) cosine = new BigFloat(-1, cosine._precision);
+    return cosine.acos();
+  }
+  /**
+   * 3次元外積を返す
+   * @param other - 対象ベクトル
+   * @returns 外積ベクトル
+   */
+  cross(other) {
+    const vector = _BigFloatVector._coerceVector(other, this._values);
+    _BigFloatVector._assertSameLength(this, vector);
+    if (this.length !== 3) throw new RangeError("Cross product is only defined for 3-dimensional vectors");
+    const [ax, ay, az] = this._values;
+    const [bx, by, bz] = vector._values;
+    return _BigFloatVector._fromBigFloatArray([ay.mul(bz).sub(az.mul(by)), az.mul(bx).sub(ax.mul(bz)), ax.mul(by).sub(ay.mul(bx))]);
+  }
+};
 export {
   BigFloat,
   BigFloatConfig,
   BigFloatError,
   BigFloatStream,
+  BigFloatVector,
   CacheNotInitializedError,
   DivisionByZeroError,
   NumericalComputationError,
