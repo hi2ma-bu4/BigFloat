@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.3.8
+ * BigFloat 1.3.9
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -353,6 +353,10 @@ var BigFloat = class _BigFloat {
    * 特殊値を考慮してnumberへ変換する
    * @returns 変換後のnumber値
    * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   _specialAwareNumber() {
     this._ensureSpecialValuesEnabled(this);
@@ -372,6 +376,7 @@ var BigFloat = class _BigFloat {
    * @param value - 変換元のnumber値
    * @param precision - 結果の精度
    * @returns 変換後のBigFloat
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   _fromSpecialAwareNumber(value, precision = this._precision) {
     const construct = this.constructor;
@@ -717,6 +722,10 @@ var BigFloat = class _BigFloat {
    * @returns 変換されたBigFloatインスタンス
    * @throws {RangeError} 基数が2から36の範囲外の場合
    * @throws {SyntaxError} 不正な文字が含まれている場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    */
   static parseFloat(str, precision = this.DEFAULT_PRECISION, base = 10) {
     if (str instanceof _BigFloat) return str.clone();
@@ -815,6 +824,7 @@ var BigFloat = class _BigFloat {
    * @param values - 対象値
    * @param fallback - デフォルト精度
    * @returns 解決済み精度
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   static _resolvePrecisionFromValues(values, fallback = this.DEFAULT_PRECISION) {
     let resolved = BigInt(fallback);
@@ -831,6 +841,7 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 精度
    * @returns 正規化後のBigFloat
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   static _coerceBigFloatValue(value, precision) {
     if (value instanceof _BigFloat) {
@@ -1009,6 +1020,7 @@ var BigFloat = class _BigFloat {
    * @param mutateA - 自身を破壊的に変更するかどうか
    * @returns [BigFloatA, BigFloatB] (アラインメント済みのインスタンス)
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   _align(other, mutateA = false) {
     const construct = this.constructor;
@@ -1132,6 +1144,11 @@ var BigFloat = class _BigFloat {
    * どこまで精度が一致しているかを判定する
    * @param other - 比較対象
    * @returns 一致している桁数
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   matchingPrecision(other) {
     const bfB = other instanceof _BigFloat ? other : new this.constructor(other, this._precision);
@@ -1160,6 +1177,8 @@ var BigFloat = class _BigFloat {
    * @param other - 比較対象
    * @returns 比較結果 (-1, 0, 1)。NaN の比較が含まれる場合は NaN
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   compare(other) {
     const construct = this.constructor;
@@ -1182,6 +1201,9 @@ var BigFloat = class _BigFloat {
    * 等しいかどうかを判定する (==)
    * @param other - 比較対象
    * @returns 等しい場合はtrue
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   eq(other) {
     return this.compare(other) === 0;
@@ -1190,6 +1212,9 @@ var BigFloat = class _BigFloat {
    * 等しいかどうかを判定する (==)
    * @param other - 比較対象
    * @returns 等しい場合はtrue
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   equals(other) {
     return this.compare(other) === 0;
@@ -1198,6 +1223,9 @@ var BigFloat = class _BigFloat {
    * 等しくないかどうかを判定する (!=)
    * @param other - 比較対象
    * @returns 等しくない場合はtrue
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   ne(other) {
     return this.compare(other) !== 0;
@@ -1206,6 +1234,9 @@ var BigFloat = class _BigFloat {
    * より小さいかどうかを判定する (<)
    * @param other - 比較対象
    * @returns より小さい場合はtrue
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   lt(other) {
     return this.compare(other) === -1;
@@ -1214,6 +1245,9 @@ var BigFloat = class _BigFloat {
    * 以下かどうかを判定する (<=)
    * @param other - 比較対象
    * @returns 以下の場合はtrue
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   lte(other) {
     return this.compare(other) <= 0;
@@ -1222,6 +1256,9 @@ var BigFloat = class _BigFloat {
    * より大きいかどうかを判定する (>)
    * @param other - 比較対象
    * @returns より大きい場合はtrue
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   gt(other) {
     return this.compare(other) === 1;
@@ -1230,6 +1267,9 @@ var BigFloat = class _BigFloat {
    * 以上かどうかを判定する (>=)
    * @param other - 比較対象
    * @returns 以上の場合はtrue
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   gte(other) {
     return this.compare(other) >= 0;
@@ -1259,6 +1299,13 @@ var BigFloat = class _BigFloat {
    * 相対差を計算する
    * @param other - 比較対象
    * @returns 相対差
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   *      *
    */
   relativeDiff(other) {
     const complex = this._complexOperand(other, "relativeDiff");
@@ -1276,6 +1323,11 @@ var BigFloat = class _BigFloat {
    * 絶対差を計算する
    * @param other - 比較対象
    * @returns 絶対差
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   absoluteDiff(other) {
     const complex = this._complexOperand(other, "absoluteDiff");
@@ -1296,6 +1348,12 @@ var BigFloat = class _BigFloat {
    * 差分の非一致度を計算する (百分率)
    * @param other - 比較対象
    * @returns 非一致度 (%)
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   percentDiff(other) {
     const complex = this._complexOperand(other, "percentDiff");
@@ -1316,6 +1374,10 @@ var BigFloat = class _BigFloat {
    * @param precision - 出力時の精度
    * @returns 変換された文字列
    * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   toString(base = 10, precision = this._precision) {
     if (base < 2 || base > 36) throw new RangeError("Base must be between 2 and 36");
@@ -1379,6 +1441,11 @@ var BigFloat = class _BigFloat {
   /**
    * JSON用の文字列表現を取得する
    * @returns JSON文字列
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   toJSON() {
     const config = this.constructor.config;
@@ -1388,6 +1455,11 @@ var BigFloat = class _BigFloat {
   /**
    * Number型に変換する
    * @returns 変換された数値
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   toNumber() {
     return this._specialAwareNumber();
@@ -1396,6 +1468,11 @@ var BigFloat = class _BigFloat {
    * 指定した桁数で固定した文字列を取得する
    * @param digits - 小数点以下の桁数
    * @returns 固定小数点形式の文字列
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   toFixed(digits) {
     const d = BigInt(digits);
@@ -1409,6 +1486,11 @@ var BigFloat = class _BigFloat {
    * 指数形式の文字列を取得する
    * @param digits - 有効桁数
    * @returns 指数形式の文字列
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   toExponential(digits = Number(this._precision)) {
     const s = this.toString(10, this._precision).replace("-", "");
@@ -1431,6 +1513,12 @@ var BigFloat = class _BigFloat {
     const expStr = exp >= 0 ? `e+${exp}` : `e${exp}`;
     return `${signStr}${formattedMantissa}${expStr}`;
   }
+  /** @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
   add(other) {
     const complex = this._complexOperand(other, "add");
     if (complex) return complex.add(this);
@@ -1454,6 +1542,12 @@ var BigFloat = class _BigFloat {
     a._applyPrecision();
     return a;
   }
+  /** @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
   sub(other) {
     const complex = this._complexOperand(other, "sub");
     if (complex) return this._toComplexLike(complex).sub(complex);
@@ -1478,6 +1572,12 @@ var BigFloat = class _BigFloat {
     a._applyPrecision();
     return a;
   }
+  /** @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
   mul(other) {
     const complex = this._complexOperand(other, "mul");
     if (complex) return complex.mul(this);
@@ -1510,6 +1610,13 @@ var BigFloat = class _BigFloat {
     res._applyPrecision();
     return res;
   }
+  /** @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
   div(other) {
     const complex = this._complexOperand(other, "div");
     if (complex) return this._toComplexLike(complex).div(complex);
@@ -1623,6 +1730,11 @@ var BigFloat = class _BigFloat {
     const r = x % m;
     return r < 0n ? r + m : r;
   }
+  /** @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   */
   mod(other) {
     const construct = this.constructor;
     const complex = construct._isComplexValue(other) ? other : null;
@@ -1653,6 +1765,7 @@ var BigFloat = class _BigFloat {
   /**
    * 符号を反転させる
    * @returns 符号が反転した結果
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   neg() {
     const construct = this.constructor;
@@ -1669,6 +1782,7 @@ var BigFloat = class _BigFloat {
   /**
    * 絶対値を取得する
    * @returns 絶対値
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   abs() {
     const construct = this.constructor;
@@ -1685,6 +1799,7 @@ var BigFloat = class _BigFloat {
   /**
    * 符号を取得する
    * @returns -1, 0, 1 または NaN
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   sign() {
     if (!this._isFiniteState()) {
@@ -1699,6 +1814,11 @@ var BigFloat = class _BigFloat {
    * 逆数を取得する
    * @returns 逆数
    * @throws {DivisionByZeroError} ゼロの場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   reciprocal() {
     const construct = this.constructor;
@@ -1715,6 +1835,7 @@ var BigFloat = class _BigFloat {
   /**
    * 床関数 (負の無限大方向への丸め)
    * @returns 丸められた結果
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   floor() {
     if (!this._isFiniteState()) {
@@ -1732,6 +1853,7 @@ var BigFloat = class _BigFloat {
   /**
    * 天井関数 (正の無限大方向への丸め)
    * @returns 丸められた結果
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   ceil() {
     if (!this._isFiniteState()) {
@@ -1749,6 +1871,11 @@ var BigFloat = class _BigFloat {
   /**
    * 四捨五入する
    * @returns 四捨五入された結果
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   round() {
     if (!this._isFiniteState()) {
@@ -1760,6 +1887,7 @@ var BigFloat = class _BigFloat {
   /**
    * 0に近い方向へ切り捨てる
    * @returns 切り捨てられた結果
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   trunc() {
     if (!this._isFiniteState()) {
@@ -1777,6 +1905,11 @@ var BigFloat = class _BigFloat {
   /**
    * Float32 精度へ丸める
    * @returns Float32相当に丸めた結果
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   fround() {
     return this._fromSpecialAwareNumber(Math.fround(this._specialAwareNumber()), this._precision);
@@ -1784,6 +1917,11 @@ var BigFloat = class _BigFloat {
   /**
    * 32bit整数として見たときの先頭ゼロビット数を返す
    * @returns 先頭ゼロビット数
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   clz32() {
     return this._makeExactResultWithPrecision(BigInt(Math.clz32(this._specialAwareNumber())), 0n);
@@ -1798,6 +1936,8 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @returns 冪乗の結果
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {RangeError} 値が0以下の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static _pow(base, exponent, precision) {
     const scale = this._getPow10(precision);
@@ -1827,6 +1967,16 @@ var BigFloat = class _BigFloat {
     const mul = lnBase * exponent / scale;
     return this._exp(mul, precision);
   }
+  /** @throws {RangeError} Fractional power of negative number is not real
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   *      *      *      *
+   */
   pow(exponent) {
     const complex = this._complexOperand(exponent, "pow");
     if (complex) return this._toComplexLike(complex).pow(complex);
@@ -1920,6 +2070,10 @@ var BigFloat = class _BigFloat {
    * 平方根を計算する
    * @returns 平方根
    * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sqrt() {
     const construct = this.constructor;
@@ -1975,6 +2129,8 @@ var BigFloat = class _BigFloat {
   /**
    * 立方根を計算する
    * @returns 立方根
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
    */
   cbrt() {
     if (!this._isFiniteState()) {
@@ -2027,6 +2183,7 @@ var BigFloat = class _BigFloat {
    * @param n - 指数
    * @returns n乗根
    * @throws {RangeError} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   nthRoot(n) {
     const bn = BigInt(n);
@@ -2059,6 +2216,8 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @param maxSteps - 最大ステップ数
    * @returns 正弦
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
    */
   static _sin(x, precision, maxSteps) {
     const scale = this._getPow10(precision);
@@ -2115,6 +2274,12 @@ var BigFloat = class _BigFloat {
   /**
    * 正弦(sin)を計算する
    * @returns 正弦
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sin() {
     const construct = this.constructor;
@@ -2174,6 +2339,11 @@ var BigFloat = class _BigFloat {
   /**
    * 余弦(cos)を計算する
    * @returns 余弦
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   cos() {
     const construct = this.constructor;
@@ -2215,6 +2385,8 @@ var BigFloat = class _BigFloat {
    * @param maxSteps - 最大ステップ数
    * @returns 正接
    * @throws {NumericalComputationError} 正接が定義されない点の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
    */
   static _tan(x, precision, maxSteps) {
     const cosX = this._cos(x, precision, maxSteps);
@@ -2227,6 +2399,13 @@ var BigFloat = class _BigFloat {
   /**
    * 正接(tan)を計算する
    * @returns 正接
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} 正接が定義されない点の場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   tan() {
     const construct = this.constructor;
@@ -2268,6 +2447,9 @@ var BigFloat = class _BigFloat {
    * @param maxSteps - 最大ステップ数
    * @returns 角度(ラジアン)
    * @throws {RangeError} 入力が範囲外([-1, 1])の場合
+   * @throws {NumericalComputationError} 導関数がゼロになった場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   *      *
    */
   static _asin(x, precision, maxSteps) {
     const scale = this._getPow10(precision);
@@ -2282,6 +2464,12 @@ var BigFloat = class _BigFloat {
    * 逆正弦(asin)を計算する
    * @returns 角度(ラジアン)
    * @throws {RangeError} 特殊値が無効な設定で入力が [-1, 1] の範囲外の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} 導関数がゼロになった場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   asin() {
     const construct = this.constructor;
@@ -2325,6 +2513,9 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @param maxSteps - 最大ステップ数
    * @returns 角度(ラジアン)
+   * @throws {RangeError} 入力が範囲外([-1, 1])の場合
+   * @throws {NumericalComputationError} 導関数がゼロになった場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static _acos(x, precision, maxSteps) {
     const halfPi = this._pi(precision) / 2n;
@@ -2335,6 +2526,12 @@ var BigFloat = class _BigFloat {
    * 逆余弦(acos)を計算する
    * @returns 角度(ラジアン)
    * @throws {RangeError} 特殊値が無効な設定で入力が [-1, 1] の範囲外の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {NumericalComputationError} 導関数がゼロになった場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   acos() {
     const construct = this.constructor;
@@ -2379,6 +2576,8 @@ var BigFloat = class _BigFloat {
    * @param maxSteps - 最大ステップ数
    * @returns 角度(ラジアン)
    * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
    */
   static _atan(x, precision, maxSteps) {
     const scale = this._getPow10(precision);
@@ -2401,6 +2600,14 @@ var BigFloat = class _BigFloat {
   /**
    * 逆正接(atan)を計算する
    * @returns 角度(ラジアン)
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   atan() {
     const construct = this.constructor;
@@ -2444,6 +2651,9 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @param maxSteps - 最大ステップ数
    * @returns 角度(ラジアン)
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
    */
   static _atan2(y, x, precision, maxSteps) {
     if (x === 0n) {
@@ -2461,6 +2671,14 @@ var BigFloat = class _BigFloat {
    * 2引数の逆正接(atan2)を計算する
    * @param x - x座標
    * @returns 角度(ラジアン)
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   atan2(x) {
     const construct = this.constructor;
@@ -2520,6 +2738,12 @@ var BigFloat = class _BigFloat {
   /**
    * 双曲線正弦(sinh)を計算する
    * @returns 双曲線正弦
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sinh() {
     if (!this._isFiniteState()) {
@@ -2538,6 +2762,12 @@ var BigFloat = class _BigFloat {
   /**
    * 双曲線余弦(cosh)を計算する
    * @returns 双曲線余弦
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   cosh() {
     if (!this._isFiniteState()) {
@@ -2556,6 +2786,12 @@ var BigFloat = class _BigFloat {
   /**
    * 双曲線正接(tanh)を計算する
    * @returns 双曲線正接
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   tanh() {
     if (!this._isFiniteState()) {
@@ -2574,6 +2810,12 @@ var BigFloat = class _BigFloat {
   /**
    * 逆双曲線正弦(asinh)を計算する
    * @returns 逆双曲線正弦
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   asinh() {
     if (!this._isFiniteState()) {
@@ -2590,6 +2832,11 @@ var BigFloat = class _BigFloat {
    * 逆双曲線余弦(acosh)を計算する
    * @returns 逆双曲線余弦
    * @throws {RangeError} 入力が範囲外([1, ∞))の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   acosh() {
     if (!this._isFiniteState()) {
@@ -2611,6 +2858,12 @@ var BigFloat = class _BigFloat {
    * 逆双曲線正接(atanh)を計算する
    * @returns 逆双曲線正接
    * @throws {RangeError} 入力が範囲外([-1, 1])の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   atanh() {
     const construct = this.constructor;
@@ -2688,6 +2941,8 @@ var BigFloat = class _BigFloat {
    * @param z - 値
    * @param precision - 精度
    * @returns sin(pi * z)
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
    */
   static _sinPi(z, precision) {
     const pi = this._pi(precision);
@@ -2720,6 +2975,11 @@ var BigFloat = class _BigFloat {
   /**
    * 指数関数(e^x)を計算する
    * @returns e^x
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   exp() {
     const construct = this.constructor;
@@ -2755,6 +3015,7 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @param maxSteps - 最大ステップ数
    * @returns 2^x
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static _exp2(value, precision, maxSteps) {
     const LN2 = this._ln2(precision, maxSteps);
@@ -2764,6 +3025,8 @@ var BigFloat = class _BigFloat {
   /**
    * 2の冪乗(2^x)を計算する
    * @returns 2^x
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   exp2() {
     const construct = this.constructor;
@@ -2812,6 +3075,7 @@ var BigFloat = class _BigFloat {
   /**
    * e^x - 1 を計算する
    * @returns e^x - 1
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   expm1() {
     const construct = this.constructor;
@@ -2834,6 +3098,7 @@ var BigFloat = class _BigFloat {
    * @param maxSteps - 最大ステップ数
    * @returns ln(value)
    * @throws {RangeError} 値が0以下の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static _ln(value, precision, maxSteps) {
     if (value <= 0n) throw new RangeError("ln(x) is undefined for x <= 0");
@@ -2886,6 +3151,11 @@ var BigFloat = class _BigFloat {
    * 自然対数(ln)を計算する
    * @returns ln(x)
    * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   ln() {
     const construct = this.constructor;
@@ -2932,6 +3202,7 @@ var BigFloat = class _BigFloat {
    * @param maxSteps - 最大ステップ数
    * @returns log_base(value)
    * @throws {RangeError} 底が1または0の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static _log(value, baseValue, precision, maxSteps) {
     if (value === this._getPow10(precision)) return 0n;
@@ -2945,6 +3216,10 @@ var BigFloat = class _BigFloat {
    * 対数を計算する
    * @param base - 底
    * @returns log_base(x)
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 底が1または0の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log(base) {
     const construct = this.constructor;
@@ -2989,6 +3264,8 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @param maxSteps - 最大ステップ数
    * @returns log2(value)
+   * @throws {RangeError} 底が1または0の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static _log2(value, precision, maxSteps) {
     const scale = this._getPow10(precision);
@@ -2999,6 +3276,8 @@ var BigFloat = class _BigFloat {
    * 2を底とする対数(log2)を計算する
    * @returns log2(x)
    * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log2() {
     const construct = this.constructor;
@@ -3030,6 +3309,8 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @param maxSteps - 最大ステップ数
    * @returns log10(value)
+   * @throws {RangeError} 底が1または0の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static _log10(value, precision, maxSteps) {
     const baseValue = this._getPow10(precision + 1n);
@@ -3039,6 +3320,8 @@ var BigFloat = class _BigFloat {
    * 10を底とする対数(log10)を計算する
    * @returns log10(x)
    * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log10() {
     const construct = this.constructor;
@@ -3070,6 +3353,8 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @param maxSteps - 最大ステップ数
    * @returns ln(1 + value)
+   * @throws {RangeError} 値が0以下の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static _log1p(value, precision, maxSteps) {
     const scale = this._getPow10(precision);
@@ -3080,6 +3365,9 @@ var BigFloat = class _BigFloat {
    * ln(1 + x) を計算する
    * @returns ln(1 + x)
    * @throws {RangeError} 特殊値が無効な設定で x が -1 以下の値の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log1p() {
     const construct = this.constructor;
@@ -3107,6 +3395,7 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @param maxSteps - 最大ステップ数
    * @returns ln(10)
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static _ln10(precision, maxSteps = 10000n) {
     const key = "10";
@@ -3142,6 +3431,7 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @param maxSteps - 最大ステップ数
    * @returns ln(2)
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static _ln2(precision, maxSteps) {
     const key = "2";
@@ -3176,6 +3466,7 @@ var BigFloat = class _BigFloat {
    * 自然対数の底(e)を取得する (内部用)
    * @param precision - 精度
    * @returns e
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static _e(precision) {
     if (this._getCheckECache(precision)) {
@@ -3190,6 +3481,8 @@ var BigFloat = class _BigFloat {
    * 自然対数の底(e)を取得する
    * @param precision - 精度
    * @returns e
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static e(precision = this.DEFAULT_PRECISION) {
     const precisionBig = BigInt(precision);
@@ -3205,6 +3498,7 @@ var BigFloat = class _BigFloat {
    * チュドノフスキー法で円周率を計算する (内部用)
    * @param precision - 精度
    * @returns 円周率
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
    */
   static _piChudnovsky(precision = this.DEFAULT_PRECISION) {
     const scale = this._getPow10(precision);
@@ -3232,6 +3526,8 @@ var BigFloat = class _BigFloat {
    * 設定されたアルゴリズムで円周率を計算する (内部用)
    * @param precision - 精度
    * @returns 円周率
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
    */
   static _pi(precision) {
     if (this._getCheckPiCache(precision)) {
@@ -3251,6 +3547,8 @@ var BigFloat = class _BigFloat {
    * 円周率(pi)を取得する
    * @param precision - 精度
    * @returns pi
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static pi(precision = this.DEFAULT_PRECISION) {
     const precisionBig = BigInt(precision);
@@ -3262,6 +3560,8 @@ var BigFloat = class _BigFloat {
    * タウ(tau = 2*pi)を計算する (内部用)
    * @param precision - 精度
    * @returns tau
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
    */
   static _tau(precision) {
     const pi = this._pi(precision);
@@ -3271,6 +3571,9 @@ var BigFloat = class _BigFloat {
    * タウ(tau = 2*pi)を取得する
    * @param precision - 精度
    * @returns tau
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   *      *
    */
   static tau(precision = this.DEFAULT_PRECISION) {
     const precisionBig = BigInt(precision);
@@ -3286,6 +3589,8 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 絶対値
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   static abs(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3296,6 +3601,13 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 逆余弦
+   * @throws {RangeError} 特殊値が無効な設定で入力が [-1, 1] の範囲外の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {NumericalComputationError} 導関数がゼロになった場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static acos(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3306,6 +3618,12 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 逆双曲線余弦
+   * @throws {RangeError} 入力が範囲外([1, ∞))の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static acosh(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3316,6 +3634,13 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 逆正弦
+   * @throws {RangeError} 特殊値が無効な設定で入力が [-1, 1] の範囲外の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} 導関数がゼロになった場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static asin(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3326,6 +3651,12 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 逆双曲線正弦
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static asinh(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3336,6 +3667,14 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 逆正接
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static atan(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3347,6 +3686,14 @@ var BigFloat = class _BigFloat {
    * @param x - x座標
    * @param precision - 結果精度
    * @returns 逆正接
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static atan2(y, x, precision) {
     const precisionBig = this._resolvePrecisionFromValues([y, x], precision ?? this.DEFAULT_PRECISION);
@@ -3357,6 +3704,13 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 逆双曲線正接
+   * @throws {RangeError} 入力が範囲外([-1, 1])の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static atanh(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3367,6 +3721,9 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 立方根
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   *      *
    */
   static cbrt(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3377,6 +3734,8 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 切り上げ結果
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   static ceil(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3386,6 +3745,11 @@ var BigFloat = class _BigFloat {
    * Math.clz32() 相当
    * @param value - 対象値
    * @returns 先頭ゼロビット数
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static clz32(value) {
     const precisionBig = this._resolvePrecisionFromValues([value], this.DEFAULT_PRECISION);
@@ -3396,6 +3760,11 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 余弦
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static cos(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3406,6 +3775,12 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 双曲線余弦
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static cosh(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3416,6 +3791,11 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 指数関数
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static exp(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3426,6 +3806,8 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns e^x - 1
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   static expm1(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3436,6 +3818,8 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 切り捨て結果
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   static floor(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3446,6 +3830,11 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns Float32相当に丸めた結果
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static fround(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3456,6 +3845,10 @@ var BigFloat = class _BigFloat {
    * @param values - 値の列
    * @returns sqrt(sum(x_i^2))
    * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値を含む引数が渡されたとき
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static hypot(...values) {
     if (values.length === 0) return new this(0);
@@ -3484,6 +3877,11 @@ var BigFloat = class _BigFloat {
    * @param lhs - 左辺
    * @param rhs - 右辺
    * @returns 32bit整数乗算結果
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static imul(lhs, rhs) {
     const precisionBig = this._resolvePrecisionFromValues([lhs, rhs], this.DEFAULT_PRECISION);
@@ -3496,6 +3894,12 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 自然対数
+   * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static log(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3506,6 +3910,9 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 常用対数
+   * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static log10(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3516,6 +3923,10 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns ln(1 + x)
+   * @throws {RangeError} 特殊値が無効な設定で x が -1 以下の値の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static log1p(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3526,6 +3937,9 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 底2対数
+   * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static log2(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3536,6 +3950,8 @@ var BigFloat = class _BigFloat {
    * @param args - 数値のリスト
    * @returns 最大値
    * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値を含む引数が渡されたとき
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    */
   static max(...args) {
     const values = this._normalizeArgs(args);
@@ -3561,6 +3977,8 @@ var BigFloat = class _BigFloat {
    * @param args - 数値のリスト
    * @returns 最小値
    * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値を含む引数が渡されたとき
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    */
   static min(...args) {
     const values = this._normalizeArgs(args);
@@ -3587,6 +4005,15 @@ var BigFloat = class _BigFloat {
    * @param exponent - 指数
    * @param precision - 結果精度
    * @returns 冪乗結果
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   *      *      *      *      *
    */
   static pow(base, exponent, precision) {
     const precisionBig = this._resolvePrecisionFromValues([base, exponent], precision ?? this.DEFAULT_PRECISION);
@@ -3597,6 +4024,11 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 四捨五入結果
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static round(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3607,6 +4039,8 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 入力精度
    * @returns 符号
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   static sign(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3617,6 +4051,12 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 正弦
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static sin(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3627,6 +4067,12 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 双曲線正弦
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static sinh(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3637,6 +4083,11 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 平方根
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static sqrt(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3647,6 +4098,13 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 正接
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} 正接が定義されない点の場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static tan(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3657,6 +4115,12 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 双曲線正接
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static tanh(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3667,6 +4131,8 @@ var BigFloat = class _BigFloat {
    * @param value - 対象値
    * @param precision - 結果精度
    * @returns 切り捨て結果
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   static trunc(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -3679,6 +4145,11 @@ var BigFloat = class _BigFloat {
    * 引数の合計を返す
    * @param args - 数値のリスト
    * @returns 合計
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static sum(...args) {
     const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this(x));
@@ -3693,6 +4164,11 @@ var BigFloat = class _BigFloat {
    * 引数の積を返す
    * @param args - 数値のリスト
    * @returns 積
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static product(...args) {
     const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this(x));
@@ -3707,6 +4183,12 @@ var BigFloat = class _BigFloat {
    * 引数の平均を返す
    * @param args - 数値のリスト
    * @returns 平均
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static average(...args) {
     const arr = this._normalizeArgs(args);
@@ -3719,6 +4201,11 @@ var BigFloat = class _BigFloat {
    * @param args - 数値のリスト
    * @returns 中央値
    * @throws {TypeError} 引数が空の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static median(...args) {
     const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this(x));
@@ -3736,6 +4223,11 @@ var BigFloat = class _BigFloat {
    * @param args - 数値のリスト
    * @returns 分散
    * @throws {TypeError} 引数が空の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static variance(...args) {
     const arr = this._normalizeArgs(args).map((x) => x instanceof _BigFloat ? x : new this(x));
@@ -3755,6 +4247,12 @@ var BigFloat = class _BigFloat {
    * 引数の標準偏差を返す
    * @param args - 数値のリスト
    * @returns 標準偏差
+   * @throws {TypeError} 引数が空の場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static stddev(...args) {
     const varianceVal = this.variance(...args);
@@ -3792,6 +4290,7 @@ var BigFloat = class _BigFloat {
    * 0以上1未満のランダムなBigFloatを生成する
    * @param precision - 精度
    * @returns ランダムなBigFloat
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   static random(precision = this.DEFAULT_PRECISION) {
     const precisionBig = BigInt(precision);
@@ -3840,6 +4339,9 @@ var BigFloat = class _BigFloat {
    * @param N - 最大の整数
    * @param precision - 精度
    * @returns 冪乗の結果の配列 (1-indexed)
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {RangeError} 値が0以下の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static _computePowers(s, N, precision) {
     const scale = this._getPow10(precision);
@@ -3889,6 +4391,9 @@ var BigFloat = class _BigFloat {
    * ln(2 * pi) を計算する (内部用)
    * @param precision - 精度
    * @returns ln(2 * pi)
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {RangeError} 値が0以下の場合
+   *      *
    */
   static _ln2pi(precision) {
     const key = "2pi";
@@ -3939,6 +4444,10 @@ var BigFloat = class _BigFloat {
    * @param exponent - 偶数整数の指数
    * @param precision - 精度
    * @returns zeta(exponent)
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {RangeError} 値が0以下の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   *      *
    */
   static _zetaPositiveEvenInteger(exponent, precision) {
     const scale = this._getPow10(precision);
@@ -3973,6 +4482,9 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @param terms - 直接和を取る項数
    * @returns zeta(s) の近似値
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {RangeError} 値が0以下の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static _zetaEulerMaclaurinEstimate(s, precision, terms) {
     const scale = this._getPow10(precision);
@@ -4015,6 +4527,9 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @returns zeta(s)
    * @throws {RangeError} s <= 1 の場合
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   *      *      *
    */
   static _zetaPositive(s, precision) {
     const scale = this._getPow10(precision);
@@ -4047,6 +4562,8 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @returns zeta(s)
    * @throws {RangeError} s === 1 の場合
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static _zetaEta(s, precision) {
     const scale = this._getPow10(precision);
@@ -4077,6 +4594,8 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @returns zeta(s)
    * @throws {RangeError} s = 1 の場合
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static _zeta(s, precision) {
     const scale = this._getPow10(precision);
@@ -4109,6 +4628,8 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @returns ガンマ関数
    * @throws {RangeError} 負の整数の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {DivisionByZeroError} division by zero
    */
   static _gammaLanczos(z, precision) {
     const scale = this._getPow10(precision);
@@ -4160,6 +4681,10 @@ var BigFloat = class _BigFloat {
   /**
    * ガンマ関数を計算する
    * @returns ガンマ関数
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 負の整数の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {DivisionByZeroError} division by zero
    */
   gamma() {
     const construct = this.constructor;
@@ -4177,6 +4702,9 @@ var BigFloat = class _BigFloat {
    * Riemann zeta 関数を計算する
    * @returns zeta(this)
    * @throws {RangeError} 特殊値が無効な設定で this = 1 の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   zeta() {
     const construct = this.constructor;
@@ -4213,6 +4741,9 @@ var BigFloat = class _BigFloat {
    * @param n - 値
    * @param precision - 精度
    * @returns 階乗
+   * @throws {RangeError} 負の整数の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {DivisionByZeroError} division by zero
    */
   static _factorialGamma(n, precision) {
     const scale = this._getPow10(precision);
@@ -4221,6 +4752,10 @@ var BigFloat = class _BigFloat {
   /**
    * 階乗を計算する
    * @returns 階乗
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 負の整数の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {DivisionByZeroError} division by zero
    */
   factorial() {
     const construct = this.constructor;
@@ -4748,6 +5283,7 @@ var BigFloatStream = class _BigFloatStream {
    * @param value - 変換対象
    * @param precision - 精度
    * @returns 変換された BigFloat
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   static _toBigFloat(value, precision) {
     if (value instanceof BigFloat) {
@@ -4761,6 +5297,7 @@ var BigFloatStream = class _BigFloatStream {
    * @param iterable - 変換対象
    * @param precision - 精度
    * @returns BigFloat のイテレータ
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   static _toIterator(iterable, precision) {
     return (function* () {
@@ -4809,6 +5346,7 @@ var BigFloatStream = class _BigFloatStream {
    * @param iterable - 要素のソース
    * @param precision - 変換時の精度
    * @returns BigFloatStream インスタンス
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   static from(iterable, precision) {
     if (precision === void 0) {
@@ -4829,6 +5367,7 @@ var BigFloatStream = class _BigFloatStream {
    * 引数のリストからストリームを作成する
    * @param values - 要素のリスト
    * @returns BigFloatStream インスタンス
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   static of(...values) {
     return this.from(values);
@@ -4840,6 +5379,11 @@ var BigFloatStream = class _BigFloatStream {
    * @param count - 要素数
    * @param precision - 精度
    * @returns BigFloatStream インスタンス
+   * @throws {RangeError} 有限の数値でない場合、または負の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static arithmetic(start, step, count, precision) {
     const normalizedCount = this._normalizeCount(count);
@@ -4861,6 +5405,11 @@ var BigFloatStream = class _BigFloatStream {
    * @param count - 要素数
    * @param precision - 精度
    * @returns BigFloatStream インスタンス
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static geometric(start, ratio, count, precision) {
     const normalizedCount = this._normalizeCount(count);
@@ -4882,6 +5431,12 @@ var BigFloatStream = class _BigFloatStream {
    * @param count - 要素数
    * @param precision - 精度
    * @returns BigFloatStream インスタンス
+   * @throws {RangeError} 有限の数値でない場合、または負の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static linspace(start, end, count, precision) {
     const normalizedCount = this._normalizeCount(count);
@@ -4913,6 +5468,15 @@ var BigFloatStream = class _BigFloatStream {
    * @param count - 要素数
    * @param precision - 精度
    * @returns BigFloatStream インスタンス
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   *      *      *      *      *
    */
   static logspace(start, end, count, precision) {
     const normalizedCount = this._normalizeCount(count);
@@ -4945,6 +5509,12 @@ var BigFloatStream = class _BigFloatStream {
    * @param count - 要素数
    * @param precision - 精度
    * @returns BigFloatStream インスタンス
+   * @throws {RangeError} 有限の数値でない場合、または負の場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static harmonic(count, precision) {
     const normalizedCount = this._normalizeCount(count);
@@ -4963,6 +5533,10 @@ var BigFloatStream = class _BigFloatStream {
    * @param options - 乱数範囲と精度のオプション
    * @returns BigFloatStream インスタンス
    * @throws {RangeError} 最大値が最小値より小さい場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static random(count, options = {}) {
     const normalizedCount = this._normalizeCount(count);
@@ -4990,6 +5564,7 @@ var BigFloatStream = class _BigFloatStream {
    * @param count - 回数
    * @param precision - 精度
    * @returns BigFloatStream インスタンス
+   * @throws {RangeError} 有限の数値でない場合、または負の場合
    */
   static repeat(value, count, precision) {
     const normalizedCount = this._normalizeCount(count);
@@ -5007,6 +5582,11 @@ var BigFloatStream = class _BigFloatStream {
    * @param count - 要素数
    * @param precision - 精度
    * @returns BigFloatStream インスタンス
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {RangeError} 有限の数値でない場合、または負の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static fibonacci(count, precision) {
     const normalizedCount = this._normalizeCount(count);
@@ -5028,6 +5608,11 @@ var BigFloatStream = class _BigFloatStream {
    * @param count - 要素数
    * @param precision - 精度
    * @returns BigFloatStream インスタンス
+   * @throws {RangeError} 有限の数値でない場合、または負の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static factorial(count, precision) {
     const normalizedCount = this._normalizeCount(count);
@@ -5049,6 +5634,10 @@ var BigFloatStream = class _BigFloatStream {
    * @param precision - 精度
    * @returns BigFloatStream インスタンス
    * @throws {RangeError} step が 0 の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static range(start, end, step = 1, precision) {
     const actualStart = end === void 0 ? 0 : start;
@@ -5142,6 +5731,11 @@ var BigFloatStream = class _BigFloatStream {
    * 要素の重複を除去する
    * @param keyFn - 一致判定に使うキーを生成する関数 (デフォルトは toString)
    * @returns 重複除去後のストリーム
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   distinct(keyFn = (x) => x.toString()) {
     return this._use({ definition: _BigFloatStream._distinctStageDefinition, data: keyFn });
@@ -5150,6 +5744,9 @@ var BigFloatStream = class _BigFloatStream {
    * 要素をソートする (注意: この操作は全要素をメモリ上に展開します)
    * @param compareFn - 比較関数
    * @returns ソート後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   sorted(compareFn = (a, b) => a.compare(b)) {
     const current = this.clone();
@@ -5220,6 +5817,7 @@ var BigFloatStream = class _BigFloatStream {
    * 末尾に別の反復可能オブジェクトの内容を連結する
    * @param iterables - 連結する対象
    * @returns 連結後のストリーム
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   concat(...iterables) {
     const current = this.clone();
@@ -5410,6 +6008,7 @@ var BigFloatStream = class _BigFloatStream {
    * すべての要素の精度を変更する
    * @param precision - 新しい精度
    * @returns 精度が変更された新しいストリーム
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   changePrecision(precision) {
     const precisionBig = BigInt(precision);
@@ -5419,6 +6018,13 @@ var BigFloatStream = class _BigFloatStream {
    * 各要素と別の値との相対差を計算する
    * @param other - 比較対象
    * @returns 相対差を各要素に持つストリーム
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   *      *      *
    */
   relativeDiff(other) {
     return this.map((x) => x.relativeDiff(other));
@@ -5427,6 +6033,11 @@ var BigFloatStream = class _BigFloatStream {
    * 各要素と別の値との絶対差を計算する
    * @param other - 比較対象
    * @returns 絶対差を各要素に持つストリーム
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   absoluteDiff(other) {
     return this.map((x) => x.absoluteDiff(other));
@@ -5435,6 +6046,12 @@ var BigFloatStream = class _BigFloatStream {
    * 各要素と別の値との百分率差分を計算する
    * @param other - 比較対象
    * @returns 百分率差分を各要素に持つストリーム (%)
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   percentDiff(other) {
     return this.map((x) => x.percentDiff(other));
@@ -5443,6 +6060,11 @@ var BigFloatStream = class _BigFloatStream {
    * 各要素に別の値を加算する
    * @param other - 加算する数値
    * @returns 加算後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   add(other) {
     return this.map((x) => x.add(other));
@@ -5451,6 +6073,11 @@ var BigFloatStream = class _BigFloatStream {
    * 各要素から別の値を減算する
    * @param other - 減算する数値
    * @returns 減算後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sub(other) {
     return this.map((x) => x.sub(other));
@@ -5459,6 +6086,11 @@ var BigFloatStream = class _BigFloatStream {
    * 各要素に別の値を乗算する
    * @param other - 乗算する数値
    * @returns 乗算後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   mul(other) {
     return this.map((x) => x.mul(other));
@@ -5467,6 +6099,12 @@ var BigFloatStream = class _BigFloatStream {
    * 各要素を別の値で除算する
    * @param other - 除数
    * @returns 除算後のストリーム
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   div(other) {
     return this.map((x) => x.div(other));
@@ -5475,6 +6113,10 @@ var BigFloatStream = class _BigFloatStream {
    * 各要素に対して剰余演算を行う
    * @param other - 法
    * @returns 剰余後のストリーム
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   mod(other) {
     return this.map((x) => x.mod(other));
@@ -5482,6 +6124,7 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の符号を反転させる
    * @returns 符号反転後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   neg() {
     return this.map((x) => x.neg());
@@ -5489,6 +6132,7 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素を絶対値にする
    * @returns 絶対値適用後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   abs() {
     return this.map((x) => x.abs());
@@ -5496,6 +6140,7 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の符号 (1, 0, -1) を取得する
    * @returns 符号値を持つストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   sign() {
     return this.map((x) => x.sign());
@@ -5503,6 +6148,12 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の逆数を取得する
    * @returns 逆数を持つストリーム
+   * @throws {DivisionByZeroError} ゼロの場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   reciprocal() {
     return this.map((x) => x.reciprocal());
@@ -5511,6 +6162,15 @@ var BigFloatStream = class _BigFloatStream {
    * 各要素を指定した指数で冪乗する
    * @param exponent - 指数
    * @returns 冪乗後のストリーム
+   * @throws {RangeError} Fractional power of negative number is not real
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   *      *      *      *      *
    */
   pow(exponent) {
     return this.map((x) => x.pow(exponent));
@@ -5518,6 +6178,11 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の平方根を計算する
    * @returns 平方根適用後のストリーム
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sqrt() {
     return this.map((x) => x.sqrt());
@@ -5525,6 +6190,8 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の立方根を計算する
    * @returns 立方根適用後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
    */
   cbrt() {
     return this.map((x) => x.cbrt());
@@ -5533,6 +6200,8 @@ var BigFloatStream = class _BigFloatStream {
    * 各要素の n 乗根を計算する
    * @param n - 指数
    * @returns n 乗根適用後のストリーム
+   * @throws {RangeError} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   nthRoot(n) {
     return this.map((x) => x.nthRoot(n));
@@ -5540,6 +6209,7 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素を床関数 (負の無限大方向への丸め) で処理する
    * @returns 床関数適用後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   floor() {
     return this.map((x) => x.floor());
@@ -5547,6 +6217,7 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素を天井関数 (正の無限大方向への丸め) で処理する
    * @returns 天井関数適用後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   ceil() {
     return this.map((x) => x.ceil());
@@ -5554,6 +6225,11 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素を四捨五入する
    * @returns 四捨五入後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   round() {
     return this.map((x) => x.round());
@@ -5561,6 +6237,7 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素を 0 方向に切り捨てる
    * @returns 切り捨て後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   trunc() {
     return this.map((x) => x.trunc());
@@ -5568,6 +6245,11 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素を Float32 精度に丸める
    * @returns 丸め後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   fround() {
     return this.map((x) => x.fround());
@@ -5575,6 +6257,11 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素を 32 ビット整数として見た時の先頭のゼロビット数を数える
    * @returns 結果のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   clz32() {
     return this.map((x) => x.clz32());
@@ -5582,6 +6269,12 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の正弦 (sin) を計算する
    * @returns sin 適用後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sin() {
     return this.map((x) => x.sin());
@@ -5589,6 +6282,11 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の余弦 (cos) を計算する
    * @returns cos 適用後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   cos() {
     return this.map((x) => x.cos());
@@ -5596,6 +6294,13 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の正接 (tan) を計算する
    * @returns tan 適用後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} 正接が定義されない点の場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   tan() {
     return this.map((x) => x.tan());
@@ -5603,6 +6308,13 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の逆正弦 (asin) を計算する
    * @returns asin 適用後のストリーム
+   * @throws {RangeError} 特殊値が無効な設定で入力が [-1, 1] の範囲外の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} 導関数がゼロになった場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   asin() {
     return this.map((x) => x.asin());
@@ -5610,6 +6322,13 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の逆余弦 (acos) を計算する
    * @returns acos 適用後のストリーム
+   * @throws {RangeError} 特殊値が無効な設定で入力が [-1, 1] の範囲外の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {NumericalComputationError} 導関数がゼロになった場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   acos() {
     return this.map((x) => x.acos());
@@ -5617,6 +6336,14 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の逆正接 (atan) を計算する
    * @returns atan 適用後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   atan() {
     return this.map((x) => x.atan());
@@ -5625,6 +6352,14 @@ var BigFloatStream = class _BigFloatStream {
    * 各要素に対して atan2 を計算する
    * @param x - x 座標
    * @returns atan2 適用後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   atan2(x) {
     return this.map((value) => value.atan2(x));
@@ -5632,6 +6367,12 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の双曲線正弦 (sinh) を計算する
    * @returns sinh 適用後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sinh() {
     return this.map((x) => x.sinh());
@@ -5639,6 +6380,12 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の双曲線余弦 (cosh) を計算する
    * @returns cosh 適用後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   cosh() {
     return this.map((x) => x.cosh());
@@ -5646,6 +6393,12 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の双曲線正接 (tanh) を計算する
    * @returns tanh 適用後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   tanh() {
     return this.map((x) => x.tanh());
@@ -5653,6 +6406,12 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の逆双曲線正弦 (asinh) を計算する
    * @returns asinh 適用後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   asinh() {
     return this.map((x) => x.asinh());
@@ -5660,6 +6419,12 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の逆双曲線余弦 (acosh) を計算する
    * @returns acosh 適用後のストリーム
+   * @throws {RangeError} 入力が範囲外([1, ∞))の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   acosh() {
     return this.map((x) => x.acosh());
@@ -5667,6 +6432,13 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の逆双曲線正接 (atanh) を計算する
    * @returns atanh 適用後のストリーム
+   * @throws {RangeError} 入力が範囲外([-1, 1])の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   atanh() {
     return this.map((x) => x.atanh());
@@ -5674,6 +6446,11 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の指数関数 (exp) を計算する
    * @returns exp 適用後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   exp() {
     return this.map((x) => x.exp());
@@ -5681,6 +6458,8 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の 2 を底とする指数関数 (exp2) を計算する
    * @returns exp2 適用後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   exp2() {
     return this.map((x) => x.exp2());
@@ -5688,6 +6467,7 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素に対して exp(x) - 1 を計算する
    * @returns expm1 適用後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   expm1() {
     return this.map((x) => x.expm1());
@@ -5695,6 +6475,12 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の自然対数 (ln) を計算する
    * @returns ln 適用後のストリーム
+   * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   ln() {
     return this.map((x) => x.ln());
@@ -5703,6 +6489,10 @@ var BigFloatStream = class _BigFloatStream {
    * 各要素の任意の底による対数を計算する
    * @param base - 底
    * @returns 対数計算後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 底が1または0の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log(base) {
     return this.map((x) => x.log(base));
@@ -5710,6 +6500,9 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の底を 2 とする対数を計算する
    * @returns log2 適用後のストリーム
+   * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log2() {
     return this.map((x) => x.log2());
@@ -5717,6 +6510,9 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素の常用対数 (log10) を計算する
    * @returns log10 適用後のストリーム
+   * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log10() {
     return this.map((x) => x.log10());
@@ -5724,6 +6520,10 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素に対して ln(1 + x) を計算する
    * @returns log1p 適用後のストリーム
+   * @throws {RangeError} 特殊値が無効な設定で x が -1 以下の値の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log1p() {
     return this.map((x) => x.log1p());
@@ -5731,6 +6531,10 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素に対してガンマ関数を計算する
    * @returns ガンマ関数適用後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 負の整数の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {DivisionByZeroError} division by zero
    */
   gamma() {
     return this.map((x) => x.gamma());
@@ -5738,6 +6542,10 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素に対してリーマンゼータ関数を計算する
    * @returns ゼータ関数適用後のストリーム
+   * @throws {RangeError} 特殊値が無効な設定で this = 1 の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   zeta() {
     return this.map((x) => x.zeta());
@@ -5745,6 +6553,10 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * 各要素に対して階乗を計算する
    * @returns 階乗適用後のストリーム
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 負の整数の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {DivisionByZeroError} division by zero
    */
   factorial() {
     return this.map((x) => x.factorial());
@@ -5753,6 +6565,9 @@ var BigFloatStream = class _BigFloatStream {
    * ストリームの要素の中から最大値を返す (終端操作)
    * @returns 最大値
    * @throws {TypeError} ストリームが空の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   max() {
     const iter = this[Symbol.iterator]();
@@ -5768,6 +6583,9 @@ var BigFloatStream = class _BigFloatStream {
    * ストリームの要素の中から最小値を返す (終端操作)
    * @returns 最小値
    * @throws {TypeError} ストリームが空の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   min() {
     const iter = this[Symbol.iterator]();
@@ -5782,6 +6600,11 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * ストリームの全要素の合計を計算する (終端操作)
    * @returns 合計
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sum() {
     const iter = this[Symbol.iterator]();
@@ -5796,6 +6619,11 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * ストリームの全要素の積を計算する (終端操作)
    * @returns 総乗
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   product() {
     const iter = this[Symbol.iterator]();
@@ -5810,6 +6638,12 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * ストリームの全要素の平均値を計算する (終端操作)
    * @returns 平均値
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   average() {
     const iter = this[Symbol.iterator]();
@@ -5826,6 +6660,12 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * ストリームの要素の中央値を計算する (終端操作)
    * @returns 中央値
+   * @throws {TypeError} 引数が空の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   median() {
     return BigFloat.median(this.toArray());
@@ -5833,6 +6673,12 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * ストリームの要素の分散を計算する (終端操作)
    * @returns 分散
+   * @throws {TypeError} 引数が空の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   variance() {
     return BigFloat.variance(this.toArray());
@@ -5840,6 +6686,12 @@ var BigFloatStream = class _BigFloatStream {
   /**
    * ストリームの要素の標準偏差を計算する (終端操作)
    * @returns 標準偏差
+   * @throws {TypeError} 引数が空の場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   stddev() {
     return BigFloat.stddev(this.toArray());
@@ -5856,6 +6708,7 @@ var BigFloatVector = class _BigFloatVector {
    * BigFloatVector コンストラクタ
    * @param values - 要素のソース (反復可能オブジェクト)
    * @param precision - 変換時の精度
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   constructor(values = [], precision) {
     const array = Array.from(values);
@@ -5877,6 +6730,7 @@ var BigFloatVector = class _BigFloatVector {
    * @param value - 変換対象
    * @param precision - 明示精度
    * @returns 変換された BigFloat
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   static _toBigFloat(value, precision) {
     if (value instanceof BigFloat) {
@@ -6004,6 +6858,7 @@ var BigFloatVector = class _BigFloatVector {
    * @param value - 埋める値
    * @param precision - 精度
    * @returns BigFloatVector インスタンス
+   * @throws {RangeError} ベクトル長が有限でない場合、または負の場合
    */
   static fill(length, value, precision) {
     const normalizedLength = this._normalizeLength(length);
@@ -6017,6 +6872,7 @@ var BigFloatVector = class _BigFloatVector {
    * @param length - ベクトルの長さ
    * @param precision - 精度
    * @returns BigFloatVector インスタンス
+   * @throws {RangeError} ベクトル長が有限でない場合、または負の場合
    */
   static zeros(length, precision) {
     return this.fill(length, 0, precision);
@@ -6026,6 +6882,7 @@ var BigFloatVector = class _BigFloatVector {
    * @param length - ベクトルの長さ
    * @param precision - 精度
    * @returns BigFloatVector インスタンス
+   * @throws {RangeError} ベクトル長が有限でない場合、または負の場合
    */
   static ones(length, precision) {
     return this.fill(length, 1, precision);
@@ -6052,6 +6909,12 @@ var BigFloatVector = class _BigFloatVector {
    * @param count - 要素数
    * @param precision - 精度
    * @returns 生成された BigFloatVector
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static linspace(start, end, count, precision) {
     const normalizedCount = this._normalizeLength(count);
@@ -6079,6 +6942,10 @@ var BigFloatVector = class _BigFloatVector {
    * @param options - 乱数範囲と精度のオプション
    * @returns 生成された BigFloatVector
    * @throws {RangeError} 最大値が最小値より小さい場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static random(length, options = {}) {
     const normalizedLength = this._normalizeLength(length);
@@ -6140,6 +7007,7 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 要素を流すストリームへ変換する
    * @returns BigFloatStream インスタンス
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   toStream() {
     return BigFloatStream.from(this.toArray());
@@ -6173,6 +7041,7 @@ var BigFloatVector = class _BigFloatVector {
    * @param other - 対象ベクトル
    * @param fn - 変換関数
    * @returns 変換後の新しいベクトル
+   * @throws {RangeError} ベクトルの次元が一致しない場合
    */
   zipMap(other, fn) {
     return this._mapWithOperand(other, fn);
@@ -6246,6 +7115,7 @@ var BigFloatVector = class _BigFloatVector {
    * すべての要素の精度を変更した新しいベクトルを取得する
    * @param precision - 新しい精度
    * @returns 精度が変更された新しいベクトル
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   changePrecision(precision) {
     const precisionBig = BigInt(precision);
@@ -6255,6 +7125,9 @@ var BigFloatVector = class _BigFloatVector {
    * 別のベクトルと内容が等しいかどうかを判定する
    * @param other - 比較対象
    * @returns 等しい場合は true
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   equals(other) {
     const vector = _BigFloatVector._coerceVector(other, this._values);
@@ -6268,6 +7141,11 @@ var BigFloatVector = class _BigFloatVector {
    * 各要素に別のベクトルまたはスカラ値を加算した新しいベクトルを取得する
    * @param other - 加算するベクトルまたは数値
    * @returns 加算後の新しいベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {RangeError} ベクトルの次元が一致しない場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   add(other) {
     return this._mapWithOperand(other, (left, right) => left.add(right));
@@ -6276,6 +7154,11 @@ var BigFloatVector = class _BigFloatVector {
    * 各要素から別のベクトルまたはスカラ値を減算した新しいベクトルを取得する
    * @param other - 減算するベクトルまたは数値
    * @returns 減算後の新しいベクトル
+   * @throws {RangeError} ベクトルの次元が一致しない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sub(other) {
     return this._mapWithOperand(other, (left, right) => left.sub(right));
@@ -6284,6 +7167,11 @@ var BigFloatVector = class _BigFloatVector {
    * 各要素にスカラ値を乗算した新しいベクトルを取得する
    * @param scalar - 乗算する数値
    * @returns 乗算後の新しいベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   mul(scalar) {
     return this._mapValues((value) => value.mul(scalar));
@@ -6292,6 +7180,12 @@ var BigFloatVector = class _BigFloatVector {
    * 各要素をスカラ値で除算した新しいベクトルを取得する
    * @param scalar - 除数
    * @returns 除算後の新しいベクトル
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   div(scalar) {
     return this._mapValues((value) => value.div(scalar));
@@ -6300,6 +7194,11 @@ var BigFloatVector = class _BigFloatVector {
    * 各要素に対して剰余演算を行った新しいベクトルを取得する
    * @param other - 法
    * @returns 演算後の新しいベクトル
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} ベクトルの次元が一致しない場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   *      *
    */
   mod(other) {
     return this._mapWithOperand(other, (left, right) => left.mod(right));
@@ -6308,6 +7207,11 @@ var BigFloatVector = class _BigFloatVector {
    * 別のベクトルとのアダマール積 (要素ごとの積) を計算する
    * @param other - 対象ベクトル
    * @returns Hadamard積の結果のベクトル
+   * @throws {RangeError} ベクトルの次元が一致しない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   hadamard(other) {
     return this._mapWithOperand(other, (left, right) => left.mul(right));
@@ -6315,6 +7219,7 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の符号を反転させた新しいベクトルを取得する
    * @returns 符号反転後の新しいベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   neg() {
     return this._mapValues((value) => value.neg());
@@ -6322,6 +7227,7 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素を絶対値にした新しいベクトルを取得する
    * @returns 絶対値適用後の新しいベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   abs() {
     return this._mapValues((value) => value.abs());
@@ -6329,6 +7235,7 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の符号 (1, 0, -1) を持つベクトルを取得する
    * @returns 符号ベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   sign() {
     return this._mapValues((value) => value.sign());
@@ -6336,6 +7243,12 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の逆数を持つベクトルを取得する
    * @returns 逆数ベクトル
+   * @throws {DivisionByZeroError} ゼロの場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   reciprocal() {
     return this._mapValues((value) => value.reciprocal());
@@ -6344,6 +7257,15 @@ var BigFloatVector = class _BigFloatVector {
    * 各要素を指定した指数で冪乗した新しいベクトルを取得する
    * @param exponent - 指数
    * @returns 冪乗後の新しいベクトル
+   * @throws {RangeError} Fractional power of negative number is not real
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   *      *      *      *      *
    */
   pow(exponent) {
     return this._mapWithOperand(exponent, (left, right) => left.pow(right));
@@ -6351,6 +7273,11 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の平方根を計算した新しいベクトルを取得する
    * @returns 平方根適用後の新しいベクトル
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sqrt() {
     return this._mapValues((value) => value.sqrt());
@@ -6358,6 +7285,8 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の立方根を計算した新しいベクトルを取得する
    * @returns 立方根適用後の新しいベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
    */
   cbrt() {
     return this._mapValues((value) => value.cbrt());
@@ -6366,6 +7295,8 @@ var BigFloatVector = class _BigFloatVector {
    * 各要素の n 乗根を計算した新しいベクトルを取得する
    * @param n - 指数
    * @returns n 乗根適用後の新しいベクトル
+   * @throws {RangeError} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   nthRoot(n) {
     return this._mapValues((value) => value.nthRoot(n));
@@ -6373,6 +7304,7 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素を床関数 (負の無限大方向への丸め) で処理した新しいベクトルを取得する
    * @returns 床関数適用後の新しいベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   floor() {
     return this._mapValues((value) => value.floor());
@@ -6380,6 +7312,7 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素を天井関数 (正の無限大方向への丸め) で処理した新しいベクトルを取得する
    * @returns 天井関数適用後の新しいベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   ceil() {
     return this._mapValues((value) => value.ceil());
@@ -6387,6 +7320,11 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素を四捨五入した新しいベクトルを取得する
    * @returns 四捨五入後の新しいベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   round() {
     return this._mapValues((value) => value.round());
@@ -6394,6 +7332,7 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素を 0 方向に切り捨てた新しいベクトルを取得する
    * @returns 切り捨て後の新しいベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   trunc() {
     return this._mapValues((value) => value.trunc());
@@ -6401,6 +7340,11 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素を Float32 精度に丸めた新しいベクトルを取得する
    * @returns 丸め後の新しいベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   fround() {
     return this._mapValues((value) => value.fround());
@@ -6408,6 +7352,11 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素を 32 ビット整数として見た時の先頭のゼロビット数を数えたベクトルを取得する
    * @returns 結果のベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   clz32() {
     return this._mapValues((value) => value.clz32());
@@ -6416,6 +7365,13 @@ var BigFloatVector = class _BigFloatVector {
    * 別のベクトルまたは数値との相対差を各要素ごとに計算したベクトルを取得する
    * @param other - 比較対象
    * @returns 相対差のベクトル
+   * @throws {RangeError} ベクトルの次元が一致しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   *      *      *
    */
   relativeDiff(other) {
     return this._mapWithOperand(other, (left, right) => left.relativeDiff(right));
@@ -6424,6 +7380,11 @@ var BigFloatVector = class _BigFloatVector {
    * 別のベクトルまたは数値との絶対差を各要素ごとに計算したベクトルを取得する
    * @param other - 比較対象
    * @returns 絶対差のベクトル
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} ベクトルの次元が一致しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   absoluteDiff(other) {
     return this._mapWithOperand(other, (left, right) => left.absoluteDiff(right));
@@ -6432,6 +7393,12 @@ var BigFloatVector = class _BigFloatVector {
    * 別のベクトルまたは数値との百分率差分を各要素ごとに計算したベクトルを取得する
    * @param other - 比較対象
    * @returns 百分率差分のベクトル (%)
+   * @throws {RangeError} ベクトルの次元が一致しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   percentDiff(other) {
     return this._mapWithOperand(other, (left, right) => left.percentDiff(right));
@@ -6439,6 +7406,12 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の正弦 (sin) を計算したベクトルを取得する
    * @returns sin 適用後のベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sin() {
     return this._mapValues((value) => value.sin());
@@ -6446,6 +7419,11 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の余弦 (cos) を計算したベクトルを取得する
    * @returns cos 適用後のベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   cos() {
     return this._mapValues((value) => value.cos());
@@ -6453,6 +7431,13 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の正接 (tan) を計算したベクトルを取得する
    * @returns tan 適用後のベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} 正接が定義されない点の場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   tan() {
     return this._mapValues((value) => value.tan());
@@ -6460,6 +7445,13 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の逆正弦 (asin) を計算したベクトルを取得する
    * @returns asin 適用後のベクトル
+   * @throws {RangeError} 特殊値が無効な設定で入力が [-1, 1] の範囲外の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} 導関数がゼロになった場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   asin() {
     return this._mapValues((value) => value.asin());
@@ -6467,6 +7459,13 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の逆余弦 (acos) を計算したベクトルを取得する
    * @returns acos 適用後のベクトル
+   * @throws {RangeError} 特殊値が無効な設定で入力が [-1, 1] の範囲外の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {NumericalComputationError} 導関数がゼロになった場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   acos() {
     return this._mapValues((value) => value.acos());
@@ -6474,6 +7473,14 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の逆正接 (atan) を計算したベクトルを取得する
    * @returns atan 適用後のベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   atan() {
     return this._mapValues((value) => value.atan());
@@ -6482,6 +7489,14 @@ var BigFloatVector = class _BigFloatVector {
    * 各要素に対して atan2 を計算したベクトルを取得する
    * @param x - x 座標のベクトルまたは数値
    * @returns atan2 適用後のベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   atan2(x) {
     return this._mapWithOperand(x, (left, right) => left.atan2(right));
@@ -6489,6 +7504,12 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の双曲線正弦 (sinh) を計算したベクトルを取得する
    * @returns sinh 適用後のベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sinh() {
     return this._mapValues((value) => value.sinh());
@@ -6496,6 +7517,12 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の双曲線余弦 (cosh) を計算したベクトルを取得する
    * @returns cosh 適用後のベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   cosh() {
     return this._mapValues((value) => value.cosh());
@@ -6503,6 +7530,12 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の双曲線正接 (tanh) を計算したベクトルを取得する
    * @returns tanh 適用後のベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   tanh() {
     return this._mapValues((value) => value.tanh());
@@ -6510,6 +7543,12 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の逆双曲線正弦 (asinh) を計算したベクトルを取得する
    * @returns asinh 適用後のベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   asinh() {
     return this._mapValues((value) => value.asinh());
@@ -6517,6 +7556,12 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の逆双曲線余弦 (acosh) を計算したベクトルを取得する
    * @returns acosh 適用後のベクトル
+   * @throws {RangeError} 入力が範囲外([1, ∞))の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   acosh() {
     return this._mapValues((value) => value.acosh());
@@ -6524,6 +7569,13 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の逆双曲線正接 (atanh) を計算したベクトルを取得する
    * @returns atanh 適用後のベクトル
+   * @throws {RangeError} 入力が範囲外([-1, 1])の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   atanh() {
     return this._mapValues((value) => value.atanh());
@@ -6531,6 +7583,11 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の指数関数 (exp) を計算したベクトルを取得する
    * @returns exp 適用後のベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   exp() {
     return this._mapValues((value) => value.exp());
@@ -6538,6 +7595,8 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の 2 を底とする指数関数 (exp2) を計算したベクトルを取得する
    * @returns exp2 適用後のベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   exp2() {
     return this._mapValues((value) => value.exp2());
@@ -6545,6 +7604,7 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素に対して exp(x) - 1 を計算したベクトルを取得する
    * @returns expm1 適用後のベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   expm1() {
     return this._mapValues((value) => value.expm1());
@@ -6552,6 +7612,12 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の自然対数 (ln) を計算したベクトルを取得する
    * @returns ln 適用後のベクトル
+   * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   ln() {
     return this._mapValues((value) => value.ln());
@@ -6560,6 +7626,10 @@ var BigFloatVector = class _BigFloatVector {
    * 各要素の任意の底による対数を計算したベクトルを取得する
    * @param base - 底
    * @returns 対数計算後のベクトル
+   * @throws {RangeError} ベクトルの次元が一致しない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log(base) {
     return this._mapWithOperand(base, (left, right) => left.log(right));
@@ -6567,6 +7637,9 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の底を 2 とする対数を計算したベクトルを取得する
    * @returns log2 適用後のベクトル
+   * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log2() {
     return this._mapValues((value) => value.log2());
@@ -6574,6 +7647,9 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素の常用対数 (log10) を計算したベクトルを取得する
    * @returns log10 適用後のベクトル
+   * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log10() {
     return this._mapValues((value) => value.log10());
@@ -6581,6 +7657,10 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素に対して ln(1 + x) を計算したベクトルを取得する
    * @returns log1p 適用後のベクトル
+   * @throws {RangeError} 特殊値が無効な設定で x が -1 以下の値の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log1p() {
     return this._mapValues((value) => value.log1p());
@@ -6588,6 +7668,10 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素に対してガンマ関数を計算したベクトルを取得する
    * @returns ガンマ関数適用後のベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 負の整数の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {DivisionByZeroError} division by zero
    */
   gamma() {
     return this._mapValues((value) => value.gamma());
@@ -6595,6 +7679,10 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素に対してリーマンゼータ関数を計算したベクトルを取得する
    * @returns ゼータ関数適用後のベクトル
+   * @throws {RangeError} 特殊値が無効な設定で this = 1 の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   zeta() {
     return this._mapValues((value) => value.zeta());
@@ -6602,6 +7690,10 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 各要素に対して階乗を計算したベクトルを取得する
    * @returns 階乗適用後のベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 負の整数の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {DivisionByZeroError} division by zero
    */
   factorial() {
     return this._mapValues((value) => value.factorial());
@@ -6610,6 +7702,9 @@ var BigFloatVector = class _BigFloatVector {
    * 最大値を返す
    * @returns 最大値
    * @throws {TypeError} ベクトルが空の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   max() {
     if (this.isEmpty()) throw new TypeError("No arguments provided");
@@ -6623,6 +7718,9 @@ var BigFloatVector = class _BigFloatVector {
    * 最小値を返す
    * @returns 最小値
    * @throws {TypeError} ベクトルが空の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   min() {
     if (this.isEmpty()) throw new TypeError("No arguments provided");
@@ -6635,6 +7733,11 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 全要素の合計を計算する
    * @returns 合計
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sum() {
     if (this.isEmpty()) return new BigFloat(0);
@@ -6647,6 +7750,11 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 全要素の積を計算する
    * @returns 総乗
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   product() {
     if (this.isEmpty()) return new BigFloat(1);
@@ -6659,6 +7767,12 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 全要素の平均値を計算する
    * @returns 平均
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   average() {
     if (this.isEmpty()) return new BigFloat(0);
@@ -6669,6 +7783,10 @@ var BigFloatVector = class _BigFloatVector {
    * @param other - 対象ベクトル
    * @returns 内積の値
    * @throws {RangeError} ベクトルの次元が一致しない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   dot(other) {
     const vector = _BigFloatVector._coerceVector(other, this._values);
@@ -6682,6 +7800,11 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * 二乗ノルム (自分自身との内積) を計算する
    * @returns 二乗ノルム
+   * @throws {RangeError} ベクトルの次元が一致しない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   squaredNorm() {
     return this.dot(this);
@@ -6689,6 +7812,11 @@ var BigFloatVector = class _BigFloatVector {
   /**
    * ノルム (ベクトルの長さ) を計算する
    * @returns ノルム
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   norm() {
     return this.squaredNorm().sqrt();
@@ -6697,6 +7825,11 @@ var BigFloatVector = class _BigFloatVector {
    * ベクトルを正規化する (長さを 1 にする)
    * @returns 正規化された新しいベクトル
    * @throws {RangeError} ベクトルの長さが 0 の場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   normalize() {
     const length = this.norm();
@@ -6707,6 +7840,11 @@ var BigFloatVector = class _BigFloatVector {
    * 別のベクトルとの二乗距離を計算する
    * @param other - 対象ベクトル
    * @returns 二乗距離
+   * @throws {RangeError} ベクトルの次元が一致しない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   squaredDistanceTo(other) {
     return this.sub(other).squaredNorm();
@@ -6715,6 +7853,11 @@ var BigFloatVector = class _BigFloatVector {
    * 別のベクトルとの距離を計算する
    * @param other - 対象ベクトル
    * @returns 距離
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   distanceTo(other) {
     return this.squaredDistanceTo(other).sqrt();
@@ -6724,6 +7867,11 @@ var BigFloatVector = class _BigFloatVector {
    * @param other - 射影先のベクトル
    * @returns 射影された新しいベクトル
    * @throws {RangeError} 射影先のベクトルの長さが 0 の場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   projectOnto(other) {
     const vector = _BigFloatVector._coerceVector(other, this._values);
@@ -6737,6 +7885,13 @@ var BigFloatVector = class _BigFloatVector {
    * @param other - 対象ベクトル
    * @returns 角度 (ラジアン)
    * @throws {RangeError} いずれかのベクトルの長さが 0 の場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {NumericalComputationError} 導関数がゼロになった場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   angleTo(other) {
     const vector = _BigFloatVector._coerceVector(other, this._values);
@@ -6752,6 +7907,10 @@ var BigFloatVector = class _BigFloatVector {
    * @param other - 対象ベクトル
    * @returns 外積の結果の新しいベクトル
    * @throws {RangeError} いずれかのベクトルが 3 次元でない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   cross(other) {
     const vector = _BigFloatVector._coerceVector(other, this._values);
@@ -6777,6 +7936,9 @@ var BigFloatComplex = class _BigFloatComplex {
    * 精度 (小数点以下の最大桁数)
    */
   _precision;
+  /** @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
   constructor(real = 0, imagOrPrecision, precision) {
     const { imagPartValue, precisionValue } = _BigFloatComplex._normalizeArguments(real, imagOrPrecision, precision, arguments.length);
     const { realPart, imagPart } = _BigFloatComplex._normalizeParts(real, imagPartValue);
@@ -6790,6 +7952,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @param value - 変換対象の値
    * @param precision - 精度
    * @returns 変換された BigFloat
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   static _toBigFloat(value, precision) {
     if (value instanceof BigFloat) {
@@ -6818,6 +7981,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @param real - 実部 BigFloat
    * @param imag - 虚部 BigFloat
    * @returns 生成された BigFloatComplex
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   static _fromBigFloats(real, imag) {
     const complex = Object.create(_BigFloatComplex.prototype);
@@ -6832,6 +7996,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @param value - 正規化対象の値
    * @param imag - 虚部 (value が実部のみの場合)
    * @returns 実部と虚部のオブジェクト
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static _normalizeParts(value, imag) {
     if (value instanceof _BigFloatComplex) return { realPart: value._real, imagPart: value._imag };
@@ -6860,6 +8025,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @param precision - 第3引数
    * @param argCount - 引数の数
    * @returns 解決された虚部と精度のオブジェクト
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static _normalizeArguments(value, imagOrPrecision, precision, argCount = 0) {
     if (argCount <= 1) return { imagPartValue: 0, precisionValue: precision };
@@ -6874,6 +8040,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @param value - 第1引数
    * @param imagOrPrecision - 第2引数
    * @returns 精度として扱う場合は true
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static _shouldTreatSecondArgumentAsPrecision(value, imagOrPrecision) {
     if (typeof imagOrPrecision !== "number" && typeof imagOrPrecision !== "bigint") return false;
@@ -6925,6 +8092,8 @@ var BigFloatComplex = class _BigFloatComplex {
    * @param value - 変換対象
    * @param precision - 精度
    * @returns 変換された BigFloatComplex
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static _toComplex(value, precision) {
     if (value instanceof _BigFloatComplex) {
@@ -6963,6 +8132,8 @@ var BigFloatComplex = class _BigFloatComplex {
    * 自然対数の底 e を実部とした複素数を取得する
    * @param precision - 精度
    * @returns e + 0i
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static e(precision = 20) {
     return new _BigFloatComplex(BigFloat.e(precision), 0, precision);
@@ -6971,6 +8142,8 @@ var BigFloatComplex = class _BigFloatComplex {
    * 円周率 pi を実部とした複素数を取得する
    * @param precision - 精度
    * @returns pi + 0i
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static pi(precision = 20) {
     return new _BigFloatComplex(BigFloat.pi(precision), 0, precision);
@@ -6979,10 +8152,14 @@ var BigFloatComplex = class _BigFloatComplex {
    * 2*pi (tau) を実部とした複素数を取得する
    * @param precision - 精度
    * @returns tau + 0i
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   *      *      *
    */
   static tau(precision = 20) {
     return new _BigFloatComplex(BigFloat.tau(precision), 0, precision);
   }
+  /** @throws {SyntaxError} 文字列が複素数表現として無効な場合 */
   static from(value, imag, precision) {
     if (precision !== void 0) return new _BigFloatComplex(value, imag, precision);
     if (imag === void 0) return new _BigFloatComplex(value);
@@ -7005,6 +8182,12 @@ var BigFloatComplex = class _BigFloatComplex {
    * @param angle - 偏角 (theta, ラジアン)
    * @param precision - 精度
    * @returns 生成された BigFloatComplex
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static fromPolar(magnitude, angle, precision) {
     const resolvedPrecision = this._resolvePrecision([magnitude, angle], precision);
@@ -7017,6 +8200,11 @@ var BigFloatComplex = class _BigFloatComplex {
    * @param values - 複素数のリスト
    * @param precision - 結果の精度
    * @returns 総和
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static sum(values, precision) {
     let result = precision === void 0 ? this.zero() : this.zero(precision);
@@ -7028,6 +8216,11 @@ var BigFloatComplex = class _BigFloatComplex {
    * @param values - 複素数のリスト
    * @param precision - 結果の精度
    * @returns 総積
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static product(values, precision) {
     let result = precision === void 0 ? this.one() : this.one(precision);
@@ -7039,6 +8232,12 @@ var BigFloatComplex = class _BigFloatComplex {
    * @param values - 複素数のリスト
    * @param precision - 結果の精度
    * @returns 平均
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static average(values, precision) {
     let count = 0;
@@ -7071,6 +8270,7 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * インスタンスを複製する
    * @returns 複製された BigFloatComplex
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   clone() {
     return _BigFloatComplex._fromBigFloats(this._real, this._imag);
@@ -7079,6 +8279,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * 精度を変更した新しいインスタンスを返す
    * @param precision - 新しい精度
    * @returns 精度が変更された BigFloatComplex
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   changePrecision(precision) {
     const precisionBig = BigInt(precision);
@@ -7101,6 +8302,14 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 極形式 (絶対値と偏角) へ変換する
    * @returns 絶対値 (magnitude) と偏角 (angle) のオブジェクト
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   toPolar() {
     return { magnitude: this.abs(), angle: this.arg() };
@@ -7108,6 +8317,11 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * JSON シリアライズ用のオブジェクトを取得する
    * @returns {re: string, im: string} オブジェクト
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   toJSON() {
     return { re: this._real.toString(), im: this._imag.toString() };
@@ -7117,6 +8331,11 @@ var BigFloatComplex = class _BigFloatComplex {
    * @param base - 基数 (2-36)
    * @param precision - 表示精度
    * @returns "a + bi" 形式の文字列
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   toString(base = 10, precision = this._precision) {
     const real = this._real.toString(base, precision);
@@ -7142,6 +8361,10 @@ var BigFloatComplex = class _BigFloatComplex {
    * 別の複素数と等しいかどうかを判定する
    * @param other - 比較対象
    * @returns 等しい場合は true
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   equals(other) {
     const rhs = _BigFloatComplex._toComplex(other, this._precision);
@@ -7151,6 +8374,10 @@ var BigFloatComplex = class _BigFloatComplex {
    * 別の複素数と等しくないかどうかを判定する
    * @param other - 比較対象
    * @returns 等しくない場合は true
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   ne(other) {
     return !this.equals(other);
@@ -7179,6 +8406,8 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 共役複素数 (a - bi) を取得する
    * @returns 共役複素数
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   conjugate() {
     return _BigFloatComplex._fromBigFloats(this._real, this._imag.neg());
@@ -7186,6 +8415,8 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 符号を反転させた複素数 (-a - bi) を取得する
    * @returns 符号反転された複素数
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   neg() {
     return _BigFloatComplex._fromBigFloats(this._real.neg(), this._imag.neg());
@@ -7193,6 +8424,11 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 絶対値の二乗 (a^2 + b^2) を計算する
    * @returns 絶対値の二乗
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   absSquared() {
     return this._real.mul(this._real).add(this._imag.mul(this._imag));
@@ -7200,6 +8436,11 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 絶対値 (ノルム) を計算する
    * @returns 絶対値
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   abs() {
     return this.absSquared().sqrt();
@@ -7207,6 +8448,14 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 偏角 (引数) を計算する
    * @returns 偏角 (ラジアン)
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   arg() {
     if (this.isZero()) return new BigFloat(0, this._precision);
@@ -7215,6 +8464,12 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 複素数の符号 (z / |z|) を取得する
    * @returns 単位円上の複素数、または 0
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sign() {
     if (this.isZero()) return _BigFloatComplex.zero(this._precision);
@@ -7224,6 +8479,11 @@ var BigFloatComplex = class _BigFloatComplex {
    * ベクトルとして正規化する (絶対値を 1 にする)
    * @returns 正規化された複素数
    * @throws {RangeError} ゼロ複素数を正規化しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   normalize() {
     if (this.isZero()) throw new RangeError("Cannot normalize zero complex");
@@ -7233,6 +8493,11 @@ var BigFloatComplex = class _BigFloatComplex {
    * 二つの複素数間の距離を計算する
    * @param other - 対象
    * @returns 距離
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   distanceTo(other) {
     return this.sub(other).abs();
@@ -7241,6 +8506,12 @@ var BigFloatComplex = class _BigFloatComplex {
    * 別の複素数との相対差を計算する
    * @param other - 比較対象
    * @returns 相対差
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {TypeError} 複素数モードが無効な場合
    */
   relativeDiff(other) {
     const rhs = _BigFloatComplex._toComplex(other, this._precision);
@@ -7255,6 +8526,11 @@ var BigFloatComplex = class _BigFloatComplex {
    * 別の複素数との絶対差を計算する
    * @param other - 比較対象
    * @returns 絶対差
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   absoluteDiff(other) {
     return this.sub(other).abs();
@@ -7263,6 +8539,12 @@ var BigFloatComplex = class _BigFloatComplex {
    * 別の複素数との百分率差分を計算する
    * @param other - 比較対象
    * @returns 百分率差分 (%)
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   percentDiff(other) {
     const rhs = _BigFloatComplex._toComplex(other, this._precision);
@@ -7274,6 +8556,11 @@ var BigFloatComplex = class _BigFloatComplex {
    * 複素数を加算する
    * @param other - 加算する値
    * @returns 加算結果
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   add(other) {
     const rhs = _BigFloatComplex._toComplex(other, this._precision);
@@ -7283,6 +8570,11 @@ var BigFloatComplex = class _BigFloatComplex {
    * 複素数を減算する
    * @param other - 減算する値
    * @returns 減算結果
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sub(other) {
     const rhs = _BigFloatComplex._toComplex(other, this._precision);
@@ -7292,6 +8584,11 @@ var BigFloatComplex = class _BigFloatComplex {
    * 複素数を乗算する
    * @param other - 乗算する値
    * @returns 乗算結果
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   mul(other) {
     const rhs = _BigFloatComplex._toComplex(other, this._precision);
@@ -7304,6 +8601,11 @@ var BigFloatComplex = class _BigFloatComplex {
    * @param other - 除算する値
    * @returns 除算結果
    * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   div(other) {
     const rhs = _BigFloatComplex._toComplex(other, this._precision);
@@ -7315,6 +8617,12 @@ var BigFloatComplex = class _BigFloatComplex {
    * 実数(またはその表現)で除算する (内部用)
    * @param value - 実数
    * @returns 除算結果
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   divByReal(value) {
     return _BigFloatComplex._fromBigFloats(this._real.div(value), this._imag.div(value));
@@ -7322,6 +8630,12 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 複素数の逆数を計算する
    * @returns 逆数
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   reciprocal() {
     return _BigFloatComplex.one(this._precision).div(this);
@@ -7330,6 +8644,12 @@ var BigFloatComplex = class _BigFloatComplex {
    * 複素数を回転させる
    * @param angle - 回転角 (ラジアン)
    * @returns 回転後の複素数
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   rotate(angle) {
     return this.mul(_BigFloatComplex.fromPolar(1, angle, this._precision));
@@ -7337,6 +8657,12 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 複素数の指数関数 exp(z) を計算する
    * @returns exp(z)
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   exp() {
     const realExp = this._real.exp();
@@ -7345,6 +8671,12 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 複素数における exp(z) - 1 を計算する
    * @returns exp(z) - 1
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   expm1() {
     return this.exp().sub(1);
@@ -7353,6 +8685,13 @@ var BigFloatComplex = class _BigFloatComplex {
    * 複素数の自然対数 ln(z) を計算する
    * @returns ln(z)
    * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   ln() {
     if (this.isZero()) throw new RangeError("ln(0) is undefined");
@@ -7362,6 +8701,15 @@ var BigFloatComplex = class _BigFloatComplex {
    * 複素数の任意の底による対数を計算する
    * @param base - 底
    * @returns 対数結果
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   *      *      *
    */
   log(base) {
     return this.ln().div(_BigFloatComplex._toComplex(base, this._precision).ln());
@@ -7371,6 +8719,14 @@ var BigFloatComplex = class _BigFloatComplex {
    * @param exponent - 指数
    * @returns 冪乗結果
    * @throws {RangeError} ゼロ複素数を非正の実数以外の指数で冪乗しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   *      *      *
    */
   pow(exponent) {
     const rhs = _BigFloatComplex._toComplex(exponent, this._precision);
@@ -7384,6 +8740,12 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 複素数の平方根を計算する
    * @returns 平方根
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sqrt() {
     if (this.isZero()) return _BigFloatComplex.zero(this._precision);
@@ -7398,6 +8760,14 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 複素数の立方根を計算する
    * @returns 立方根
+   * @throws {RangeError} n が正の整数でない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   cbrt() {
     return this.nthRoot(3);
@@ -7406,6 +8776,14 @@ var BigFloatComplex = class _BigFloatComplex {
    * 複素数の n 乗根の主値を計算する
    * @param n - 指数
    * @returns n 乗根の主値
+   * @throws {RangeError} n が正の整数でない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   nthRoot(n) {
     const roots = this.nthRoots(n);
@@ -7416,6 +8794,13 @@ var BigFloatComplex = class _BigFloatComplex {
    * @param n - 指数 (正の整数)
    * @returns n 乗根の配列
    * @throws {RangeError} n が正の整数でない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   nthRoots(n) {
     const degree = typeof n === "number" ? Math.trunc(n) : Number(n);
@@ -7430,6 +8815,13 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 複素数の正弦 (sin) を計算する
    * @returns sin(z)
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sin() {
     return _BigFloatComplex._fromBigFloats(this._real.sin().mul(this._imag.cosh()), this._real.cos().mul(this._imag.sinh()));
@@ -7437,6 +8829,13 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 複素数の余弦 (cos) を計算する
    * @returns cos(z)
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   cos() {
     return _BigFloatComplex._fromBigFloats(this._real.cos().mul(this._imag.cosh()), this._real.sin().mul(this._imag.sinh()).neg());
@@ -7444,6 +8843,13 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 複素数の正接 (tan) を計算する
    * @returns tan(z)
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   tan() {
     return this.sin().div(this.cos());
@@ -7451,6 +8857,13 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 複素数の双曲線正弦 (sinh) を計算する
    * @returns sinh(z)
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sinh() {
     return _BigFloatComplex._fromBigFloats(this._real.sinh().mul(this._imag.cos()), this._real.cosh().mul(this._imag.sin()));
@@ -7458,6 +8871,13 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 複素数の双曲線余弦 (cosh) を計算する
    * @returns cosh(z)
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   cosh() {
     return _BigFloatComplex._fromBigFloats(this._real.cosh().mul(this._imag.cos()), this._real.sinh().mul(this._imag.sin()));
@@ -7465,6 +8885,13 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 複素数の双曲線正接 (tanh) を計算する
    * @returns tanh(z)
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   tanh() {
     return this.sinh().div(this.cosh());
@@ -7472,6 +8899,15 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 複素数の逆正弦 (asin) を計算する
    * @returns asin(z)
+   * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   *      *      *
    */
   asin() {
     const i = _BigFloatComplex.i(this._precision);
@@ -7483,6 +8919,15 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 複素数の逆余弦 (acos) を計算する
    * @returns acos(z)
+   * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   *      *      *      *
    */
   acos() {
     const halfPi = _BigFloatComplex.pi(this._precision).div(2);
@@ -7491,6 +8936,15 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 複素数の逆正接 (atan) を計算する
    * @returns atan(z)
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   *      *      *
    */
   atan() {
     const i = _BigFloatComplex.i(this._precision);
@@ -7502,6 +8956,15 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 複素数の逆双曲線正弦 (asinh) を計算する
    * @returns asinh(z)
+   * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   *      *      *
    */
   asinh() {
     return this.mul(this).add(1).sqrt().add(this).ln();
@@ -7509,6 +8972,15 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 複素数の逆双曲線余弦 (acosh) を計算する
    * @returns acosh(z)
+   * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   *      *      *
    */
   acosh() {
     const one = _BigFloatComplex.one(this._precision);
@@ -7517,6 +8989,15 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * 複素数の逆双曲線正接 (atanh) を計算する
    * @returns atanh(z)
+   * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   *      *      *
    */
   atanh() {
     const one = _BigFloatComplex.one(this._precision);
@@ -7560,6 +9041,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @param value - 変換対象の値
    * @param precision - 精度
    * @returns BigFloat インスタンス
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   static _toBigFloat(value, precision) {
     if (value instanceof BigFloat) {
@@ -7631,6 +9113,12 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 指定された精度の微小値 (10^-precision) を返す (内部用)
    * @param precision - 精度
    * @returns 微小値
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static _epsilon(precision) {
     if (precision <= 0n) return new BigFloat(1, 0);
@@ -7707,6 +9195,12 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @param values - 対象行列の二次元配列
    * @param leftColumnCount - 掃き出し対象の列数
    * @returns RREF 後の配列と主成分(ピボット)列のインデックス
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static _reducedRowEchelon(values, leftColumnCount = values[0]?.length ?? 0) {
     const rows = values.map((row) => row.map((value) => value.clone()));
@@ -7801,6 +9295,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @param value - 埋める値
    * @param precision - 精度
    * @returns BigFloatMatrix インスタンス
+   * @throws {RangeError} size が負または非有限の場合
    */
   static fill(rowCount, columnCount, value, precision) {
     const normalizedRows = this._normalizeSize(rowCount, "Row count");
@@ -7816,6 +9311,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @param columnCount - 列数
    * @param precision - 精度
    * @returns BigFloatMatrix インスタンス
+   * @throws {RangeError} size が負または非有限の場合
    */
   static zeros(rowCount, columnCount, precision) {
     return this.fill(rowCount, columnCount, 0, precision);
@@ -7826,6 +9322,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @param columnCount - 列数
    * @param precision - 精度
    * @returns BigFloatMatrix インスタンス
+   * @throws {RangeError} size が負または非有限の場合
    */
   static ones(rowCount, columnCount, precision) {
     return this.fill(rowCount, columnCount, 1, precision);
@@ -7835,6 +9332,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @param size - 次元数
    * @param precision - 精度
    * @returns BigFloatMatrix インスタンス
+   * @throws {RangeError} size が負または非有限の場合
    */
   static identity(size, precision) {
     const normalizedSize = this._normalizeSize(size, "Matrix size");
@@ -7846,6 +9344,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @param values - 対角要素のリスト
    * @param precision - 精度
    * @returns BigFloatMatrix インスタンス
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   static diagonal(values, precision) {
     const entries = Array.from(values);
@@ -7855,6 +9354,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 乱数行列を生成する
    * @throws {RangeError} max < min の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static random(rowCount, columnCount, options = {}) {
     const normalizedRows = this._normalizeSize(rowCount, "Row count");
@@ -7971,6 +9474,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 全要素を流すストリームへ変換する
    * @returns BigFloatStream インスタンス
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   toStream() {
     return this.flatten().toStream();
@@ -8006,6 +9510,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @param other - 対象行列
    * @param fn - 変換関数
    * @returns 変換後の新しい行列
+   * @throws {RangeError} 行列形状が一致しない場合
    */
   zipMap(other, fn) {
     return this._mapWithOperand(other, fn);
@@ -8107,6 +9612,9 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 別の行列と内容が等しいかどうかを判定する
    * @param other - 比較対象
    * @returns 等しい場合は true
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   equals(other) {
     const matrix = _BigFloatMatrix._coerceMatrix(other, this._flattenValues());
@@ -8122,6 +9630,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * すべての要素の精度を変更した新しい行列を取得する
    * @param precision - 新しい精度
    * @returns 精度が変更された新しい行列
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   changePrecision(precision) {
     const precisionBig = BigInt(precision);
@@ -8131,6 +9640,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 各要素に別の行列またはスカラ値を加算した新しい行列を取得する
    * @param other - 加算する行列または数値
    * @returns 加算後の新しい行列
+   * @throws {RangeError} 行列形状が一致しない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   add(other) {
     return this._mapWithOperand(other, (left, right) => left.add(right));
@@ -8139,6 +9653,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 各要素から別の行列またはスカラ値を減算した新しい行列を取得する
    * @param other - 減算する行列または数値
    * @returns 減算後の新しい行列
+   * @throws {RangeError} 行列形状が一致しない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sub(other) {
     return this._mapWithOperand(other, (left, right) => left.sub(right));
@@ -8147,6 +9666,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 各要素にスカラ値を乗算した新しい行列を取得する
    * @param scalar - 乗算する数値
    * @returns 乗算後の新しい行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   mul(scalar) {
     return this._mapValues((value) => value.mul(scalar));
@@ -8155,6 +9679,12 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 各要素をスカラ値で除算した新しい行列を取得する
    * @param scalar - 除数
    * @returns 除算後の新しい行列
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   div(scalar) {
     return this._mapValues((value) => value.div(scalar));
@@ -8163,6 +9693,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 各要素に対して剰余演算を行った新しい行列を取得する
    * @param other - 法
    * @returns 演算後の新しい行列
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 行列形状が一致しない場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   *      *
    */
   mod(other) {
     return this._mapWithOperand(other, (left, right) => left.mod(right));
@@ -8171,6 +9706,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 別の行列とのアダマール積 (要素ごとの積) を計算する
    * @param other - 対象行列
    * @returns アダマール積の結果の行列
+   * @throws {RangeError} 行列形状が一致しない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   hadamard(other) {
     return this._mapWithOperand(other, (left, right) => left.mul(right));
@@ -8178,6 +9718,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の符号を反転させた新しい行列を取得する
    * @returns 符号反転後の新しい行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   neg() {
     return this._mapValues((value) => value.neg());
@@ -8185,6 +9726,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素を絶対値にした新しい行列を取得する
    * @returns 絶対値適用後の新しい行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   abs() {
     return this._mapValues((value) => value.abs());
@@ -8192,6 +9734,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の符号 (1, 0, -1) を持つ行列を取得する
    * @returns 符号行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   sign() {
     return this._mapValues((value) => value.sign());
@@ -8199,6 +9742,12 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の逆数を持つ行列を取得する
    * @returns 逆数行列
+   * @throws {DivisionByZeroError} ゼロの場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   reciprocal() {
     return this._mapValues((value) => value.reciprocal());
@@ -8207,6 +9756,15 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 各要素を指定した指数で冪乗した新しい行列を取得する
    * @param exponent - 指数
    * @returns 冪乗後の新しい行列
+   * @throws {RangeError} Fractional power of negative number is not real
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   *      *      *      *      *
    */
   pow(exponent) {
     return this._mapWithOperand(exponent, (left, right) => left.pow(right));
@@ -8214,6 +9772,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の平方根を計算した新しい行列を取得する
    * @returns 平方根適用後の新しい行列
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sqrt() {
     return this._mapValues((value) => value.sqrt());
@@ -8221,6 +9784,8 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の立方根を計算した新しい行列を取得する
    * @returns 立方根適用後の新しい行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
    */
   cbrt() {
     return this._mapValues((value) => value.cbrt());
@@ -8229,6 +9794,8 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 各要素の n 乗根を計算した新しい行列を取得する
    * @param n - 指数
    * @returns n 乗根適用後の新しい行列
+   * @throws {RangeError} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   nthRoot(n) {
     return this._mapValues((value) => value.nthRoot(n));
@@ -8236,6 +9803,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素を床関数 (負の無限大方向への丸め) で処理した新しい行列を取得する
    * @returns 床関数適用後の新しい行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   floor() {
     return this._mapValues((value) => value.floor());
@@ -8243,6 +9811,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素を天井関数 (正の無限大方向への丸め) で処理した新しい行列を取得する
    * @returns 天井関数適用後の新しい行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   ceil() {
     return this._mapValues((value) => value.ceil());
@@ -8250,6 +9819,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素を四捨五入した新しい行列を取得する
    * @returns 四捨五入後の新しい行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   round() {
     return this._mapValues((value) => value.round());
@@ -8257,6 +9831,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素を 0 方向に切り捨てた新しい行列を取得する
    * @returns 切り捨て後の新しい行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
    */
   trunc() {
     return this._mapValues((value) => value.trunc());
@@ -8264,6 +9839,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素を Float32 精度に丸めた新しい行列を取得する
    * @returns 丸め後の新しい行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   fround() {
     return this._mapValues((value) => value.fround());
@@ -8271,6 +9851,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素を 32 ビット整数として見た時の先頭のゼロビット数を数えた行列を取得する
    * @returns 結果の行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   clz32() {
     return this._mapValues((value) => value.clz32());
@@ -8279,6 +9864,13 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 別の行列または数値との相対差を各要素ごとに計算した行列を取得する
    * @param other - 比較対象
    * @returns 相対差の行列
+   * @throws {RangeError} 行列形状が一致しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   *      *      *
    */
   relativeDiff(other) {
     return this._mapWithOperand(other, (left, right) => left.relativeDiff(right));
@@ -8287,6 +9879,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 別の行列または数値との絶対差を各要素ごとに計算した行列を取得する
    * @param other - 比較対象
    * @returns 絶対差の行列
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 行列形状が一致しない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   absoluteDiff(other) {
     return this._mapWithOperand(other, (left, right) => left.absoluteDiff(right));
@@ -8295,6 +9892,12 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 別の行列または数値との百分率差分を各要素ごとに計算した行列を取得する
    * @param other - 比較対象
    * @returns 百分率差分の行列 (%)
+   * @throws {RangeError} 行列形状が一致しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   percentDiff(other) {
     return this._mapWithOperand(other, (left, right) => left.percentDiff(right));
@@ -8302,6 +9905,12 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の正弦 (sin) を計算した行列を取得する
    * @returns sin 適用後の行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sin() {
     return this._mapValues((value) => value.sin());
@@ -8309,6 +9918,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の余弦 (cos) を計算した行列を取得する
    * @returns cos 適用後の行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   cos() {
     return this._mapValues((value) => value.cos());
@@ -8316,6 +9930,13 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の正接 (tan) を計算した行列を取得する
    * @returns tan 適用後の行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} 正接が定義されない点の場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   tan() {
     return this._mapValues((value) => value.tan());
@@ -8323,6 +9944,13 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の逆正弦 (asin) を計算した行列を取得する
    * @returns asin 適用後の行列
+   * @throws {RangeError} 特殊値が無効な設定で入力が [-1, 1] の範囲外の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} 導関数がゼロになった場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   asin() {
     return this._mapValues((value) => value.asin());
@@ -8330,6 +9958,13 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の逆余弦 (acos) を計算した行列を取得する
    * @returns acos 適用後の行列
+   * @throws {RangeError} 特殊値が無効な設定で入力が [-1, 1] の範囲外の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {NumericalComputationError} 導関数がゼロになった場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   acos() {
     return this._mapValues((value) => value.acos());
@@ -8337,6 +9972,14 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の逆正接 (atan) を計算した行列を取得する
    * @returns atan 適用後の行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   atan() {
     return this._mapValues((value) => value.atan());
@@ -8345,6 +9988,14 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 各要素に対して atan2 を計算した行列を取得する
    * @param x - x 座標の行列または数値
    * @returns atan2 適用後の行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 行列形状が一致しない場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   atan2(x) {
     return this._mapWithOperand(x, (left, right) => left.atan2(right));
@@ -8352,6 +10003,12 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の双曲線正弦 (sinh) を計算した行列を取得する
    * @returns sinh 適用後の行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sinh() {
     return this._mapValues((value) => value.sinh());
@@ -8359,6 +10016,12 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の双曲線余弦 (cosh) を計算した行列を取得する
    * @returns cosh 適用後の行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   cosh() {
     return this._mapValues((value) => value.cosh());
@@ -8366,6 +10029,12 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の双曲線正接 (tanh) を計算した行列を取得する
    * @returns tanh 適用後の行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   tanh() {
     return this._mapValues((value) => value.tanh());
@@ -8373,6 +10042,12 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の逆双曲線正弦 (asinh) を計算した行列を取得する
    * @returns asinh 適用後の行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   asinh() {
     return this._mapValues((value) => value.asinh());
@@ -8380,6 +10055,12 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の逆双曲線余弦 (acosh) を計算した行列を取得する
    * @returns acosh 適用後の行列
+   * @throws {RangeError} 入力が範囲外([1, ∞))の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   acosh() {
     return this._mapValues((value) => value.acosh());
@@ -8387,6 +10068,13 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の逆双曲線正接 (atanh) を計算した行列を取得する
    * @returns atanh 適用後の行列
+   * @throws {RangeError} 入力が範囲外([-1, 1])の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   atanh() {
     return this._mapValues((value) => value.atanh());
@@ -8394,6 +10082,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の指数関数 (exp) を計算した行列を取得する
    * @returns exp 適用後の行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   exp() {
     return this._mapValues((value) => value.exp());
@@ -8401,6 +10094,8 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の 2 を底とする指数関数 (exp2) を計算した行列を取得する
    * @returns exp2 適用後の行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   exp2() {
     return this._mapValues((value) => value.exp2());
@@ -8408,6 +10103,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素に対して exp(x) - 1 を計算した行列を取得する
    * @returns expm1 適用後の行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    */
   expm1() {
     return this._mapValues((value) => value.expm1());
@@ -8415,6 +10111,12 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の自然対数 (ln) を計算した行列を取得する
    * @returns ln 適用後の行列
+   * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   ln() {
     return this._mapValues((value) => value.ln());
@@ -8423,6 +10125,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 各要素の任意の底による対数を計算した行列を取得する
    * @param base - 底
    * @returns 対数計算後の行列
+   * @throws {RangeError} 行列形状が一致しない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log(base) {
     return this._mapWithOperand(base, (left, right) => left.log(right));
@@ -8430,6 +10136,9 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の底を 2 とする対数を計算した行列を取得する
    * @returns log2 適用後の行列
+   * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log2() {
     return this._mapValues((value) => value.log2());
@@ -8437,6 +10146,9 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素の常用対数 (log10) を計算した行列を取得する
    * @returns log10 適用後の行列
+   * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log10() {
     return this._mapValues((value) => value.log10());
@@ -8444,6 +10156,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素に対して ln(1 + x) を計算した行列を取得する
    * @returns log1p 適用後の行列
+   * @throws {RangeError} 特殊値が無効な設定で x が -1 以下の値の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log1p() {
     return this._mapValues((value) => value.log1p());
@@ -8451,6 +10167,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素に対してガンマ関数を計算した行列を取得する
    * @returns ガンマ関数適用後の行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 負の整数の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {DivisionByZeroError} division by zero
    */
   gamma() {
     return this._mapValues((value) => value.gamma());
@@ -8458,6 +10178,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素に対してリーマンゼータ関数を計算した行列を取得する
    * @returns ゼータ関数適用後の行列
+   * @throws {RangeError} 特殊値が無効な設定で this = 1 の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   zeta() {
     return this._mapValues((value) => value.zeta());
@@ -8465,6 +10189,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 各要素に対して階乗を計算した行列を取得する
    * @returns 階乗適用後の行列
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 負の整数の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {DivisionByZeroError} division by zero
    */
   factorial() {
     return this._mapValues((value) => value.factorial());
@@ -8472,6 +10200,9 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 最大値を返す
    * @throws {TypeError} 行列が空の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   max() {
     if (this.isEmpty()) throw new TypeError("No arguments provided");
@@ -8486,6 +10217,9 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 最小値を返す
    * @throws {TypeError} 行列が空の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   min() {
     if (this.isEmpty()) throw new TypeError("No arguments provided");
@@ -8500,6 +10234,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 全要素の合計を計算する
    * @returns 合計
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sum() {
     if (this.isEmpty()) return new BigFloat(0);
@@ -8508,6 +10247,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 全要素の積を計算する
    * @returns 総乗
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   product() {
     if (this.isEmpty()) return new BigFloat(1);
@@ -8516,6 +10260,12 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 全要素の平均を計算する
    * @returns 平均
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   average() {
     if (this.isEmpty()) return new BigFloat(0);
@@ -8524,6 +10274,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 行ごとの合計を計算する
    * @returns 各行の和を持つベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   rowSums() {
     return BigFloatVector.from(this._values.map((row) => BigFloatVector.from(row.map((value) => value.clone())).sum()));
@@ -8531,6 +10286,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 列ごとの合計を計算する
    * @returns 各列の和を持つベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   columnSums() {
     if (this.isEmpty()) return BigFloatVector.empty();
@@ -8541,6 +10301,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 行列のトレース (対角成分の和) を計算する
    * @returns トレース
    * @throws {RangeError} 正方行列でない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   trace() {
     _BigFloatMatrix._assertSquare(this);
@@ -8554,6 +10318,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * フロベニウスノルムを計算する
    * @returns フロベニウスノルム
+   * @throws {RangeError} ベクトルの次元が一致しない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   frobeniusNorm() {
     return this.flatten().squaredNorm().sqrt();
@@ -8584,6 +10353,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * ベクトル積を計算する
    * @throws {RangeError} 内部次元が一致しない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   mulVector(vector) {
     const rhs = _BigFloatMatrix._coerceVector(vector, this._flattenValues());
@@ -8594,6 +10367,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 行列式を計算する
    * @returns 行列式の値
    * @throws {RangeError} 正方行列でない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   determinant() {
     _BigFloatMatrix._assertSquare(this);
@@ -8633,6 +10411,12 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 行列のランク (階数) を計算する
    * @returns ランク
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   rank() {
     return _BigFloatMatrix._reducedRowEchelon(this.toArray(), this.columnCount).pivotColumns.length;
@@ -8641,6 +10425,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 逆行列を計算する
    * @returns 逆行列
    * @throws {RangeError} 正方行列でない場合、または行列が特異な場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   inverse() {
     _BigFloatMatrix._assertSquare(this);
@@ -8652,6 +10441,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @param rhs - 右辺ベクトル b
    * @returns 解ベクトル x
    * @throws {RangeError} 行列が正方でない場合、ベクトル長が不一致な場合、または行列が特異な場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   solveVector(rhs) {
     _BigFloatMatrix._assertSquare(this);
@@ -8665,6 +10459,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @param rhs - 右辺行列 B
    * @returns 解行列 X
    * @throws {RangeError} 行列が正方でない場合、行数が不一致な場合、または行列が特異な場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   solveMatrix(rhs) {
     _BigFloatMatrix._assertSquare(this);
@@ -8688,6 +10487,11 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @param exponent - 指数 (整数)
    * @returns 演算結果
    * @throws {RangeError} 正方行列でない場合、または指数が整数でない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   matrixPow(exponent) {
     _BigFloatMatrix._assertSquare(this);

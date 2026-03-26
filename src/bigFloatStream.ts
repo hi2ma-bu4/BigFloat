@@ -160,6 +160,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param value - 変換対象
 	 * @param precision - 精度
 	 * @returns 変換された BigFloat
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	protected static _toBigFloat(value: BigFloatStreamValue, precision?: bigint): BigFloat {
 		if (value instanceof BigFloat) {
@@ -174,6 +175,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param iterable - 変換対象
 	 * @param precision - 精度
 	 * @returns BigFloat のイテレータ
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	protected static _toIterator(iterable: Iterable<BigFloatStreamValue>, precision?: bigint): IterableIterator<BigFloat, void, undefined> {
 		return (function* () {
@@ -226,6 +228,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param iterable - 要素のソース
 	 * @param precision - 変換時の精度
 	 * @returns BigFloatStream インスタンス
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	public static from(iterable: Iterable<BigFloatStreamValue>, precision?: PrecisionValue): BigFloatStream {
 		if (precision === undefined) {
@@ -248,6 +251,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * 引数のリストからストリームを作成する
 	 * @param values - 要素のリスト
 	 * @returns BigFloatStream インスタンス
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	public static of(...values: BigFloatStreamValue[]): BigFloatStream {
 		return this.from(values);
@@ -260,6 +264,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param count - 要素数
 	 * @param precision - 精度
 	 * @returns BigFloatStream インスタンス
+	 * @throws {RangeError} 有限の数値でない場合、または負の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public static arithmetic(start: BigFloatStreamValue, step: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -283,6 +292,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param count - 要素数
 	 * @param precision - 精度
 	 * @returns BigFloatStream インスタンス
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public static geometric(start: BigFloatStreamValue, ratio: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -306,6 +320,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param count - 要素数
 	 * @param precision - 精度
 	 * @returns BigFloatStream インスタンス
+	 * @throws {RangeError} 有限の数値でない場合、または負の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {DivisionByZeroError} Division by zero
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public static linspace(start: BigFloatStreamValue, end: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -341,6 +361,15 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param count - 要素数
 	 * @param precision - 精度
 	 * @returns BigFloatStream インスタンス
+	 * @throws {DivisionByZeroError} Division by zero
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 *      *      *      *      *
 	 */
 	public static logspace(start: BigFloatStreamValue, end: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -377,6 +406,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param count - 要素数
 	 * @param precision - 精度
 	 * @returns BigFloatStream インスタンス
+	 * @throws {RangeError} 有限の数値でない場合、または負の場合
+	 * @throws {DivisionByZeroError} Division by zero
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public static harmonic(count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -397,6 +432,10 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param options - 乱数範囲と精度のオプション
 	 * @returns BigFloatStream インスタンス
 	 * @throws {RangeError} 最大値が最小値より小さい場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public static random(count: number, options: BigFloatStreamRandomOptions = {}): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -427,6 +466,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param count - 回数
 	 * @param precision - 精度
 	 * @returns BigFloatStream インスタンス
+	 * @throws {RangeError} 有限の数値でない場合、または負の場合
 	 */
 	public static repeat(value: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -446,6 +486,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param count - 要素数
 	 * @param precision - 精度
 	 * @returns BigFloatStream インスタンス
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {RangeError} 有限の数値でない場合、または負の場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public static fibonacci(count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -469,6 +514,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param count - 要素数
 	 * @param precision - 精度
 	 * @returns BigFloatStream インスタンス
+	 * @throws {RangeError} 有限の数値でない場合、または負の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public static factorial(count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -492,6 +542,10 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 * @returns BigFloatStream インスタンス
 	 * @throws {RangeError} step が 0 の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public static range(start: BigFloatStreamValue, end?: BigFloatStreamValue, step: BigFloatStreamValue = 1, precision?: PrecisionValue): BigFloatStream {
 		const actualStart = end === undefined ? 0 : start;
@@ -596,6 +650,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * 要素の重複を除去する
 	 * @param keyFn - 一致判定に使うキーを生成する関数 (デフォルトは toString)
 	 * @returns 重複除去後のストリーム
+	 * @throws {RangeError} 基数が2から36の範囲外の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public distinct(keyFn: (item: BigFloat) => unknown = (x) => x.toString()): this {
 		return this._use({ definition: BigFloatStream._distinctStageDefinition, data: keyFn });
@@ -605,6 +664,9 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * 要素をソートする (注意: この操作は全要素をメモリ上に展開します)
 	 * @param compareFn - 比較関数
 	 * @returns ソート後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	public sorted(compareFn: (a: BigFloat, b: BigFloat) => number = (a, b) => a.compare(b)): this {
 		const current = this.clone();
@@ -682,6 +744,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * 末尾に別の反復可能オブジェクトの内容を連結する
 	 * @param iterables - 連結する対象
 	 * @returns 連結後のストリーム
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	public concat(...iterables: Iterable<BigFloatStreamValue>[]): this {
 		const current = this.clone();
@@ -893,6 +956,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * すべての要素の精度を変更する
 	 * @param precision - 新しい精度
 	 * @returns 精度が変更された新しいストリーム
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	public changePrecision(precision: PrecisionValue): this {
 		const precisionBig = BigInt(precision);
@@ -903,6 +967,13 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * 各要素と別の値との相対差を計算する
 	 * @param other - 比較対象
 	 * @returns 相対差を各要素に持つストリーム
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {DivisionByZeroError} Division by zero
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 *      *      *
 	 */
 	public relativeDiff(other: BigFloatValue): this {
 		return this.map((x) => x.relativeDiff(other));
@@ -912,6 +983,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * 各要素と別の値との絶対差を計算する
 	 * @param other - 比較対象
 	 * @returns 絶対差を各要素に持つストリーム
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public absoluteDiff(other: BigFloatValue): this {
 		return this.map((x) => x.absoluteDiff(other));
@@ -921,6 +997,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * 各要素と別の値との百分率差分を計算する
 	 * @param other - 比較対象
 	 * @returns 百分率差分を各要素に持つストリーム (%)
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {DivisionByZeroError} Division by zero
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public percentDiff(other: BigFloatValue): this {
 		return this.map((x) => x.percentDiff(other));
@@ -930,6 +1012,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * 各要素に別の値を加算する
 	 * @param other - 加算する数値
 	 * @returns 加算後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public add(other: BigFloatValue): this {
 		return this.map((x) => x.add(other));
@@ -939,6 +1026,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * 各要素から別の値を減算する
 	 * @param other - 減算する数値
 	 * @returns 減算後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public sub(other: BigFloatValue): this {
 		return this.map((x) => x.sub(other));
@@ -948,6 +1040,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * 各要素に別の値を乗算する
 	 * @param other - 乗算する数値
 	 * @returns 乗算後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public mul(other: BigFloatValue): this {
 		return this.map((x) => x.mul(other));
@@ -957,6 +1054,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * 各要素を別の値で除算する
 	 * @param other - 除数
 	 * @returns 除算後のストリーム
+	 * @throws {DivisionByZeroError} Division by zero
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public div(other: BigFloatValue): this {
 		return this.map((x) => x.div(other));
@@ -966,6 +1069,10 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * 各要素に対して剰余演算を行う
 	 * @param other - 法
 	 * @returns 剰余後のストリーム
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	public mod(other: BigFloatValue): this {
 		return this.map((x) => x.mod(other));
@@ -974,6 +1081,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の符号を反転させる
 	 * @returns 符号反転後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 */
 	public neg(): this {
 		return this.map((x) => x.neg());
@@ -982,6 +1090,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素を絶対値にする
 	 * @returns 絶対値適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 */
 	public abs(): this {
 		return this.map((x) => x.abs());
@@ -990,6 +1099,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の符号 (1, 0, -1) を取得する
 	 * @returns 符号値を持つストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
 	 */
 	public sign(): this {
 		return this.map((x) => x.sign());
@@ -998,6 +1108,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の逆数を取得する
 	 * @returns 逆数を持つストリーム
+	 * @throws {DivisionByZeroError} ゼロの場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public reciprocal(): this {
 		return this.map((x) => x.reciprocal());
@@ -1007,6 +1123,15 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * 各要素を指定した指数で冪乗する
 	 * @param exponent - 指数
 	 * @returns 冪乗後のストリーム
+	 * @throws {RangeError} Fractional power of negative number is not real
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {DivisionByZeroError} Division by zero
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 *      *      *      *      *
 	 */
 	public pow(exponent: BigFloatValue): this {
 		return this.map((x) => x.pow(exponent));
@@ -1015,6 +1140,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の平方根を計算する
 	 * @returns 平方根適用後のストリーム
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public sqrt(): this {
 		return this.map((x) => x.sqrt());
@@ -1023,6 +1153,8 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の立方根を計算する
 	 * @returns 立方根適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
 	 */
 	public cbrt(): this {
 		return this.map((x) => x.cbrt());
@@ -1032,6 +1164,8 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * 各要素の n 乗根を計算する
 	 * @param n - 指数
 	 * @returns n 乗根適用後のストリーム
+	 * @throws {RangeError} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 */
 	public nthRoot(n: number | bigint): this {
 		return this.map((x) => x.nthRoot(n));
@@ -1040,6 +1174,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素を床関数 (負の無限大方向への丸め) で処理する
 	 * @returns 床関数適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
 	 */
 	public floor(): this {
 		return this.map((x) => x.floor());
@@ -1048,6 +1183,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素を天井関数 (正の無限大方向への丸め) で処理する
 	 * @returns 天井関数適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
 	 */
 	public ceil(): this {
 		return this.map((x) => x.ceil());
@@ -1056,6 +1192,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素を四捨五入する
 	 * @returns 四捨五入後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public round(): this {
 		return this.map((x) => x.round());
@@ -1064,6 +1205,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素を 0 方向に切り捨てる
 	 * @returns 切り捨て後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
 	 */
 	public trunc(): this {
 		return this.map((x) => x.trunc());
@@ -1072,6 +1214,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素を Float32 精度に丸める
 	 * @returns 丸め後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+	 * @throws {RangeError} 基数が2から36の範囲外の場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public fround(): this {
 		return this.map((x) => x.fround());
@@ -1080,6 +1227,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素を 32 ビット整数として見た時の先頭のゼロビット数を数える
 	 * @returns 結果のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+	 * @throws {RangeError} 基数が2から36の範囲外の場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public clz32(): this {
 		return this.map((x) => x.clz32());
@@ -1088,6 +1240,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の正弦 (sin) を計算する
 	 * @returns sin 適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public sin(): this {
 		return this.map((x) => x.sin());
@@ -1096,6 +1254,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の余弦 (cos) を計算する
 	 * @returns cos 適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 基数が2から36の範囲外の場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public cos(): this {
 		return this.map((x) => x.cos());
@@ -1104,6 +1267,13 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の正接 (tan) を計算する
 	 * @returns tan 適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {NumericalComputationError} 正接が定義されない点の場合
+	 * @throws {RangeError} 基数が2から36の範囲外の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public tan(): this {
 		return this.map((x) => x.tan());
@@ -1112,6 +1282,13 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の逆正弦 (asin) を計算する
 	 * @returns asin 適用後のストリーム
+	 * @throws {RangeError} 特殊値が無効な設定で入力が [-1, 1] の範囲外の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {NumericalComputationError} 導関数がゼロになった場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public asin(): this {
 		return this.map((x) => x.asin());
@@ -1120,6 +1297,13 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の逆余弦 (acos) を計算する
 	 * @returns acos 適用後のストリーム
+	 * @throws {RangeError} 特殊値が無効な設定で入力が [-1, 1] の範囲外の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {NumericalComputationError} 導関数がゼロになった場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public acos(): this {
 		return this.map((x) => x.acos());
@@ -1128,6 +1312,14 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の逆正接 (atan) を計算する
 	 * @returns atan 適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {DivisionByZeroError} Division by zero
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public atan(): this {
 		return this.map((x) => x.atan());
@@ -1137,6 +1329,14 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * 各要素に対して atan2 を計算する
 	 * @param x - x 座標
 	 * @returns atan2 適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {DivisionByZeroError} Division by zero
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public atan2(x: BigFloatValue): this {
 		return this.map((value) => value.atan2(x));
@@ -1145,6 +1345,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の双曲線正弦 (sinh) を計算する
 	 * @returns sinh 適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {DivisionByZeroError} Division by zero
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public sinh(): this {
 		return this.map((x) => x.sinh());
@@ -1153,6 +1359,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の双曲線余弦 (cosh) を計算する
 	 * @returns cosh 適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {DivisionByZeroError} Division by zero
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public cosh(): this {
 		return this.map((x) => x.cosh());
@@ -1161,6 +1373,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の双曲線正接 (tanh) を計算する
 	 * @returns tanh 適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {DivisionByZeroError} Division by zero
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public tanh(): this {
 		return this.map((x) => x.tanh());
@@ -1169,6 +1387,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の逆双曲線正弦 (asinh) を計算する
 	 * @returns asinh 適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public asinh(): this {
 		return this.map((x) => x.asinh());
@@ -1177,6 +1401,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の逆双曲線余弦 (acosh) を計算する
 	 * @returns acosh 適用後のストリーム
+	 * @throws {RangeError} 入力が範囲外([1, ∞))の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public acosh(): this {
 		return this.map((x) => x.acosh());
@@ -1185,6 +1415,13 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の逆双曲線正接 (atanh) を計算する
 	 * @returns atanh 適用後のストリーム
+	 * @throws {RangeError} 入力が範囲外([-1, 1])の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {DivisionByZeroError} Division by zero
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public atanh(): this {
 		return this.map((x) => x.atanh());
@@ -1193,6 +1430,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の指数関数 (exp) を計算する
 	 * @returns exp 適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 基数が2から36の範囲外の場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public exp(): this {
 		return this.map((x) => x.exp());
@@ -1201,6 +1443,8 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の 2 を底とする指数関数 (exp2) を計算する
 	 * @returns exp2 適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
 	public exp2(): this {
 		return this.map((x) => x.exp2());
@@ -1209,6 +1453,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素に対して exp(x) - 1 を計算する
 	 * @returns expm1 適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 */
 	public expm1(): this {
 		return this.map((x) => x.expm1());
@@ -1217,6 +1462,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の自然対数 (ln) を計算する
 	 * @returns ln 適用後のストリーム
+	 * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public ln(): this {
 		return this.map((x) => x.ln());
@@ -1226,6 +1477,10 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * 各要素の任意の底による対数を計算する
 	 * @param base - 底
 	 * @returns 対数計算後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 底が1または0の場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
 	public log(base: BigFloatValue): this {
 		return this.map((x) => x.log(base));
@@ -1234,6 +1489,9 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の底を 2 とする対数を計算する
 	 * @returns log2 適用後のストリーム
+	 * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
 	public log2(): this {
 		return this.map((x) => x.log2());
@@ -1242,6 +1500,9 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素の常用対数 (log10) を計算する
 	 * @returns log10 適用後のストリーム
+	 * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
 	public log10(): this {
 		return this.map((x) => x.log10());
@@ -1250,6 +1511,10 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素に対して ln(1 + x) を計算する
 	 * @returns log1p 適用後のストリーム
+	 * @throws {RangeError} 特殊値が無効な設定で x が -1 以下の値の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
 	public log1p(): this {
 		return this.map((x) => x.log1p());
@@ -1258,6 +1523,10 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素に対してガンマ関数を計算する
 	 * @returns ガンマ関数適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 負の整数の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {DivisionByZeroError} division by zero
 	 */
 	public gamma(): this {
 		return this.map((x) => x.gamma());
@@ -1266,6 +1535,10 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素に対してリーマンゼータ関数を計算する
 	 * @returns ゼータ関数適用後のストリーム
+	 * @throws {RangeError} 特殊値が無効な設定で this = 1 の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
 	public zeta(): this {
 		return this.map((x) => x.zeta());
@@ -1274,6 +1547,10 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * 各要素に対して階乗を計算する
 	 * @returns 階乗適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 負の整数の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {DivisionByZeroError} division by zero
 	 */
 	public factorial(): this {
 		return this.map((x) => x.factorial());
@@ -1283,6 +1560,9 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * ストリームの要素の中から最大値を返す (終端操作)
 	 * @returns 最大値
 	 * @throws {TypeError} ストリームが空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	public max(): BigFloat {
 		const iter = this[Symbol.iterator]();
@@ -1300,6 +1580,9 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	 * ストリームの要素の中から最小値を返す (終端操作)
 	 * @returns 最小値
 	 * @throws {TypeError} ストリームが空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	public min(): BigFloat {
 		const iter = this[Symbol.iterator]();
@@ -1316,6 +1599,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * ストリームの全要素の合計を計算する (終端操作)
 	 * @returns 合計
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public sum(): BigFloat {
 		const iter = this[Symbol.iterator]();
@@ -1332,6 +1620,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * ストリームの全要素の積を計算する (終端操作)
 	 * @returns 総乗
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public product(): BigFloat {
 		const iter = this[Symbol.iterator]();
@@ -1348,6 +1641,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * ストリームの全要素の平均値を計算する (終端操作)
 	 * @returns 平均値
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {DivisionByZeroError} Division by zero
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public average(): BigFloat {
 		const iter = this[Symbol.iterator]();
@@ -1366,6 +1665,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * ストリームの要素の中央値を計算する (終端操作)
 	 * @returns 中央値
+	 * @throws {TypeError} 引数が空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {DivisionByZeroError} Division by zero
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public median(): BigFloat {
 		return BigFloat.median(this.toArray());
@@ -1374,6 +1679,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * ストリームの要素の分散を計算する (終端操作)
 	 * @returns 分散
+	 * @throws {TypeError} 引数が空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {DivisionByZeroError} Division by zero
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public variance(): BigFloat {
 		return BigFloat.variance(this.toArray());
@@ -1382,6 +1693,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * ストリームの要素の標準偏差を計算する (終端操作)
 	 * @returns 標準偏差
+	 * @throws {TypeError} 引数が空の場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {DivisionByZeroError} Division by zero
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public stddev(): BigFloat {
 		return BigFloat.stddev(this.toArray());
