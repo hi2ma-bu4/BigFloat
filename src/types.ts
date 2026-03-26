@@ -38,21 +38,37 @@ export enum SpecialValueState {
  * BigFloat 構成オプション
  */
 export interface BigFloatOptions {
-	/** 精度の不一致を許容するかどうか */
+	/**
+	 * 精度の不一致を許容するかどうか
+	 */
 	allowPrecisionMismatch?: boolean;
-	/** BigFloatComplex との相互運用を許容するかどうか */
+	/**
+	 * BigFloatComplex との相互運用を許容するかどうか
+	 */
 	allowComplexNumbers?: boolean;
-	/** 破壊的な計算(自身の上書き)をするかどうか */
+	/**
+	 * 破壊的な計算(自身の上書き)をするかどうか
+	 */
 	mutateResult?: boolean;
-	/** Infinity/NaN の特殊値を許容するかどうか */
+	/**
+	 * Infinity/NaN の特殊値を許容するかどうか
+	 */
 	allowSpecialValues?: boolean;
-	/** 丸めモード */
+	/**
+	 * 丸めモード
+	 */
 	roundingMode?: RoundingMode;
-	/** 計算時に追加する精度 */
+	/**
+	 * 計算時に追加する精度
+	 */
 	extraPrecision?: bigint;
-	/** 三角関数の最大ステップ数 */
+	/**
+	 * 三角関数の最大ステップ数
+	 */
 	trigFuncsMaxSteps?: bigint;
-	/** 対数計算の最大ステップ数 */
+	/**
+	 * 対数計算の最大ステップ数
+	 */
 	lnMaxSteps?: bigint;
 }
 

@@ -1,3 +1,7 @@
+/**
+ * BigFloat ライブラリのメインエントリポイント
+ */
+
 export { bigFloat, BigFloat, BigFloatConfig } from "./bigFloat";
 export { bigFloatComplex, BigFloatComplex } from "./bigFloatComplex";
 export { BigFloatMatrix } from "./bigFloatMatrix";

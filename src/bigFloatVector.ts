@@ -14,11 +14,14 @@ type BigFloatVectorRandomOptions = {
  * BigFloat を固定長ベクトルとして扱うクラス
  */
 export class BigFloatVector implements Iterable<BigFloat> {
-	/** 内部要素 */
+	/**
+	 * 内部要素 (BigFloat の配列)
+	 */
 	protected _values: BigFloat[];
 
 	/**
-	 * @param values - 要素列
+	 * BigFloatVector コンストラクタ
+	 * @param values - 要素のソース (反復可能オブジェクト)
 	 * @param precision - 変換時の精度
 	 */
 	public constructor(values: BigFloatVectorSource = [], precision?: PrecisionValue) {
@@ -28,9 +31,9 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 内部配列からベクトルを生成する
+	 * 内部配列からベクトルを生成する (内部用)
 	 * @param values - 内部所有済みの要素列
-	 * @returns BigFloatVector
+	 * @returns 生成された BigFloatVector
 	 */
 	protected static _fromBigFloatArray(values: BigFloat[]): BigFloatVector {
 		const vector = Object.create(BigFloatVector.prototype) as BigFloatVector;
@@ -39,10 +42,10 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 値をBigFloatへ変換する
+	 * 値を BigFloat へ変換する (内部用)
 	 * @param value - 変換対象
 	 * @param precision - 明示精度
-	 * @returns BigFloat
+	 * @returns 変換された BigFloat
 	 */
 	protected static _toBigFloat(value: BigFloatValue, precision?: bigint): BigFloat {
 		if (value instanceof BigFloat) {
@@ -54,10 +57,10 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 精度を解決する
+	 * 与えられた値リストから適切な精度を解決する (内部用)
 	 * @param values - 値列
 	 * @param precision - 明示精度
-	 * @returns 解決済み精度
+	 * @returns 解決された精度
 	 */
 	protected static _resolvePrecision(values: BigFloatValue[], precision?: PrecisionValue): bigint {
 		if (precision !== undefined) return BigInt(precision);
@@ -71,9 +74,9 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * ベクトル長を正規化する
+	 * ベクトルの長さを非負の整数に正規化する (内部用)
 	 * @param length - ベクトル長
-	 * @returns 正規化済みベクトル長
+	 * @returns 正規化されたベクトル長
 	 * @throws {RangeError} ベクトル長が有限でない場合、または負の場合
 	 */
 	protected static _normalizeLength(length: number): number {
@@ -94,9 +97,10 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 任意入力をベクトル化する
+	 * 任意入力を BigFloatVector へ変換する (内部用)
 	 * @param value - ベクトルまたは要素列
-	 * @returns BigFloatVector
+	 * @param referenceValues - 精度解決のための参照値リスト
+	 * @returns 変換された BigFloatVector
 	 */
 	protected static _coerceVector(value: BigFloatVectorOperand, referenceValues: BigFloatValue[] = []): BigFloatVector {
 		if (value instanceof BigFloatVector) return value;
@@ -106,9 +110,9 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 要素ごとの写像を行う
+	 * 各要素に対して変換関数を適用した新しいベクトルを返す (内部用)
 	 * @param fn - 変換関数
-	 * @returns 変換後のベクトル
+	 * @returns 変換後の新しいベクトル
 	 */
 	protected _mapValues(fn: (value: BigFloat, index: number) => BigFloatValue): this {
 		const values = this._values.map((value, index) => {
@@ -119,10 +123,11 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 要素ごとの二項演算を行う
+	 * オペランドとの二項演算を各要素に対して行う (内部用)
 	 * @param other - ベクトルまたはスカラ値
-	 * @param fn - 変換関数
-	 * @returns 演算後のベクトル
+	 * @param fn - 二項演算関数
+	 * @returns 演算後の新しいベクトル
+	 * @throws {RangeError} ベクトルの次元が一致しない場合
 	 */
 	protected _mapWithOperand(other: BigFloatVectorOperand | BigFloatValue, fn: (left: BigFloat, right: BigFloat, index: number) => BigFloatValue): this {
 		if (other instanceof BigFloatVector || (typeof other === "object" && other !== null && Symbol.iterator in other && !(other instanceof BigFloat))) {
@@ -139,47 +144,47 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 空ベクトルを生成する
-	 * @returns 空ベクトル
+	 * 空のベクトル (次元 0) を生成する
+	 * @returns 空のベクトル
 	 */
 	public static empty(): BigFloatVector {
 		return this._fromBigFloatArray([]);
 	}
 
 	/**
-	 * 要素列からベクトルを生成する
+	 * 要素の反復可能オブジェクトから BigFloatVector を生成する
 	 * @param values - 要素列
-	 * @param precision - 変換時の精度
-	 * @returns BigFloatVector
+	 * @param precision - 精度
+	 * @returns BigFloatVector インスタンス
 	 */
 	public static from(values: BigFloatVectorSource, precision?: PrecisionValue): BigFloatVector {
 		return new BigFloatVector(values, precision);
 	}
 
 	/**
-	 * Stream からベクトルを生成する
-	 * @param stream - 変換元ストリーム
-	 * @returns BigFloatVector
+	 * BigFloatStream からベクトルを生成する
+	 * @param stream - ソースストリーム
+	 * @returns 生成された BigFloatVector
 	 */
 	public static fromStream(stream: BigFloatStream): BigFloatVector {
 		return this.from(stream.toArray());
 	}
 
 	/**
-	 * 値の並びからベクトルを生成する
-	 * @param values - 要素列
-	 * @returns BigFloatVector
+	 * 引数リストからベクトルを生成する
+	 * @param values - 要素のリスト
+	 * @returns BigFloatVector インスタンス
 	 */
 	public static of(...values: BigFloatValue[]): BigFloatVector {
 		return this.from(values);
 	}
 
 	/**
-	 * 指定値で埋めたベクトルを生成する
-	 * @param length - ベクトル長
+	 * 指定された値で埋められたベクトルを生成する
+	 * @param length - ベクトルの長さ
 	 * @param value - 埋める値
 	 * @param precision - 精度
-	 * @returns BigFloatVector
+	 * @returns BigFloatVector インスタンス
 	 */
 	public static fill(length: number, value: BigFloatValue, precision?: PrecisionValue): BigFloatVector {
 		const normalizedLength = this._normalizeLength(length);
@@ -190,32 +195,32 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 0ベクトルを生成する
-	 * @param length - ベクトル長
+	 * 零ベクトルを生成する
+	 * @param length - ベクトルの長さ
 	 * @param precision - 精度
-	 * @returns BigFloatVector
+	 * @returns BigFloatVector インスタンス
 	 */
 	public static zeros(length: number, precision?: PrecisionValue): BigFloatVector {
 		return this.fill(length, 0, precision);
 	}
 
 	/**
-	 * 1ベクトルを生成する
-	 * @param length - ベクトル長
+	 * すべての要素が 1 のベクトルを生成する
+	 * @param length - ベクトルの長さ
 	 * @param precision - 精度
-	 * @returns BigFloatVector
+	 * @returns BigFloatVector インスタンス
 	 */
 	public static ones(length: number, precision?: PrecisionValue): BigFloatVector {
 		return this.fill(length, 1, precision);
 	}
 
 	/**
-	 * 標準基底ベクトルを生成する
-	 * @param length - ベクトル長
-	 * @param index - 1を置く位置
+	 * 標準基底ベクトルを取得する (指定インデックスのみ 1 で他は 0)
+	 * @param length - ベクトルの長さ
+	 * @param index - 1 を配置する位置 (0 から length-1)
 	 * @param precision - 精度
-	 * @returns BigFloatVector
-	 * @throws {RangeError} index が範囲外の場合
+	 * @returns 生成されたベクトル
+	 * @throws {RangeError} インデックスが範囲外の場合
 	 */
 	public static basis(length: number, index: number, precision?: PrecisionValue): BigFloatVector {
 		const normalizedLength = this._normalizeLength(length);
@@ -226,12 +231,12 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 線形補間ベクトルを生成する
+	 * 指定した範囲を等分割する数値ベクトルを生成する
 	 * @param start - 開始値
 	 * @param end - 終了値
 	 * @param count - 要素数
 	 * @param precision - 精度
-	 * @returns BigFloatVector
+	 * @returns 生成された BigFloatVector
 	 */
 	public static linspace(start: BigFloatValue, end: BigFloatValue, count: number, precision?: PrecisionValue): BigFloatVector {
 		const normalizedCount = this._normalizeLength(count);
@@ -256,10 +261,10 @@ export class BigFloatVector implements Iterable<BigFloat> {
 
 	/**
 	 * 乱数ベクトルを生成する
-	 * @param length - ベクトル長
-	 * @param options - 生成オプション
-	 * @returns BigFloatVector
-	 * @throws {RangeError} options.max < options.min の場合
+	 * @param length - ベクトルの長さ
+	 * @param options - 乱数範囲と精度のオプション
+	 * @returns 生成された BigFloatVector
+	 * @throws {RangeError} 最大値が最小値より小さい場合
 	 */
 	public static random(length: number, options: BigFloatVectorRandomOptions = {}): BigFloatVector {
 		const normalizedLength = this._normalizeLength(length);
@@ -278,32 +283,32 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * ベクトル長
+	 * ベクトルの要素数を取得する
 	 */
 	public get length(): number {
 		return this._values.length;
 	}
 
 	/**
-	 * ベクトルの次元数を返す
-	 * @returns 次元数
+	 * ベクトルの次元数を取得する
+	 * @returns 次元数 (length と同じ)
 	 */
 	public dimension(): number {
 		return this.length;
 	}
 
 	/**
-	 * 空ベクトルかどうか
-	 * @returns 空ならtrue
+	 * ベクトルが空 (次元が 0) かどうかを判定する
+	 * @returns 空なら true
 	 */
 	public isEmpty(): boolean {
 		return this.length === 0;
 	}
 
 	/**
-	 * 指定位置の値を取得する
+	 * 指定したインデックスの要素を取得する (複製)
 	 * @param index - インデックス
-	 * @returns 値またはundefined
+	 * @returns 要素の値、インデックスが範囲外の場合は undefined
 	 */
 	public at(index: number): BigFloat | undefined {
 		if (index < 0 || index >= this.length) return undefined;
@@ -312,39 +317,39 @@ export class BigFloatVector implements Iterable<BigFloat> {
 
 	/**
 	 * ベクトルを複製する
-	 * @returns 複製されたベクトル
+	 * @returns 複製された BigFloatVector
 	 */
 	public clone(): BigFloatVector {
 		return BigFloatVector._fromBigFloatArray(this._values.map((value) => value.clone()));
 	}
 
 	/**
-	 * 配列へ変換する
-	 * @returns 要素配列
+	 * 要素の配列へ変換する
+	 * @returns BigFloat の配列
 	 */
 	public toArray(): BigFloat[] {
 		return this._values.map((value) => value.clone());
 	}
 
 	/**
-	 * Stream へ変換する
-	 * @returns BigFloatStream
+	 * 要素を流すストリームへ変換する
+	 * @returns BigFloatStream インスタンス
 	 */
 	public toStream(): BigFloatStream {
 		return BigFloatStream.from(this.toArray());
 	}
 
 	/**
-	 * イテレータ
-	 * @returns イテレータ
+	 * 要素を順に反復するイテレータを取得する
+	 * @returns BigFloat のイテレータ
 	 */
 	public [Symbol.iterator](): Iterator<BigFloat, void, undefined> {
 		return this.toArray()[Symbol.iterator]();
 	}
 
 	/**
-	 * 各要素に処理を適用する
-	 * @param fn - 処理関数
+	 * 各要素に対して関数を実行する
+	 * @param fn - 実行する関数
 	 */
 	public forEach(fn: (value: BigFloat, index: number) => void): void {
 		for (let index = 0; index < this.length; index++) {
@@ -353,29 +358,29 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 要素ごとに変換する
+	 * 各要素を変換した新しいベクトルを取得する
 	 * @param fn - 変換関数
-	 * @returns 変換後ベクトル
+	 * @returns 変換後の新しいベクトル
 	 */
 	public map(fn: (value: BigFloat, index: number) => BigFloatValue): this {
 		return this._mapValues(fn);
 	}
 
 	/**
-	 * 2つのベクトルを要素ごとに変換する
+	 * 別のベクトルと要素ごとに対になる変換を行い、新しいベクトルを取得する
 	 * @param other - 対象ベクトル
 	 * @param fn - 変換関数
-	 * @returns 変換後ベクトル
+	 * @returns 変換後の新しいベクトル
 	 */
 	public zipMap(other: BigFloatVectorOperand, fn: (left: BigFloat, right: BigFloat, index: number) => BigFloatValue): this {
 		return this._mapWithOperand(other, fn);
 	}
 
 	/**
-	 * 畳み込み処理を行う
-	 * @param fn - 畳み込み関数
+	 * 全要素を累積して単一の値を計算する
+	 * @param fn - 累積関数
 	 * @param initial - 初期値
-	 * @returns 畳み込み結果
+	 * @returns 累積された結果
 	 */
 	public reduce<U>(fn: (acc: U, value: BigFloat, index: number) => U, initial: U): U {
 		let acc = initial;
@@ -386,9 +391,9 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 条件に一致する要素があるか
+	 * 条件を満たす要素が少なくとも一つ存在するかどうかを判定する
 	 * @param fn - 判定関数
-	 * @returns 条件に一致する要素があればtrue
+	 * @returns 条件を満たす要素があれば true
 	 */
 	public some(fn: (value: BigFloat, index: number) => boolean): boolean {
 		for (let index = 0; index < this.length; index++) {
@@ -398,9 +403,9 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * すべての要素が条件を満たすか
+	 * すべての要素が条件を満たすかどうかを判定する
 	 * @param fn - 判定関数
-	 * @returns すべて満たせばtrue
+	 * @returns すべての要素が条件を満たせば true
 	 */
 	public every(fn: (value: BigFloat, index: number) => boolean): boolean {
 		for (let index = 0; index < this.length; index++) {
@@ -410,9 +415,9 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * ベクトルを連結する
-	 * @param others - 連結対象
-	 * @returns 連結後ベクトル
+	 * 別のベクトルまたは要素列を末尾に連結した新しいベクトルを取得する
+	 * @param others - 連結する対象
+	 * @returns 連結後の新しいベクトル
 	 */
 	public concat(...others: BigFloatVectorOperand[]): this {
 		const values = this.toArray();
@@ -423,18 +428,18 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * スライスする
+	 * ベクトルの一部を抽出した新しいベクトルを返す
 	 * @param start - 開始位置
 	 * @param end - 終了位置
-	 * @returns スライス後ベクトル
+	 * @returns 抽出された新しいベクトル
 	 */
 	public slice(start?: number, end?: number): this {
 		return BigFloatVector._fromBigFloatArray(this._values.slice(start, end).map((value) => value.clone())) as this;
 	}
 
 	/**
-	 * 逆順にする
-	 * @returns 逆順ベクトル
+	 * 要素の並びを反転させた新しいベクトルを取得する
+	 * @returns 反転した新しいベクトル
 	 */
 	public reverse(): this {
 		return BigFloatVector._fromBigFloatArray(
@@ -446,9 +451,9 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * すべての要素の精度を変更する
+	 * すべての要素の精度を変更した新しいベクトルを取得する
 	 * @param precision - 新しい精度
-	 * @returns 精度変更後ベクトル
+	 * @returns 精度が変更された新しいベクトル
 	 */
 	public changePrecision(precision: PrecisionValue): this {
 		const precisionBig = BigInt(precision);
@@ -456,9 +461,9 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * ベクトル同士の一致判定
+	 * 別のベクトルと内容が等しいかどうかを判定する
 	 * @param other - 比較対象
-	 * @returns 一致すればtrue
+	 * @returns 等しい場合は true
 	 */
 	public equals(other: BigFloatVectorOperand): boolean {
 		const vector = BigFloatVector._coerceVector(other, this._values);
@@ -470,77 +475,77 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 各要素へ加算する
-	 * @param other - スカラ値またはベクトル
-	 * @returns 加算後ベクトル
+	 * 各要素に別のベクトルまたはスカラ値を加算した新しいベクトルを取得する
+	 * @param other - 加算するベクトルまたは数値
+	 * @returns 加算後の新しいベクトル
 	 */
 	public add(other: BigFloatValue | BigFloatVectorOperand): this {
 		return this._mapWithOperand(other, (left, right) => left.add(right));
 	}
 
 	/**
-	 * 各要素から減算する
-	 * @param other - スカラ値またはベクトル
-	 * @returns 減算後ベクトル
+	 * 各要素から別のベクトルまたはスカラ値を減算した新しいベクトルを取得する
+	 * @param other - 減算するベクトルまたは数値
+	 * @returns 減算後の新しいベクトル
 	 */
 	public sub(other: BigFloatValue | BigFloatVectorOperand): this {
 		return this._mapWithOperand(other, (left, right) => left.sub(right));
 	}
 
 	/**
-	 * スカラ倍する
-	 * @param scalar - スカラ値
-	 * @returns 乗算後ベクトル
+	 * 各要素にスカラ値を乗算した新しいベクトルを取得する
+	 * @param scalar - 乗算する数値
+	 * @returns 乗算後の新しいベクトル
 	 */
 	public mul(scalar: BigFloatValue): this {
 		return this._mapValues((value) => value.mul(scalar));
 	}
 
 	/**
-	 * スカラ除算する
-	 * @param scalar - スカラ値
-	 * @returns 除算後ベクトル
+	 * 各要素をスカラ値で除算した新しいベクトルを取得する
+	 * @param scalar - 除数
+	 * @returns 除算後の新しいベクトル
 	 */
 	public div(scalar: BigFloatValue): this {
 		return this._mapValues((value) => value.div(scalar));
 	}
 
 	/**
-	 * 剰余を計算する
-	 * @param other - スカラ値またはベクトル
-	 * @returns 剰余後ベクトル
+	 * 各要素に対して剰余演算を行った新しいベクトルを取得する
+	 * @param other - 法
+	 * @returns 演算後の新しいベクトル
 	 */
 	public mod(other: BigFloatValue | BigFloatVectorOperand): this {
 		return this._mapWithOperand(other, (left, right) => left.mod(right));
 	}
 
 	/**
-	 * 要素ごとの積を計算する
+	 * 別のベクトルとのアダマール積 (要素ごとの積) を計算する
 	 * @param other - 対象ベクトル
-	 * @returns Hadamard積
+	 * @returns Hadamard積の結果のベクトル
 	 */
 	public hadamard(other: BigFloatVectorOperand): this {
 		return this._mapWithOperand(other, (left, right) => left.mul(right));
 	}
 
 	/**
-	 * 符号を反転する
-	 * @returns 反転後ベクトル
+	 * 各要素の符号を反転させた新しいベクトルを取得する
+	 * @returns 符号反転後の新しいベクトル
 	 */
 	public neg(): this {
 		return this._mapValues((value) => value.neg());
 	}
 
 	/**
-	 * 絶対値化する
-	 * @returns 絶対値ベクトル
+	 * 各要素を絶対値にした新しいベクトルを取得する
+	 * @returns 絶対値適用後の新しいベクトル
 	 */
 	public abs(): this {
 		return this._mapValues((value) => value.abs());
 	}
 
 	/**
-	 * 符号ベクトルを返す
+	 * 各要素の符号 (1, 0, -1) を持つベクトルを取得する
 	 * @returns 符号ベクトル
 	 */
 	public sign(): this {
@@ -548,7 +553,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 各要素の逆数を返す
+	 * 各要素の逆数を持つベクトルを取得する
 	 * @returns 逆数ベクトル
 	 */
 	public reciprocal(): this {
@@ -556,303 +561,303 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 要素ごとの冪乗を計算する
+	 * 各要素を指定した指数で冪乗した新しいベクトルを取得する
 	 * @param exponent - 指数
-	 * @returns 冪乗後ベクトル
+	 * @returns 冪乗後の新しいベクトル
 	 */
 	public pow(exponent: BigFloatValue | BigFloatVectorOperand): this {
 		return this._mapWithOperand(exponent, (left, right) => left.pow(right));
 	}
 
 	/**
-	 * 各要素の平方根を計算する
-	 * @returns 平方根ベクトル
+	 * 各要素の平方根を計算した新しいベクトルを取得する
+	 * @returns 平方根適用後の新しいベクトル
 	 */
 	public sqrt(): this {
 		return this._mapValues((value) => value.sqrt());
 	}
 
 	/**
-	 * 各要素の立方根を計算する
-	 * @returns 立方根ベクトル
+	 * 各要素の立方根を計算した新しいベクトルを取得する
+	 * @returns 立方根適用後の新しいベクトル
 	 */
 	public cbrt(): this {
 		return this._mapValues((value) => value.cbrt());
 	}
 
 	/**
-	 * 各要素のn乗根を計算する
+	 * 各要素の n 乗根を計算した新しいベクトルを取得する
 	 * @param n - 指数
-	 * @returns n乗根ベクトル
+	 * @returns n 乗根適用後の新しいベクトル
 	 */
 	public nthRoot(n: number | bigint): this {
 		return this._mapValues((value) => value.nthRoot(n));
 	}
 
 	/**
-	 * 各要素を切り下げる
-	 * @returns 切り下げ後ベクトル
+	 * 各要素を床関数 (負の無限大方向への丸め) で処理した新しいベクトルを取得する
+	 * @returns 床関数適用後の新しいベクトル
 	 */
 	public floor(): this {
 		return this._mapValues((value) => value.floor());
 	}
 
 	/**
-	 * 各要素を切り上げる
-	 * @returns 切り上げ後ベクトル
+	 * 各要素を天井関数 (正の無限大方向への丸め) で処理した新しいベクトルを取得する
+	 * @returns 天井関数適用後の新しいベクトル
 	 */
 	public ceil(): this {
 		return this._mapValues((value) => value.ceil());
 	}
 
 	/**
-	 * 各要素を四捨五入する
-	 * @returns 四捨五入後ベクトル
+	 * 各要素を四捨五入した新しいベクトルを取得する
+	 * @returns 四捨五入後の新しいベクトル
 	 */
 	public round(): this {
 		return this._mapValues((value) => value.round());
 	}
 
 	/**
-	 * 各要素を0方向へ切り捨てる
-	 * @returns 切り捨て後ベクトル
+	 * 各要素を 0 方向に切り捨てた新しいベクトルを取得する
+	 * @returns 切り捨て後の新しいベクトル
 	 */
 	public trunc(): this {
 		return this._mapValues((value) => value.trunc());
 	}
 
 	/**
-	 * 各要素をFloat32相当に丸める
-	 * @returns Float32相当へ丸めたベクトル
+	 * 各要素を Float32 精度に丸めた新しいベクトルを取得する
+	 * @returns 丸め後の新しいベクトル
 	 */
 	public fround(): this {
 		return this._mapValues((value) => value.fround());
 	}
 
 	/**
-	 * 各要素の先頭ゼロビット数を取得する
-	 * @returns 先頭ゼロビット数ベクトル
+	 * 各要素を 32 ビット整数として見た時の先頭のゼロビット数を数えたベクトルを取得する
+	 * @returns 結果のベクトル
 	 */
 	public clz32(): this {
 		return this._mapValues((value) => value.clz32());
 	}
 
 	/**
-	 * 相対差を計算する
+	 * 別のベクトルまたは数値との相対差を各要素ごとに計算したベクトルを取得する
 	 * @param other - 比較対象
-	 * @returns 相対差ベクトル
+	 * @returns 相対差のベクトル
 	 */
 	public relativeDiff(other: BigFloatValue | BigFloatVectorOperand): this {
 		return this._mapWithOperand(other, (left, right) => left.relativeDiff(right));
 	}
 
 	/**
-	 * 絶対差を計算する
+	 * 別のベクトルまたは数値との絶対差を各要素ごとに計算したベクトルを取得する
 	 * @param other - 比較対象
-	 * @returns 絶対差ベクトル
+	 * @returns 絶対差のベクトル
 	 */
 	public absoluteDiff(other: BigFloatValue | BigFloatVectorOperand): this {
 		return this._mapWithOperand(other, (left, right) => left.absoluteDiff(right));
 	}
 
 	/**
-	 * 百分率差分を計算する
+	 * 別のベクトルまたは数値との百分率差分を各要素ごとに計算したベクトルを取得する
 	 * @param other - 比較対象
-	 * @returns 百分率差分ベクトル
+	 * @returns 百分率差分のベクトル (%)
 	 */
 	public percentDiff(other: BigFloatValue | BigFloatVectorOperand): this {
 		return this._mapWithOperand(other, (left, right) => left.percentDiff(right));
 	}
 
 	/**
-	 * 各要素の正弦を計算する
-	 * @returns 正弦ベクトル
+	 * 各要素の正弦 (sin) を計算したベクトルを取得する
+	 * @returns sin 適用後のベクトル
 	 */
 	public sin(): this {
 		return this._mapValues((value) => value.sin());
 	}
 
 	/**
-	 * 各要素の余弦を計算する
-	 * @returns 余弦ベクトル
+	 * 各要素の余弦 (cos) を計算したベクトルを取得する
+	 * @returns cos 適用後のベクトル
 	 */
 	public cos(): this {
 		return this._mapValues((value) => value.cos());
 	}
 
 	/**
-	 * 各要素の正接を計算する
-	 * @returns 正接ベクトル
+	 * 各要素の正接 (tan) を計算したベクトルを取得する
+	 * @returns tan 適用後のベクトル
 	 */
 	public tan(): this {
 		return this._mapValues((value) => value.tan());
 	}
 
 	/**
-	 * 各要素の逆正弦を計算する
-	 * @returns 逆正弦ベクトル
+	 * 各要素の逆正弦 (asin) を計算したベクトルを取得する
+	 * @returns asin 適用後のベクトル
 	 */
 	public asin(): this {
 		return this._mapValues((value) => value.asin());
 	}
 
 	/**
-	 * 各要素の逆余弦を計算する
-	 * @returns 逆余弦ベクトル
+	 * 各要素の逆余弦 (acos) を計算したベクトルを取得する
+	 * @returns acos 適用後のベクトル
 	 */
 	public acos(): this {
 		return this._mapValues((value) => value.acos());
 	}
 
 	/**
-	 * 各要素の逆正接を計算する
-	 * @returns 逆正接ベクトル
+	 * 各要素の逆正接 (atan) を計算したベクトルを取得する
+	 * @returns atan 適用後のベクトル
 	 */
 	public atan(): this {
 		return this._mapValues((value) => value.atan());
 	}
 
 	/**
-	 * 各要素と逆正接を計算する
-	 * @param x - x座標
-	 * @returns 逆正接ベクトル
+	 * 各要素に対して atan2 を計算したベクトルを取得する
+	 * @param x - x 座標のベクトルまたは数値
+	 * @returns atan2 適用後のベクトル
 	 */
 	public atan2(x: BigFloatValue | BigFloatVectorOperand): this {
 		return this._mapWithOperand(x, (left, right) => left.atan2(right));
 	}
 
 	/**
-	 * 各要素の双曲線正弦を計算する
-	 * @returns 双曲線正弦ベクトル
+	 * 各要素の双曲線正弦 (sinh) を計算したベクトルを取得する
+	 * @returns sinh 適用後のベクトル
 	 */
 	public sinh(): this {
 		return this._mapValues((value) => value.sinh());
 	}
 
 	/**
-	 * 各要素の双曲線余弦を計算する
-	 * @returns 双曲線余弦ベクトル
+	 * 各要素の双曲線余弦 (cosh) を計算したベクトルを取得する
+	 * @returns cosh 適用後のベクトル
 	 */
 	public cosh(): this {
 		return this._mapValues((value) => value.cosh());
 	}
 
 	/**
-	 * 各要素の双曲線正接を計算する
-	 * @returns 双曲線正接ベクトル
+	 * 各要素の双曲線正接 (tanh) を計算したベクトルを取得する
+	 * @returns tanh 適用後のベクトル
 	 */
 	public tanh(): this {
 		return this._mapValues((value) => value.tanh());
 	}
 
 	/**
-	 * 各要素の逆双曲線正弦を計算する
-	 * @returns 逆双曲線正弦ベクトル
+	 * 各要素の逆双曲線正弦 (asinh) を計算したベクトルを取得する
+	 * @returns asinh 適用後のベクトル
 	 */
 	public asinh(): this {
 		return this._mapValues((value) => value.asinh());
 	}
 
 	/**
-	 * 各要素の逆双曲線余弦を計算する
-	 * @returns 逆双曲線余弦ベクトル
+	 * 各要素の逆双曲線余弦 (acosh) を計算したベクトルを取得する
+	 * @returns acosh 適用後のベクトル
 	 */
 	public acosh(): this {
 		return this._mapValues((value) => value.acosh());
 	}
 
 	/**
-	 * 各要素の逆双曲線正接を計算する
-	 * @returns 逆双曲線正接ベクトル
+	 * 各要素の逆双曲線正接 (atanh) を計算したベクトルを取得する
+	 * @returns atanh 適用後のベクトル
 	 */
 	public atanh(): this {
 		return this._mapValues((value) => value.atanh());
 	}
 
 	/**
-	 * 各要素の指数関数を計算する
-	 * @returns 指数関数ベクトル
+	 * 各要素の指数関数 (exp) を計算したベクトルを取得する
+	 * @returns exp 適用後のベクトル
 	 */
 	public exp(): this {
 		return this._mapValues((value) => value.exp());
 	}
 
 	/**
-	 * 各要素の2冪指数関数を計算する
-	 * @returns 2冪指数関数ベクトル
+	 * 各要素の 2 を底とする指数関数 (exp2) を計算したベクトルを取得する
+	 * @returns exp2 適用後のベクトル
 	 */
 	public exp2(): this {
 		return this._mapValues((value) => value.exp2());
 	}
 
 	/**
-	 * 各要素のexp(x)-1を計算する
-	 * @returns expm1ベクトル
+	 * 各要素に対して exp(x) - 1 を計算したベクトルを取得する
+	 * @returns expm1 適用後のベクトル
 	 */
 	public expm1(): this {
 		return this._mapValues((value) => value.expm1());
 	}
 
 	/**
-	 * 各要素の自然対数を計算する
-	 * @returns 自然対数ベクトル
+	 * 各要素の自然対数 (ln) を計算したベクトルを取得する
+	 * @returns ln 適用後のベクトル
 	 */
 	public ln(): this {
 		return this._mapValues((value) => value.ln());
 	}
 
 	/**
-	 * 各要素の対数を計算する
+	 * 各要素の任意の底による対数を計算したベクトルを取得する
 	 * @param base - 底
-	 * @returns 対数ベクトル
+	 * @returns 対数計算後のベクトル
 	 */
 	public log(base: BigFloatValue | BigFloatVectorOperand): this {
 		return this._mapWithOperand(base, (left, right) => left.log(right));
 	}
 
 	/**
-	 * 各要素の底2対数を計算する
-	 * @returns 底2対数ベクトル
+	 * 各要素の底を 2 とする対数を計算したベクトルを取得する
+	 * @returns log2 適用後のベクトル
 	 */
 	public log2(): this {
 		return this._mapValues((value) => value.log2());
 	}
 
 	/**
-	 * 各要素の底10対数を計算する
-	 * @returns 底10対数ベクトル
+	 * 各要素の常用対数 (log10) を計算したベクトルを取得する
+	 * @returns log10 適用後のベクトル
 	 */
 	public log10(): this {
 		return this._mapValues((value) => value.log10());
 	}
 
 	/**
-	 * 各要素のlog(1+x)を計算する
-	 * @returns log1pベクトル
+	 * 各要素に対して ln(1 + x) を計算したベクトルを取得する
+	 * @returns log1p 適用後のベクトル
 	 */
 	public log1p(): this {
 		return this._mapValues((value) => value.log1p());
 	}
 
 	/**
-	 * 各要素のガンマ関数を計算する
-	 * @returns ガンマ関数ベクトル
+	 * 各要素に対してガンマ関数を計算したベクトルを取得する
+	 * @returns ガンマ関数適用後のベクトル
 	 */
 	public gamma(): this {
 		return this._mapValues((value) => value.gamma());
 	}
 
 	/**
-	 * 各要素のゼータ関数を計算する
-	 * @returns ゼータ関数ベクトル
+	 * 各要素に対してリーマンゼータ関数を計算したベクトルを取得する
+	 * @returns ゼータ関数適用後のベクトル
 	 */
 	public zeta(): this {
 		return this._mapValues((value) => value.zeta());
 	}
 
 	/**
-	 * 各要素の階乗を計算する
-	 * @returns 階乗ベクトル
+	 * 各要素に対して階乗を計算したベクトルを取得する
+	 * @returns 階乗適用後のベクトル
 	 */
 	public factorial(): this {
 		return this._mapValues((value) => value.factorial());
@@ -887,7 +892,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 合計を返す
+	 * 全要素の合計を計算する
 	 * @returns 合計
 	 */
 	public sum(): BigFloat {
@@ -900,8 +905,8 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 積を返す
-	 * @returns 積
+	 * 全要素の積を計算する
+	 * @returns 総乗
 	 */
 	public product(): BigFloat {
 		if (this.isEmpty()) return new BigFloat(1);
@@ -913,7 +918,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 平均を返す
+	 * 全要素の平均値を計算する
 	 * @returns 平均
 	 */
 	public average(): BigFloat {
@@ -922,9 +927,10 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 内積を返す
+	 * 別のベクトルとの内積を計算する
 	 * @param other - 対象ベクトル
-	 * @returns 内積
+	 * @returns 内積の値
+	 * @throws {RangeError} ベクトルの次元が一致しない場合
 	 */
 	public dot(other: BigFloatVectorOperand): BigFloat {
 		const vector = BigFloatVector._coerceVector(other, this._values);
@@ -937,7 +943,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 二乗ノルムを返す
+	 * 二乗ノルム (自分自身との内積) を計算する
 	 * @returns 二乗ノルム
 	 */
 	public squaredNorm(): BigFloat {
@@ -945,7 +951,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * ノルムを返す
+	 * ノルム (ベクトルの長さ) を計算する
 	 * @returns ノルム
 	 */
 	public norm(): BigFloat {
@@ -953,9 +959,9 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 正規化ベクトルを返す
-	 * @returns 正規化ベクトル
-	 * @throws {RangeError} ベクトル長がゼロの場合
+	 * ベクトルを正規化する (長さを 1 にする)
+	 * @returns 正規化された新しいベクトル
+	 * @throws {RangeError} ベクトルの長さが 0 の場合
 	 */
 	public normalize(): this {
 		const length = this.norm();
@@ -964,7 +970,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 二乗距離を返す
+	 * 別のベクトルとの二乗距離を計算する
 	 * @param other - 対象ベクトル
 	 * @returns 二乗距離
 	 */
@@ -973,7 +979,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 距離を返す
+	 * 別のベクトルとの距離を計算する
 	 * @param other - 対象ベクトル
 	 * @returns 距離
 	 */
@@ -982,10 +988,10 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 射影ベクトルを返す
-	 * @param other - 射影先ベクトル
-	 * @returns 射影ベクトル
-	 * @throws {RangeError} 射影先ベクトルがゼロベクトルの場合
+	 * 別のベクトルへの正射影ベクトルを計算する
+	 * @param other - 射影先のベクトル
+	 * @returns 射影された新しいベクトル
+	 * @throws {RangeError} 射影先のベクトルの長さが 0 の場合
 	 */
 	public projectOnto(other: BigFloatVectorOperand): this {
 		const vector = BigFloatVector._coerceVector(other, this._values);
@@ -996,10 +1002,10 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 2ベクトルのなす角を返す
+	 * 別のベクトルとのなす角を計算する
 	 * @param other - 対象ベクトル
-	 * @returns 角度
-	 * @throws {RangeError} いずれかのベクトルがゼロベクトルの場合
+	 * @returns 角度 (ラジアン)
+	 * @throws {RangeError} いずれかのベクトルの長さが 0 の場合
 	 */
 	public angleTo(other: BigFloatVectorOperand): BigFloat {
 		const vector = BigFloatVector._coerceVector(other, this._values);
@@ -1012,10 +1018,10 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 3次元外積を返す
+	 * 別のベクトルとの外積を計算する (3次元ベクトル専用)
 	 * @param other - 対象ベクトル
-	 * @returns 外積ベクトル
-	 * @throws {RangeError} いずれかのベクトルが3次元でない場合
+	 * @returns 外積の結果の新しいベクトル
+	 * @throws {RangeError} いずれかのベクトルが 3 次元でない場合
 	 */
 	public cross(other: BigFloatVectorOperand): this {
 		const vector = BigFloatVector._coerceVector(other, this._values);

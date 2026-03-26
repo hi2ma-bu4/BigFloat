@@ -31,7 +31,16 @@ export class BigFloatConfig {
 	public lnMaxSteps: bigint;
 
 	/**
+	 * BigFloatConfig コンストラクタ
 	 * @param options - 設定オプション
+	 * @param options.allowPrecisionMismatch - 精度の不一致を許容するかどうか
+	 * @param options.allowComplexNumbers - BigFloatComplex との相互運用を許容するかどうか
+	 * @param options.mutateResult - 破壊的な計算(自身の上書き)をするかどうか
+	 * @param options.allowSpecialValues - Infinity/NaN の特殊値を許容するかどうか
+	 * @param options.roundingMode - 丸めモード
+	 * @param options.extraPrecision - 計算時に追加する精度
+	 * @param options.trigFuncsMaxSteps - 三角関数の最大ステップ数
+	 * @param options.lnMaxSteps - 対数計算の最大ステップ数
 	 */
 	public constructor({ allowPrecisionMismatch = false, allowComplexNumbers = false, mutateResult = false, allowSpecialValues = true, roundingMode = RoundingMode.TRUNCATE, extraPrecision = 6n, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n }: BigFloatOptions = {}) {
 		this.allowPrecisionMismatch = allowPrecisionMismatch;
@@ -133,7 +142,7 @@ export class BigFloat {
 
 	/**
 	 * 2の指数を取得する
-	 * @returns 2の指数
+	 * @returns 2の指数 (2^exp2)
 	 */
 	public exponent2(): bigint {
 		return this._exp2;
@@ -141,7 +150,7 @@ export class BigFloat {
 
 	/**
 	 * 5の指数を取得する
-	 * @returns 5の指数
+	 * @returns 5の指数 (5^exp5)
 	 */
 	public exponent5(): bigint {
 		return this._exp5;
@@ -199,7 +208,7 @@ export class BigFloat {
 	 * @param state - 特殊値状態
 	 * @param precision - 結果の精度
 	 * @returns 生成された特殊値インスタンス
-	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 */
 	protected static _createSpecialValue(state: SpecialValueState, precision: bigint): BigFloat {
 		if (!this.config.allowSpecialValues) {
@@ -218,7 +227,7 @@ export class BigFloat {
 	 * @param state - 特殊値状態
 	 * @param precision - 結果の精度
 	 * @returns 特殊値状態を持つ結果
-	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 */
 	protected _specialResult(state: SpecialValueState, precision = this._precision): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -392,9 +401,11 @@ export class BigFloat {
 	}
 
 	/**
-	 * @param value - 初期値
-	 * @param precision - 精度
-	 * @throws {RangeError} 精度が不正な場合
+	 * BigFloat コンストラクタ
+	 * @param value - 初期値 (数値, 文字列, BigInt, または別の BigFloat)
+	 * @param precision - 精度 (小数点以下の最大桁数)
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を渡した場合
 	 */
 	public constructor(value?: BigFloatValue, precision: PrecisionValue = (this.constructor as BigFloatConstructor).DEFAULT_PRECISION) {
 		const construct = this.constructor as BigFloatConstructor;
@@ -1213,7 +1224,7 @@ export class BigFloat {
 	/**
 	 * 精度をチェックする
 	 * @param precision - チェックする精度
-	 * @throws {RangeError} 精度が範囲外の場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	protected static _checkPrecision(precision: bigint): void {
 		if (precision < 0n) {
@@ -1228,6 +1239,7 @@ export class BigFloat {
 	 * 精度を変更する
 	 * @param precision - 新しい精度
 	 * @returns 精度が変更されたインスタンス
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	public changePrecision(precision: PrecisionValue): this {
 		const precisionBig = BigInt(precision);
@@ -1272,8 +1284,8 @@ export class BigFloat {
 	/**
 	 * 比較演算
 	 * @param other - 比較対象
-	 * @returns 比較結果 (-1, 0, 1)
-	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値を比較しようとしたとき
+	 * @returns 比較結果 (-1, 0, 1)。NaN の比較が含まれる場合は NaN
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 */
 	public compare(other: BigFloatValue): number {
 		const construct = this.constructor as BigFloatConstructor;
@@ -1596,8 +1608,8 @@ export class BigFloat {
 	 * 加算する (+)
 	 * @param other - 加算する値
 	 * @returns 加算結果
-	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値が入力された場合
-	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値が入力された場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない設定で精度が異なる値を加算しようとした場合
 	 */
 	public add(other: BigFloatValue): BigFloat;
 	/**
@@ -1634,8 +1646,8 @@ export class BigFloat {
 	 * 減算する (-)
 	 * @param other - 減算する値
 	 * @returns 減算結果
-	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値が入力された場合
-	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値が入力された場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない設定で精度が異なる値を減算しようとした場合
 	 */
 	public sub(other: BigFloatValue): BigFloat;
 	/**
@@ -1673,7 +1685,7 @@ export class BigFloat {
 	 * 乗算する (*)
 	 * @param other - 乗算する値
 	 * @returns 乗算結果
-	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値が入力された場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値が入力された場合
 	 */
 	public mul(other: BigFloatValue): BigFloat;
 	/**
@@ -1720,8 +1732,8 @@ export class BigFloat {
 	 * 除算する (/)
 	 * @param other - 除算する値
 	 * @returns 除算結果
-	 * @throws {DivisionByZeroError} ゼロ除算の場合
-	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値が入力された場合
+	 * @throws {DivisionByZeroError} 特殊値が無効な設定でゼロ除算を行おうとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値が入力された場合
 	 */
 	public div(other: BigFloatValue): BigFloat;
 	/**
@@ -1868,8 +1880,8 @@ export class BigFloat {
 	 * 剰余を計算する (%)
 	 * @param other - 法
 	 * @returns 剰余
-	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値が入力された場合
-	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値が入力された場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない設定で精度が異なる値の剰余を計算しようとした場合
 	 */
 	public mod(other: BigFloatValue): BigFloat;
 	/**
@@ -2102,8 +2114,8 @@ export class BigFloat {
 	 * @param exponent - 指数
 	 * @returns 冪乗の結果
 	 * @throws {RangeError} 負の数の非整数冪を計算しようとした場合
-	 * @throws {DivisionByZeroError} ゼロの負の数乗を計算しようとした場合
-	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値が入力された場合
+	 * @throws {DivisionByZeroError} 特殊値が無効な設定でゼロの負の数乗を計算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値が入力された場合
 	 */
 	public pow(exponent: BigFloatValue): BigFloat;
 	/**
@@ -2631,6 +2643,7 @@ export class BigFloat {
 	/**
 	 * 逆正弦(asin)を計算する
 	 * @returns 角度(ラジアン)
+	 * @throws {RangeError} 特殊値が無効な設定で入力が [-1, 1] の範囲外の場合
 	 */
 	public asin(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -2689,6 +2702,7 @@ export class BigFloat {
 	/**
 	 * 逆余弦(acos)を計算する
 	 * @returns 角度(ラジアン)
+	 * @throws {RangeError} 特殊値が無効な設定で入力が [-1, 1] の範囲外の場合
 	 */
 	public acos(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -3290,7 +3304,7 @@ export class BigFloat {
 	/**
 	 * 自然対数(ln)を計算する
 	 * @returns ln(x)
-	 * @throws {RangeError} 値が0以下の場合
+	 * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
 	 */
 	public ln(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -3412,7 +3426,7 @@ export class BigFloat {
 	/**
 	 * 2を底とする対数(log2)を計算する
 	 * @returns log2(x)
-	 * @throws {RangeError} 値が0以下の場合
+	 * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
 	 */
 	public log2(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -3454,7 +3468,7 @@ export class BigFloat {
 	/**
 	 * 10を底とする対数(log10)を計算する
 	 * @returns log10(x)
-	 * @throws {RangeError} 値が0以下の場合
+	 * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
 	 */
 	public log10(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -3497,7 +3511,7 @@ export class BigFloat {
 	/**
 	 * ln(1 + x) を計算する
 	 * @returns ln(1 + x)
-	 * @throws {RangeError} 値が0以下の場合
+	 * @throws {RangeError} 特殊値が無効な設定で x が -1 以下の値の場合
 	 */
 	public log1p(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -4714,7 +4728,7 @@ export class BigFloat {
 	/**
 	 * Riemann zeta 関数を計算する
 	 * @returns zeta(this)
-	 * @throws {RangeError} this = 1 の場合
+	 * @throws {RangeError} 特殊値が無効な設定で this = 1 の場合
 	 */
 	public zeta(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;

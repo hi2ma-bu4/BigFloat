@@ -1,7 +1,12 @@
 /**
- * BigFloat ライブラリ共通の基底エラー
+ * BigFloat ライブラリ共通の基底エラークラス
  */
 export class BigFloatError extends Error {
+	/**
+	 * BigFloatError コンストラクタ
+	 * @param message - エラーメッセージ
+	 * @param options - エラーオプション
+	 */
 	public constructor(message?: string, options?: ErrorOptions) {
 		super(message, options);
 		this.name = new.target.name;

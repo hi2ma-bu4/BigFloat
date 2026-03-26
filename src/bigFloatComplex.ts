@@ -16,19 +16,31 @@ type BigFloatComplexAggregateSource = Iterable<BigFloatComplexValue>;
  * BigFloat を用いた複素数クラス
  */
 export class BigFloatComplex implements Iterable<BigFloat> {
-	/** 実部 */
+	/**
+	 * 実部
+	 */
 	protected _real: BigFloat;
-	/** 虚部 */
+	/**
+	 * 虚部
+	 */
 	protected _imag: BigFloat;
-	/** 精度 */
+	/**
+	 * 精度 (小数点以下の最大桁数)
+	 */
 	protected _precision: bigint;
 
 	/**
+	 * BigFloatComplex コンストラクタ
+	 * @param value - 実部、複素数表現 (文字列 "1+2i" など)、または複素数オブジェクト
+	 * @param precision - 精度
+	 */
+	public constructor(value?: BigFloatComplexValue, precision?: PrecisionValue);
+	/**
+	 * BigFloatComplex コンストラクタ
 	 * @param real - 実部または複素数表現
 	 * @param imag - 虚部
 	 * @param precision - 精度
 	 */
-	public constructor(value?: BigFloatComplexValue, precision?: PrecisionValue);
 	public constructor(real: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue);
 	public constructor(real: BigFloatComplexValue = 0, imagOrPrecision?: BigFloatValue | PrecisionValue, precision?: PrecisionValue) {
 		const { imagPartValue, precisionValue } = BigFloatComplex._normalizeArguments(real, imagOrPrecision, precision, arguments.length);
@@ -39,7 +51,12 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		this._precision = resolvedPrecision;
 	}
 
-	/** BigFloat へ変換する */
+	/**
+	 * 値を BigFloat へ変換する (内部用)
+	 * @param value - 変換対象の値
+	 * @param precision - 精度
+	 * @returns 変換された BigFloat
+	 */
 	protected static _toBigFloat(value: BigFloatValue, precision?: bigint): BigFloat {
 		if (value instanceof BigFloat) {
 			const cloned = value.clone();
@@ -49,7 +66,12 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return new BigFloat(value, precision ?? BigFloat.DEFAULT_PRECISION);
 	}
 
-	/** 精度を解決する */
+	/**
+	 * 与えられた値リストから適切な精度を解決する (内部用)
+	 * @param values - 値のリスト
+	 * @param precision - 明示的に指定された精度
+	 * @returns 解決された精度
+	 */
 	protected static _resolvePrecision(values: BigFloatValue[], precision?: PrecisionValue): bigint {
 		if (precision !== undefined) return BigInt(precision);
 		let resolved = BigFloat.DEFAULT_PRECISION;
@@ -59,7 +81,12 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return resolved;
 	}
 
-	/** 内部 BigFloat から生成する */
+	/**
+	 * 内部 BigFloat インスタンスから複素数を生成する (内部用)
+	 * @param real - 実部 BigFloat
+	 * @param imag - 虚部 BigFloat
+	 * @returns 生成された BigFloatComplex
+	 */
 	protected static _fromBigFloats(real: BigFloat, imag: BigFloat): BigFloatComplex {
 		const complex = Object.create(BigFloatComplex.prototype) as BigFloatComplex;
 		const precision = real._precision > imag._precision ? real._precision : imag._precision;
@@ -69,7 +96,12 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return complex;
 	}
 
-	/** 複素数表現を正規化する */
+	/**
+	 * 多様な複素数表現を実部と虚部のペアに正規化する (内部用)
+	 * @param value - 正規化対象の値
+	 * @param imag - 虚部 (value が実部のみの場合)
+	 * @returns 実部と虚部のオブジェクト
+	 */
 	protected static _normalizeParts(value: BigFloatComplexValue, imag?: BigFloatValue): { realPart: BigFloatValue; imagPart: BigFloatValue } {
 		if (value instanceof BigFloatComplex) return { realPart: value._real, imagPart: value._imag };
 		if (Array.isArray(value)) return { realPart: value[0] ?? 0, imagPart: value[1] ?? 0 };
@@ -91,7 +123,14 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return { realPart: 0, imagPart: imag ?? 0 };
 	}
 
-	/** 引数を正規化する */
+	/**
+	 * コンストラクタ引数を解析し、虚部と精度を特定する (内部用)
+	 * @param value - 第1引数
+	 * @param imagOrPrecision - 第2引数
+	 * @param precision - 第3引数
+	 * @param argCount - 引数の数
+	 * @returns 解決された虚部と精度のオブジェクト
+	 */
 	protected static _normalizeArguments(value: BigFloatComplexValue, imagOrPrecision: BigFloatValue | PrecisionValue | undefined, precision?: PrecisionValue, argCount = 0): { imagPartValue: BigFloatValue; precisionValue: PrecisionValue | undefined } {
 		if (argCount <= 1) return { imagPartValue: 0, precisionValue: precision };
 		if (precision !== undefined) return { imagPartValue: imagOrPrecision as BigFloatValue, precisionValue: precision };
@@ -101,7 +140,12 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return { imagPartValue: imagOrPrecision as BigFloatValue, precisionValue: precision };
 	}
 
-	/** 第2引数を精度として解釈すべきか */
+	/**
+	 * 第2引数を(虚部ではなく)精度として解釈すべきか判定する (内部用)
+	 * @param value - 第1引数
+	 * @param imagOrPrecision - 第2引数
+	 * @returns 精度として扱う場合は true
+	 */
 	protected static _shouldTreatSecondArgumentAsPrecision(value: BigFloatComplexValue, imagOrPrecision: BigFloatValue | PrecisionValue | undefined): boolean {
 		if (typeof imagOrPrecision !== "number" && typeof imagOrPrecision !== "bigint") return false;
 		if (value instanceof BigFloatComplex) return true;
@@ -153,7 +197,12 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return value;
 	}
 
-	/** 値を複素数へ変換する */
+	/**
+	 * 値を BigFloatComplex へ変換する (内部用)
+	 * @param value - 変換対象
+	 * @param precision - 精度
+	 * @returns 変換された BigFloatComplex
+	 */
 	protected static _toComplex(value: BigFloatComplexValue, precision?: bigint): BigFloatComplex {
 		if (value instanceof BigFloatComplex) {
 			if (precision === undefined || value._precision === precision) return value.clone();
@@ -164,38 +213,74 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return new BigFloatComplex(value, 0, precision);
 	}
 
-	/** 複素数定数 0 */
+	/**
+	 * 複素数 0 を取得する
+	 * @param precision - 精度
+	 * @returns 0 + 0i
+	 */
 	public static zero(precision: PrecisionValue = 20): BigFloatComplex {
 		return new BigFloatComplex(0, 0, precision);
 	}
 
-	/** 複素数定数 1 */
+	/**
+	 * 複素数 1 を取得する
+	 * @param precision - 精度
+	 * @returns 1 + 0i
+	 */
 	public static one(precision: PrecisionValue = 20): BigFloatComplex {
 		return new BigFloatComplex(1, 0, precision);
 	}
 
-	/** 複素数定数 i */
+	/**
+	 * 虚数単位 i を取得する
+	 * @param precision - 精度
+	 * @returns 0 + 1i
+	 */
 	public static i(precision: PrecisionValue = 20): BigFloatComplex {
 		return new BigFloatComplex(0, 1, precision);
 	}
 
-	/** e を返す */
+	/**
+	 * 自然対数の底 e を実部とした複素数を取得する
+	 * @param precision - 精度
+	 * @returns e + 0i
+	 */
 	public static e(precision: PrecisionValue = 20): BigFloatComplex {
 		return new BigFloatComplex(BigFloat.e(precision), 0, precision);
 	}
 
-	/** pi を返す */
+	/**
+	 * 円周率 pi を実部とした複素数を取得する
+	 * @param precision - 精度
+	 * @returns pi + 0i
+	 */
 	public static pi(precision: PrecisionValue = 20): BigFloatComplex {
 		return new BigFloatComplex(BigFloat.pi(precision), 0, precision);
 	}
 
-	/** tau を返す */
+	/**
+	 * 2*pi (tau) を実部とした複素数を取得する
+	 * @param precision - 精度
+	 * @returns tau + 0i
+	 */
 	public static tau(precision: PrecisionValue = 20): BigFloatComplex {
 		return new BigFloatComplex(BigFloat.tau(precision), 0, precision);
 	}
 
-	/** 値から生成する */
+	/**
+	 * 与えられた値から BigFloatComplex を生成する
+	 * @param value - 実部、複素数表現、または複素数オブジェクト
+	 * @param precision - 精度
+	 * @returns BigFloatComplex インスタンス
+	 */
 	public static from(value: BigFloatComplexValue, precision?: PrecisionValue): BigFloatComplex;
+	/**
+	 * 与えられた値から BigFloatComplex を生成する
+	 * @param value - 実部
+	 * @param imag - 虚部
+	 * @param precision - 精度
+	 * @returns BigFloatComplex インスタンス
+	 */
 	public static from(value: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue): BigFloatComplex;
 	public static from(value: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue): BigFloatComplex {
 		if (precision !== undefined) return new BigFloatComplex(value, imag, precision);
@@ -204,12 +289,24 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return new BigFloatComplex(value, imag);
 	}
 
-	/** 値の並びから生成する */
+	/**
+	 * 実部と虚部を指定して BigFloatComplex を生成する
+	 * @param real - 実部
+	 * @param imag - 虚部
+	 * @param precision - 精度
+	 * @returns BigFloatComplex インスタンス
+	 */
 	public static of(real: BigFloatValue, imag: BigFloatValue = 0, precision?: PrecisionValue): BigFloatComplex {
 		return new BigFloatComplex(real, imag, precision);
 	}
 
-	/** 極形式から生成する */
+	/**
+	 * 極形式から複素数を生成する
+	 * @param magnitude - 絶対値 (r)
+	 * @param angle - 偏角 (theta, ラジアン)
+	 * @param precision - 精度
+	 * @returns 生成された BigFloatComplex
+	 */
 	public static fromPolar(magnitude: BigFloatValue, angle: BigFloatValue, precision?: PrecisionValue): BigFloatComplex {
 		const resolvedPrecision = this._resolvePrecision([magnitude, angle], precision);
 		const r = this._toBigFloat(magnitude, resolvedPrecision);
@@ -217,21 +314,36 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return this._fromBigFloats(r.mul(theta.cos()), r.mul(theta.sin()));
 	}
 
-	/** 複素数の総和を返す */
+	/**
+	 * 複素数リストの総和を計算する
+	 * @param values - 複素数のリスト
+	 * @param precision - 結果の精度
+	 * @returns 総和
+	 */
 	public static sum(values: BigFloatComplexAggregateSource, precision?: PrecisionValue): BigFloatComplex {
 		let result = precision === undefined ? this.zero() : this.zero(precision);
 		for (const value of values) result = result.add(value);
 		return result;
 	}
 
-	/** 複素数の総積を返す */
+	/**
+	 * 複素数リストの総積を計算する
+	 * @param values - 複素数のリスト
+	 * @param precision - 結果の精度
+	 * @returns 総積
+	 */
 	public static product(values: BigFloatComplexAggregateSource, precision?: PrecisionValue): BigFloatComplex {
 		let result = precision === undefined ? this.one() : this.one(precision);
 		for (const value of values) result = result.mul(value);
 		return result;
 	}
 
-	/** 複素数の平均を返す */
+	/**
+	 * 複素数リストの平均を計算する
+	 * @param values - 複素数のリスト
+	 * @param precision - 結果の精度
+	 * @returns 平均
+	 */
 	public static average(values: BigFloatComplexAggregateSource, precision?: PrecisionValue): BigFloatComplex {
 		let count = 0;
 		let total = precision === undefined ? this.zero() : this.zero(precision);
@@ -243,53 +355,83 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return total.div(count);
 	}
 
-	/** 実部 */
+	/**
+	 * 実部を取得する (複製)
+	 */
 	public get real(): BigFloat {
 		return this._real.clone();
 	}
 
-	/** 虚部 */
+	/**
+	 * 虚部を取得する (複製)
+	 */
 	public get imag(): BigFloat {
 		return this._imag.clone();
 	}
 
-	/** 精度 */
+	/**
+	 * 精度を取得する
+	 */
 	public get precision(): bigint {
 		return this._precision;
 	}
 
-	/** 複製する */
+	/**
+	 * インスタンスを複製する
+	 * @returns 複製された BigFloatComplex
+	 */
 	public clone(): BigFloatComplex {
 		return BigFloatComplex._fromBigFloats(this._real, this._imag);
 	}
 
-	/** 精度を変更する */
+	/**
+	 * 精度を変更した新しいインスタンスを返す
+	 * @param precision - 新しい精度
+	 * @returns 精度が変更された BigFloatComplex
+	 */
 	public changePrecision(precision: PrecisionValue): BigFloatComplex {
 		const precisionBig = BigInt(precision);
 		return BigFloatComplex._fromBigFloats(this._real.clone().changePrecision(precisionBig), this._imag.clone().changePrecision(precisionBig));
 	}
 
-	/** 配列へ変換する */
+	/**
+	 * 実部と虚部を配列として取得する
+	 * @returns [実部, 虚部]
+	 */
 	public toArray(): [BigFloat, BigFloat] {
 		return [this._real.clone(), this._imag.clone()];
 	}
 
-	/** ベクトルへ変換する */
+	/**
+	 * 二次元のベクトルへ変換する
+	 * @returns BigFloatVector インスタンス
+	 */
 	public toVector(): BigFloatVector {
 		return BigFloatVector.from([this._real.clone(), this._imag.clone()]);
 	}
 
-	/** 極形式へ変換する */
+	/**
+	 * 極形式 (絶対値と偏角) へ変換する
+	 * @returns 絶対値 (magnitude) と偏角 (angle) のオブジェクト
+	 */
 	public toPolar(): { magnitude: BigFloat; angle: BigFloat } {
 		return { magnitude: this.abs(), angle: this.arg() };
 	}
 
-	/** JSON へ変換する */
+	/**
+	 * JSON シリアライズ用のオブジェクトを取得する
+	 * @returns {re: string, im: string} オブジェクト
+	 */
 	public toJSON(): { re: string; im: string } {
 		return { re: this._real.toString(), im: this._imag.toString() };
 	}
 
-	/** 文字列化する */
+	/**
+	 * 文字列表現を取得する
+	 * @param base - 基数 (2-36)
+	 * @param precision - 表示精度
+	 * @returns "a + bi" 形式の文字列
+	 */
 	public toString(base = 10, precision: PrecisionValue = this._precision): string {
 		const real = this._real.toString(base, precision);
 		const imag = this._imag.toString(base, precision);
@@ -305,71 +447,110 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return this._imag.isNegative() ? `${real} - ${imagLabel}` : `${real} + ${imagLabel}`;
 	}
 
-	/** イテレータ */
+	/**
+	 * 実部と虚部を順に反復するイテレータを取得する
+	 * @returns BigFloat のイテレータ
+	 */
 	public [Symbol.iterator](): Iterator<BigFloat, void, undefined> {
 		return this.toArray()[Symbol.iterator]();
 	}
 
-	/** 一致判定 */
+	/**
+	 * 別の複素数と等しいかどうかを判定する
+	 * @param other - 比較対象
+	 * @returns 等しい場合は true
+	 */
 	public equals(other: BigFloatComplexValue): boolean {
 		const rhs = BigFloatComplex._toComplex(other, this._precision);
 		return this._real.eq(rhs._real) && this._imag.eq(rhs._imag);
 	}
 
-	/** 別値判定 */
+	/**
+	 * 別の複素数と等しくないかどうかを判定する
+	 * @param other - 比較対象
+	 * @returns 等しくない場合は true
+	 */
 	public ne(other: BigFloatComplexValue): boolean {
 		return !this.equals(other);
 	}
 
-	/** ゼロ判定 */
+	/**
+	 * 複素数 0 (0 + 0i) かどうかを判定する
+	 * @returns 0 なら true
+	 */
 	public isZero(): boolean {
 		return this._real.isZero() && this._imag.isZero();
 	}
 
-	/** 純実数判定 */
+	/**
+	 * 純実数 (虚部が 0) かどうかを判定する
+	 * @returns 純実数なら true
+	 */
 	public isReal(): boolean {
 		return this._imag.isZero();
 	}
 
-	/** 純虚数判定 */
+	/**
+	 * 純虚数 (実部が 0 かつ虚部が 0 でない) かどうかを判定する
+	 * @returns 純虚数なら true
+	 */
 	public isImaginary(): boolean {
 		return this._real.isZero() && !this._imag.isZero();
 	}
 
-	/** 共役複素数を返す */
+	/**
+	 * 共役複素数 (a - bi) を取得する
+	 * @returns 共役複素数
+	 */
 	public conjugate(): BigFloatComplex {
 		return BigFloatComplex._fromBigFloats(this._real, this._imag.neg());
 	}
 
-	/** 符号反転する */
+	/**
+	 * 符号を反転させた複素数 (-a - bi) を取得する
+	 * @returns 符号反転された複素数
+	 */
 	public neg(): BigFloatComplex {
 		return BigFloatComplex._fromBigFloats(this._real.neg(), this._imag.neg());
 	}
 
-	/** 絶対値の二乗を返す */
+	/**
+	 * 絶対値の二乗 (a^2 + b^2) を計算する
+	 * @returns 絶対値の二乗
+	 */
 	public absSquared(): BigFloat {
 		return this._real.mul(this._real).add(this._imag.mul(this._imag));
 	}
 
-	/** 絶対値を返す */
+	/**
+	 * 絶対値 (ノルム) を計算する
+	 * @returns 絶対値
+	 */
 	public abs(): BigFloat {
 		return this.absSquared().sqrt();
 	}
 
-	/** 偏角を返す */
+	/**
+	 * 偏角 (引数) を計算する
+	 * @returns 偏角 (ラジアン)
+	 */
 	public arg(): BigFloat {
 		if (this.isZero()) return new BigFloat(0, this._precision);
 		return this._imag.atan2(this._real);
 	}
 
-	/** 符号複素数を返す */
+	/**
+	 * 複素数の符号 (z / |z|) を取得する
+	 * @returns 単位円上の複素数、または 0
+	 */
 	public sign(): BigFloatComplex {
 		if (this.isZero()) return BigFloatComplex.zero(this._precision);
 		return this.div(this.abs());
 	}
 
 	/**
-	 * 正規化する
+	 * ベクトルとして正規化する (絶対値を 1 にする)
+	 * @returns 正規化された複素数
 	 * @throws {RangeError} ゼロ複素数を正規化しようとした場合
 	 */
 	public normalize(): BigFloatComplex {
@@ -377,12 +558,20 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return this.div(this.abs());
 	}
 
-	/** 距離を返す */
+	/**
+	 * 二つの複素数間の距離を計算する
+	 * @param other - 対象
+	 * @returns 距離
+	 */
 	public distanceTo(other: BigFloatComplexValue): BigFloat {
 		return this.sub(other).abs();
 	}
 
-	/** 相対差を返す */
+	/**
+	 * 別の複素数との相対差を計算する
+	 * @param other - 比較対象
+	 * @returns 相対差
+	 */
 	public relativeDiff(other: BigFloatComplexValue): BigFloat {
 		const rhs = BigFloatComplex._toComplex(other, this._precision);
 		const diff = this.sub(rhs).abs();
@@ -393,12 +582,20 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return diff.div(denominator);
 	}
 
-	/** 絶対差を返す */
+	/**
+	 * 別の複素数との絶対差を計算する
+	 * @param other - 比較対象
+	 * @returns 絶対差
+	 */
 	public absoluteDiff(other: BigFloatComplexValue): BigFloat {
 		return this.sub(other).abs();
 	}
 
-	/** 百分率差分を返す */
+	/**
+	 * 別の複素数との百分率差分を計算する
+	 * @param other - 比較対象
+	 * @returns 百分率差分 (%)
+	 */
 	public percentDiff(other: BigFloatComplexValue): BigFloat {
 		const rhs = BigFloatComplex._toComplex(other, this._precision);
 		const rhsAbs = rhs.abs();
@@ -406,19 +603,31 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return this.absoluteDiff(rhs).div(rhsAbs).mul(100);
 	}
 
-	/** 加算する */
+	/**
+	 * 複素数を加算する
+	 * @param other - 加算する値
+	 * @returns 加算結果
+	 */
 	public add(other: BigFloatComplexValue): BigFloatComplex {
 		const rhs = BigFloatComplex._toComplex(other, this._precision);
 		return BigFloatComplex._fromBigFloats(this._real.add(rhs._real), this._imag.add(rhs._imag));
 	}
 
-	/** 減算する */
+	/**
+	 * 複素数を減算する
+	 * @param other - 減算する値
+	 * @returns 減算結果
+	 */
 	public sub(other: BigFloatComplexValue): BigFloatComplex {
 		const rhs = BigFloatComplex._toComplex(other, this._precision);
 		return BigFloatComplex._fromBigFloats(this._real.sub(rhs._real), this._imag.sub(rhs._imag));
 	}
 
-	/** 乗算する */
+	/**
+	 * 複素数を乗算する
+	 * @param other - 乗算する値
+	 * @returns 乗算結果
+	 */
 	public mul(other: BigFloatComplexValue): BigFloatComplex {
 		const rhs = BigFloatComplex._toComplex(other, this._precision);
 		const real = this._real.mul(rhs._real).sub(this._imag.mul(rhs._imag));
@@ -427,7 +636,9 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 除算する
+	 * 複素数で除算する
+	 * @param other - 除算する値
+	 * @returns 除算結果
 	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 */
 	public div(other: BigFloatComplexValue): BigFloatComplex {
@@ -437,34 +648,52 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return this.mul(rhs.conjugate()).divByReal(denominator);
 	}
 
-	/** 実数で除算する */
+	/**
+	 * 実数(またはその表現)で除算する (内部用)
+	 * @param value - 実数
+	 * @returns 除算結果
+	 */
 	protected divByReal(value: BigFloatValue): BigFloatComplex {
 		return BigFloatComplex._fromBigFloats(this._real.div(value), this._imag.div(value));
 	}
 
-	/** 逆数を返す */
+	/**
+	 * 複素数の逆数を計算する
+	 * @returns 逆数
+	 */
 	public reciprocal(): BigFloatComplex {
 		return BigFloatComplex.one(this._precision).div(this);
 	}
 
-	/** 回転する */
+	/**
+	 * 複素数を回転させる
+	 * @param angle - 回転角 (ラジアン)
+	 * @returns 回転後の複素数
+	 */
 	public rotate(angle: BigFloatValue): BigFloatComplex {
 		return this.mul(BigFloatComplex.fromPolar(1, angle, this._precision));
 	}
 
-	/** 指数関数を計算する */
+	/**
+	 * 複素数の指数関数 exp(z) を計算する
+	 * @returns exp(z)
+	 */
 	public exp(): BigFloatComplex {
 		const realExp = this._real.exp();
 		return BigFloatComplex._fromBigFloats(realExp.mul(this._imag.cos()), realExp.mul(this._imag.sin()));
 	}
 
-	/** exp(z)-1 を計算する */
+	/**
+	 * 複素数における exp(z) - 1 を計算する
+	 * @returns exp(z) - 1
+	 */
 	public expm1(): BigFloatComplex {
 		return this.exp().sub(1);
 	}
 
 	/**
-	 * 自然対数を計算する
+	 * 複素数の自然対数 ln(z) を計算する
+	 * @returns ln(z)
 	 * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
 	 */
 	public ln(): BigFloatComplex {
@@ -472,13 +701,19 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return BigFloatComplex._fromBigFloats(this.abs().ln(), this.arg());
 	}
 
-	/** 対数を計算する */
+	/**
+	 * 複素数の任意の底による対数を計算する
+	 * @param base - 底
+	 * @returns 対数結果
+	 */
 	public log(base: BigFloatComplexValue): BigFloatComplex {
 		return this.ln().div(BigFloatComplex._toComplex(base, this._precision).ln());
 	}
 
 	/**
-	 * 冪乗を計算する
+	 * 複素数の冪乗 z^exponent を計算する
+	 * @param exponent - 指数
+	 * @returns 冪乗結果
 	 * @throws {RangeError} ゼロ複素数を非正の実数以外の指数で冪乗しようとした場合
 	 */
 	public pow(exponent: BigFloatComplexValue): BigFloatComplex {
@@ -491,7 +726,10 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return this.ln().mul(rhs).exp();
 	}
 
-	/** 平方根を計算する */
+	/**
+	 * 複素数の平方根を計算する
+	 * @returns 平方根
+	 */
 	public sqrt(): BigFloatComplex {
 		if (this.isZero()) return BigFloatComplex.zero(this._precision);
 		const radius = this.abs();
@@ -503,20 +741,29 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return BigFloatComplex._fromBigFloats(real, imag);
 	}
 
-	/** 立方根を計算する */
+	/**
+	 * 複素数の立方根を計算する
+	 * @returns 立方根
+	 */
 	public cbrt(): BigFloatComplex {
 		return this.nthRoot(3);
 	}
 
-	/** 主値の n 乗根を計算する */
+	/**
+	 * 複素数の n 乗根の主値を計算する
+	 * @param n - 指数
+	 * @returns n 乗根の主値
+	 */
 	public nthRoot(n: number | bigint): BigFloatComplex {
 		const roots = this.nthRoots(n);
 		return roots[0];
 	}
 
 	/**
-	 * n 乗根を全て返す
-	 * @throws {RangeError} n <= 0 の場合
+	 * 複素数のすべての n 乗根を取得する
+	 * @param n - 指数 (正の整数)
+	 * @returns n 乗根の配列
+	 * @throws {RangeError} n が正の整数でない場合
 	 */
 	public nthRoots(n: number | bigint): BigFloatComplex[] {
 		const degree = typeof n === "number" ? Math.trunc(n) : Number(n);
@@ -529,37 +776,58 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return Array.from({ length: degree }, (_, index) => BigFloatComplex.fromPolar(magnitude, angle.add(tau.mul(index)).div(count), this._precision));
 	}
 
-	/** 正弦を計算する */
+	/**
+	 * 複素数の正弦 (sin) を計算する
+	 * @returns sin(z)
+	 */
 	public sin(): BigFloatComplex {
 		return BigFloatComplex._fromBigFloats(this._real.sin().mul(this._imag.cosh()), this._real.cos().mul(this._imag.sinh()));
 	}
 
-	/** 余弦を計算する */
+	/**
+	 * 複素数の余弦 (cos) を計算する
+	 * @returns cos(z)
+	 */
 	public cos(): BigFloatComplex {
 		return BigFloatComplex._fromBigFloats(this._real.cos().mul(this._imag.cosh()), this._real.sin().mul(this._imag.sinh()).neg());
 	}
 
-	/** 正接を計算する */
+	/**
+	 * 複素数の正接 (tan) を計算する
+	 * @returns tan(z)
+	 */
 	public tan(): BigFloatComplex {
 		return this.sin().div(this.cos());
 	}
 
-	/** 双曲線正弦を計算する */
+	/**
+	 * 複素数の双曲線正弦 (sinh) を計算する
+	 * @returns sinh(z)
+	 */
 	public sinh(): BigFloatComplex {
 		return BigFloatComplex._fromBigFloats(this._real.sinh().mul(this._imag.cos()), this._real.cosh().mul(this._imag.sin()));
 	}
 
-	/** 双曲線余弦を計算する */
+	/**
+	 * 複素数の双曲線余弦 (cosh) を計算する
+	 * @returns cosh(z)
+	 */
 	public cosh(): BigFloatComplex {
 		return BigFloatComplex._fromBigFloats(this._real.cosh().mul(this._imag.cos()), this._real.sinh().mul(this._imag.sin()));
 	}
 
-	/** 双曲線正接を計算する */
+	/**
+	 * 複素数の双曲線正接 (tanh) を計算する
+	 * @returns tanh(z)
+	 */
 	public tanh(): BigFloatComplex {
 		return this.sinh().div(this.cosh());
 	}
 
-	/** 逆正弦を計算する */
+	/**
+	 * 複素数の逆正弦 (asin) を計算する
+	 * @returns asin(z)
+	 */
 	public asin(): BigFloatComplex {
 		const i = BigFloatComplex.i(this._precision);
 		const one = BigFloatComplex.one(this._precision);
@@ -571,13 +839,19 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		);
 	}
 
-	/** 逆余弦を計算する */
+	/**
+	 * 複素数の逆余弦 (acos) を計算する
+	 * @returns acos(z)
+	 */
 	public acos(): BigFloatComplex {
 		const halfPi = BigFloatComplex.pi(this._precision).div(2);
 		return halfPi.sub(this.asin());
 	}
 
-	/** 逆正接を計算する */
+	/**
+	 * 複素数の逆正接 (atan) を計算する
+	 * @returns atan(z)
+	 */
 	public atan(): BigFloatComplex {
 		const i = BigFloatComplex.i(this._precision);
 		const one = BigFloatComplex.one(this._precision);
@@ -591,18 +865,27 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 			.div(2);
 	}
 
-	/** 逆双曲線正弦を計算する */
+	/**
+	 * 複素数の逆双曲線正弦 (asinh) を計算する
+	 * @returns asinh(z)
+	 */
 	public asinh(): BigFloatComplex {
 		return this.mul(this).add(1).sqrt().add(this).ln();
 	}
 
-	/** 逆双曲線余弦を計算する */
+	/**
+	 * 複素数の逆双曲線余弦 (acosh) を計算する
+	 * @returns acosh(z)
+	 */
 	public acosh(): BigFloatComplex {
 		const one = BigFloatComplex.one(this._precision);
 		return this.add(this.add(one).sqrt().mul(this.sub(one).sqrt())).ln();
 	}
 
-	/** 逆双曲線正接を計算する */
+	/**
+	 * 複素数の逆双曲線正接 (atanh) を計算する
+	 * @returns atanh(z)
+	 */
 	public atanh(): BigFloatComplex {
 		const one = BigFloatComplex.one(this._precision);
 		return one.add(this).ln().sub(one.sub(this).ln()).div(2);
@@ -611,12 +894,18 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 
 /**
  * BigFloatComplex を作成する
- * @param real - 実部または複素数表現
- * @param imag - 虚部
+ * @param value - 実部、複素数表現、または複素数オブジェクト
  * @param precision - 精度
  * @returns BigFloatComplex インスタンス
  */
 export function bigFloatComplex(value?: BigFloatComplexValue, precision?: PrecisionValue): BigFloatComplex;
+/**
+ * BigFloatComplex を作成する
+ * @param real - 実部
+ * @param imag - 虚部
+ * @param precision - 精度
+ * @returns BigFloatComplex インスタンス
+ */
 export function bigFloatComplex(real: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue): BigFloatComplex;
 export function bigFloatComplex(real: BigFloatComplexValue = 0, imagOrPrecision?: BigFloatValue | PrecisionValue, precision?: PrecisionValue): BigFloatComplex {
 	return new BigFloatComplex(real, imagOrPrecision, precision);

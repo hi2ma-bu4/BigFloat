@@ -26,20 +26,26 @@ type BigFloatStreamRandomOptions = {
 const BIGFLOAT_STREAM_SKIP = Symbol("BIGFLOAT_STREAM_SKIP");
 
 /**
- * BigFloat-specific Stream (Lazy List)
+ * BigFloat 用の遅延評価ストリーム (Lazy List) クラス
  */
 export class BigFloatStream implements Iterable<BigFloat> {
-	/** mapステージ定義 */
+	/**
+	 * mapステージ定義
+	 */
 	private static readonly _mapStageDefinition: BigFloatStreamStageDefinition = {
 		createState: () => null,
 		process: (value, _state, data) => (data as (item: BigFloat) => BigFloat)(value),
 	};
-	/** filterステージ定義 */
+	/**
+	 * filterステージ定義
+	 */
 	private static readonly _filterStageDefinition: BigFloatStreamStageDefinition = {
 		createState: () => null,
 		process: (value, _state, data) => ((data as (item: BigFloat) => boolean)(value) ? value : BIGFLOAT_STREAM_SKIP),
 	};
-	/** peekステージ定義 */
+	/**
+	 * peekステージ定義
+	 */
 	private static readonly _peekStageDefinition: BigFloatStreamStageDefinition = {
 		createState: () => null,
 		process: (value, _state, data) => {
@@ -47,7 +53,9 @@ export class BigFloatStream implements Iterable<BigFloat> {
 			return value;
 		},
 	};
-	/** flatMapステージ定義 */
+	/**
+	 * flatMapステージ定義
+	 */
 	private static readonly _flatMapStageDefinition: BigFloatStreamStageDefinition = {
 		createState: () => null,
 		process: (value, _state, data, context, nextStageIndex) => {
@@ -55,7 +63,9 @@ export class BigFloatStream implements Iterable<BigFloat> {
 			return BIGFLOAT_STREAM_SKIP;
 		},
 	};
-	/** distinctステージ定義 */
+	/**
+	 * distinctステージ定義
+	 */
 	private static readonly _distinctStageDefinition: BigFloatStreamStageDefinition = {
 		createState: () => new Set<unknown>(),
 		process: (value, state, data) => {
@@ -66,7 +76,9 @@ export class BigFloatStream implements Iterable<BigFloat> {
 			return value;
 		},
 	};
-	/** limitステージ定義 */
+	/**
+	 * limitステージ定義
+	 */
 	private static readonly _limitStageDefinition: BigFloatStreamStageDefinition = {
 		createState: (data) => ({ remaining: data as number }),
 		process: (value, state, _data, context) => {
@@ -79,7 +91,9 @@ export class BigFloatStream implements Iterable<BigFloat> {
 			return value;
 		},
 	};
-	/** skipステージ定義 */
+	/**
+	 * skipステージ定義
+	 */
 	private static readonly _skipStageDefinition: BigFloatStreamStageDefinition = {
 		createState: (data) => ({ remaining: data as number }),
 		process: (value, state) => {
@@ -92,19 +106,28 @@ export class BigFloatStream implements Iterable<BigFloat> {
 		},
 	};
 
-	/** 内部イテレータファクトリ */
+	/**
+	 * 内部イテレータファクトリ
+	 */
 	private _sourceFactory: BigFloatStreamFactory;
-	/** 直前のストリーム */
+	/**
+	 * パイプラインにおける直前のストリーム
+	 */
 	private _previousStream: BigFloatStream | null;
-	/** 現在のステージ定義 */
+	/**
+	 * このストリームが表すステージの定義
+	 */
 	private _stageDefinition: BigFloatStreamStageDefinition | null;
-	/** 現在のステージデータ */
+	/**
+	 * ステージに渡される固定データ (コールバック関数など)
+	 */
 	private _stageData: unknown;
 
 	/**
-	 * @param source - BigFloatの反復可能オブジェクト
+	 * BigFloatStream コンストラクタ
+	 * @param source - BigFloat の反復可能オブジェクト、またはイテレータを生成する関数
 	 */
-	constructor(source: Iterable<BigFloat> | BigFloatStreamFactory) {
+	public constructor(source: Iterable<BigFloat> | BigFloatStreamFactory) {
 		if (typeof source === "function") {
 			this._sourceFactory = source;
 		} else {
@@ -116,12 +139,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 内部状態からストリームを生成する
+	 * 内部状態からストリームを生成する (内部用)
 	 * @param sourceFactory - ソースファクトリ
 	 * @param previousStream - 直前のストリーム
 	 * @param stageDefinition - ステージ定義
 	 * @param stageData - ステージデータ
-	 * @returns BigFloatStream
+	 * @returns 生成されたストリーム
 	 */
 	protected static _fromState(sourceFactory: BigFloatStreamFactory, previousStream: BigFloatStream | null, stageDefinition: BigFloatStreamStageDefinition | null, stageData: unknown): BigFloatStream {
 		const stream = Object.create(BigFloatStream.prototype) as BigFloatStream;
@@ -133,10 +156,10 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 値をBigFloatへ変換する
-	 * @param value - 変換する値
+	 * ストリーム値を BigFloat へ変換する (内部用)
+	 * @param value - 変換対象
 	 * @param precision - 精度
-	 * @returns BigFloat
+	 * @returns 変換された BigFloat
 	 */
 	protected static _toBigFloat(value: BigFloatStreamValue, precision?: bigint): BigFloat {
 		if (value instanceof BigFloat) {
@@ -147,10 +170,10 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 値をBigFloatのイテレータに変換する
-	 * @param iterable - 変換する反復可能オブジェクト
+	 * 反復可能オブジェクトを BigFloat のイテレータへ変換する (内部用)
+	 * @param iterable - 変換対象
 	 * @param precision - 精度
-	 * @returns BigFloatのイテレータ
+	 * @returns BigFloat のイテレータ
 	 */
 	protected static _toIterator(iterable: Iterable<BigFloatStreamValue>, precision?: bigint): IterableIterator<BigFloat, void, undefined> {
 		return (function* () {
@@ -161,10 +184,10 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * ストリームの精度を解決する
-	 * @param values - 値
-	 * @param precision - 明示精度
-	 * @returns 精度
+	 * 与えられた値リストから適切な精度を解決する (内部用)
+	 * @param values - 値のリスト
+	 * @param precision - 明示的に指定された精度
+	 * @returns 解決された精度
 	 */
 	protected static _resolvePrecision(values: BigFloatStreamValue[], precision?: PrecisionValue): bigint {
 		if (precision !== undefined) return BigInt(precision);
@@ -178,10 +201,10 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 要素数を正規化する
+	 * 要素数を非負の整数に正規化する (内部用)
 	 * @param count - 要素数
 	 * @returns 正規化された要素数
-	 * @throws {RangeError} 要素数が不正な場合
+	 * @throws {RangeError} 有限の数値でない場合、または負の場合
 	 */
 	protected static _normalizeCount(count: number): number {
 		if (!Number.isFinite(count)) throw new RangeError("Count must be finite");
@@ -192,17 +215,17 @@ export class BigFloatStream implements Iterable<BigFloat> {
 
 	/**
 	 * 空のストリームを生成する
-	 * @returns 空のストリーム
+	 * @returns 空の BigFloatStream
 	 */
 	public static empty(): BigFloatStream {
 		return new BigFloatStream(() => [][Symbol.iterator]());
 	}
 
 	/**
-	 * 反復可能オブジェクトからBigFloatStreamを作成する
-	 * @param iterable - BigFloatの反復可能オブジェクト
+	 * 反復可能オブジェクトからストリームを作成する
+	 * @param iterable - 要素のソース
 	 * @param precision - 変換時の精度
-	 * @returns BigFloatStreamインスタンス
+	 * @returns BigFloatStream インスタンス
 	 */
 	public static from(iterable: Iterable<BigFloatStreamValue>, precision?: PrecisionValue): BigFloatStream {
 		if (precision === undefined) {
@@ -222,21 +245,21 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 値のリストからBigFloatStreamを作成する
-	 * @param values - 値のリスト
-	 * @returns BigFloatStreamインスタンス
+	 * 引数のリストからストリームを作成する
+	 * @param values - 要素のリスト
+	 * @returns BigFloatStream インスタンス
 	 */
 	public static of(...values: BigFloatStreamValue[]): BigFloatStream {
 		return this.from(values);
 	}
 
 	/**
-	 * 等差数列を生成する
+	 * 等差数列のストリームを生成する
 	 * @param start - 初項
 	 * @param step - 公差
 	 * @param count - 要素数
 	 * @param precision - 精度
-	 * @returns BigFloatStreamインスタンス
+	 * @returns BigFloatStream インスタンス
 	 */
 	public static arithmetic(start: BigFloatStreamValue, step: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -254,12 +277,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 等比数列を生成する
+	 * 等比数列のストリームを生成する
 	 * @param start - 初項
 	 * @param ratio - 公比
 	 * @param count - 要素数
 	 * @param precision - 精度
-	 * @returns BigFloatStreamインスタンス
+	 * @returns BigFloatStream インスタンス
 	 */
 	public static geometric(start: BigFloatStreamValue, ratio: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -277,12 +300,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 指定個数で等間隔な値を生成する
+	 * 指定した範囲を等分割する数値ストリームを生成する
 	 * @param start - 開始値
 	 * @param end - 終了値
 	 * @param count - 要素数
 	 * @param precision - 精度
-	 * @returns BigFloatStreamインスタンス
+	 * @returns BigFloatStream インスタンス
 	 */
 	public static linspace(start: BigFloatStreamValue, end: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -312,12 +335,12 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 10を底とする対数間隔の値を生成する
+	 * 10 を底とする対数スケールで等間隔な数値ストリームを生成する
 	 * @param start - 開始指数
 	 * @param end - 終了指数
 	 * @param count - 要素数
 	 * @param precision - 精度
-	 * @returns BigFloatStreamインスタンス
+	 * @returns BigFloatStream インスタンス
 	 */
 	public static logspace(start: BigFloatStreamValue, end: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -350,10 +373,10 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 調和級数を生成する
+	 * 調和級数 (1/1, 1/2, 1/3, ...) のストリームを生成する
 	 * @param count - 要素数
 	 * @param precision - 精度
-	 * @returns BigFloatStreamインスタンス
+	 * @returns BigFloatStream インスタンス
 	 */
 	public static harmonic(count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -369,11 +392,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 乱数列を生成する
+	 * 乱数ストリームを生成する
 	 * @param count - 要素数
-	 * @param options - 生成オプション
-	 * @returns BigFloatStreamインスタンス
-	 * @throws {RangeError} optionsの範囲が不正な場合
+	 * @param options - 乱数範囲と精度のオプション
+	 * @returns BigFloatStream インスタンス
+	 * @throws {RangeError} 最大値が最小値より小さい場合
 	 */
 	public static random(count: number, options: BigFloatStreamRandomOptions = {}): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -399,11 +422,11 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 同じ値を繰り返す
+	 * 指定された値を繰り返すストリームを生成する
 	 * @param value - 繰り返す値
-	 * @param count - 要素数
+	 * @param count - 回数
 	 * @param precision - 精度
-	 * @returns BigFloatStreamインスタンス
+	 * @returns BigFloatStream インスタンス
 	 */
 	public static repeat(value: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -419,10 +442,10 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * フィボナッチ数列を生成する
+	 * フィボナッチ数列のストリームを生成する
 	 * @param count - 要素数
 	 * @param precision - 精度
-	 * @returns BigFloatStreamインスタンス
+	 * @returns BigFloatStream インスタンス
 	 */
 	public static fibonacci(count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -442,10 +465,10 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 階乗列を生成する
+	 * 階乗数列 (1!, 2!, 3!, ...) のストリームを生成する
 	 * @param count - 要素数
 	 * @param precision - 精度
-	 * @returns BigFloatStreamインスタンス
+	 * @returns BigFloatStream インスタンス
 	 */
 	public static factorial(count: number, precision?: PrecisionValue): BigFloatStream {
 		const normalizedCount = this._normalizeCount(count);
@@ -462,13 +485,13 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 範囲を生成する
-	 * @param start - 開始値
-	 * @param end - 終了値
-	 * @param step - ステップ
+	 * 数値の範囲を指定してストリームを生成する
+	 * @param start - 開始値 (end 省略時は 0 からこの値まで)
+	 * @param end - 終了値 (この値は含まない)
+	 * @param step - 増分
 	 * @param precision - 精度
-	 * @returns BigFloatStreamインスタンス
-	 * @throws {RangeError} stepが0の場合
+	 * @returns BigFloatStream インスタンス
+	 * @throws {RangeError} step が 0 の場合
 	 */
 	public static range(start: BigFloatStreamValue, end?: BigFloatStreamValue, step: BigFloatStreamValue = 1, precision?: PrecisionValue): BigFloatStream {
 		const actualStart = end === undefined ? 0 : start;
@@ -497,14 +520,14 @@ export class BigFloatStream implements Iterable<BigFloat> {
 
 	/**
 	 * ストリームを複製する
-	 * @returns 複製されたストリーム
+	 * @returns 複製された BigFloatStream
 	 */
 	public clone(): BigFloatStream {
 		return this._fork();
 	}
 
 	/**
-	 * 現在の状態を引き継いだストリームを生成する
+	 * 現在の状態をフォークして新しいストリームを生成する (内部用)
 	 * @param sourceFactory - ソースファクトリ
 	 * @param previousStream - 直前のストリーム
 	 * @param stageDefinition - ステージ定義
@@ -516,8 +539,8 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * パイプラインステージを追加する
-	 * @param stage - ステージ
+	 * パイプラインに新しいステージを追加する (内部用)
+	 * @param stage - 追加するステージ
 	 * @returns 新しいストリーム
 	 */
 	protected _use(stage: BigFloatStreamStage): this {
@@ -525,8 +548,8 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * パイプラインを配列化する
-	 * @returns ステージ配列
+	 * 現在のストリームからルートまで遡り、全パイプラインステージを収集する (内部用)
+	 * @returns ステージの配列
 	 */
 	protected _collectPipelineStages(): BigFloatStreamStage[] {
 		const stages: BigFloatStreamStage[] = [];
@@ -543,45 +566,45 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	// ==================================================
 
 	/**
-	 * 各要素を変換する
+	 * 各要素を変換関数で写像する
 	 * @param fn - 変換関数
-	 * @returns 変換されたストリーム
+	 * @returns 写像後のストリーム
 	 */
 	public map(fn: (item: BigFloat) => BigFloat): this {
 		return this._use({ definition: BigFloatStream._mapStageDefinition, data: fn });
 	}
 
 	/**
-	 * 要素をフィルタリングする
-	 * @param fn - 判定関数
-	 * @returns フィルタリングされたストリーム
+	 * 条件を満たす要素のみを通過させる
+	 * @param fn - フィルタリング関数
+	 * @returns フィルタリング後のストリーム
 	 */
 	public filter(fn: (item: BigFloat) => boolean): this {
 		return this._use({ definition: BigFloatStream._filterStageDefinition, data: fn });
 	}
 
 	/**
-	 * 要素を平坦化して変換する
-	 * @param fn - 変換関数
-	 * @returns 平坦化されたストリーム
+	 * 各要素を複数の要素に展開して平坦化する
+	 * @param fn - 要素を反復可能オブジェクトへ変換する関数
+	 * @returns 平坦化後のストリーム
 	 */
 	public flatMap(fn: (item: BigFloat) => Iterable<BigFloatStreamValue>): this {
 		return this._use({ definition: BigFloatStream._flatMapStageDefinition, data: fn });
 	}
 
 	/**
-	 * 重複を除去する
-	 * @param keyFn - キー生成関数
-	 * @returns 重複が除去されたストリーム
+	 * 要素の重複を除去する
+	 * @param keyFn - 一致判定に使うキーを生成する関数 (デフォルトは toString)
+	 * @returns 重複除去後のストリーム
 	 */
 	public distinct(keyFn: (item: BigFloat) => unknown = (x) => x.toString()): this {
 		return this._use({ definition: BigFloatStream._distinctStageDefinition, data: keyFn });
 	}
 
 	/**
-	 * 要素をソートする (終端操作ではないが、全要素を内部で保持する)
+	 * 要素をソートする (注意: この操作は全要素をメモリ上に展開します)
 	 * @param compareFn - 比較関数
-	 * @returns ソートされたストリーム
+	 * @returns ソート後のストリーム
 	 */
 	public sorted(compareFn: (a: BigFloat, b: BigFloat) => number = (a, b) => a.compare(b)): this {
 		const current = this.clone();
@@ -598,8 +621,8 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 各要素に対してアクションを実行する (ストリームは維持)
-	 * @param fn - アクション関数
+	 * 各要素に対して副作用のある処理を実行する (デバッグやロギング用)
+	 * @param fn - 要素を受け取る関数
 	 * @returns 自身
 	 */
 	public peek(fn: (item: BigFloat) => void): this {
@@ -607,8 +630,8 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 各要素に対してアクションを実行する (ストリームは維持)
-	 * @param fn - アクション関数
+	 * peek の別名。各要素に対して副作用のある処理を実行する
+	 * @param fn - 要素を受け取る関数
 	 * @returns 自身
 	 */
 	public tap(fn: (item: BigFloat) => void): this {
@@ -616,7 +639,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 要素数を制限する
+	 * 要素数を最大 n 個に制限する
 	 * @param n - 最大要素数
 	 * @returns 制限されたストリーム
 	 */
@@ -628,7 +651,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 要素数を制限する
+	 * limit の別名。要素数を最大 n 個に制限する
 	 * @param n - 最大要素数
 	 * @returns 制限されたストリーム
 	 */
@@ -637,9 +660,9 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 指定した要素数をスキップする
+	 * 先頭の n 個の要素を読み飛ばす
 	 * @param n - スキップする数
-	 * @returns スキップされたストリーム
+	 * @returns スキップ後のストリーム
 	 */
 	public skip(n: number): this {
 		if (n <= 0) return this;
@@ -647,17 +670,17 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 指定した要素数をスキップする
+	 * skip の別名。先頭の n 個の要素を読み飛ばす
 	 * @param n - スキップする数
-	 * @returns スキップされたストリーム
+	 * @returns スキップ後のストリーム
 	 */
 	public drop(n: number): this {
 		return this.skip(n);
 	}
 
 	/**
-	 * 末尾にストリームを連結する
-	 * @param iterables - 連結するストリーム
+	 * 末尾に別の反復可能オブジェクトの内容を連結する
+	 * @param iterables - 連結する対象
 	 * @returns 連結後のストリーム
 	 */
 	public concat(...iterables: Iterable<BigFloatStreamValue>[]): this {
@@ -680,8 +703,8 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	// ==================================================
 
 	/**
-	 * イテレータの実装
-	 * @returns イテレータ
+	 * ストリームを反復するためのイテレータを取得する
+	 * @returns BigFloat のイテレータ
 	 */
 	public [Symbol.iterator](): Iterator<BigFloat, void, undefined> {
 		const stages = this._collectPipelineStages();
@@ -738,15 +761,15 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	// ==================================================
 
 	/**
-	 * 各要素に対して処理を実行する (終端操作)
-	 * @param fn - 処理関数
+	 * ストリームの各要素に対して関数を実行する (終端操作)
+	 * @param fn - 実行する関数
 	 */
 	public forEach(fn: (item: BigFloat) => void): void {
 		for (const item of this) fn(item);
 	}
 
 	/**
-	 * 配列に変換する (終端操作)
+	 * ストリームの全要素を収集して配列として返す (終端操作)
 	 * @returns 要素の配列
 	 */
 	public toArray(): BigFloat[] {
@@ -756,7 +779,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 配列に変換する (終端操作)
+	 * toArray の別名。ストリームの全要素を収集して配列として返す (終端操作)
 	 * @returns 要素の配列
 	 */
 	public collect(): BigFloat[] {
@@ -764,10 +787,10 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 畳み込み処理を行う (終端操作)
-	 * @param fn - 畳み込み関数
+	 * 全要素を累積して単一の値を計算する (終端操作)
+	 * @param fn - 累積関数
 	 * @param initial - 初期値
-	 * @returns 畳み込み結果
+	 * @returns 累積結果
 	 */
 	public reduce<U>(fn: (acc: U, item: BigFloat) => U, initial: U): U {
 		let acc = initial;
@@ -778,7 +801,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 要素数をカウントする (終端操作)
+	 * ストリームに含まれる要素数を数える (終端操作)
 	 * @returns 要素数
 	 */
 	public count(): number {
@@ -788,17 +811,17 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * ストリームが空かどうか判定する
-	 * @returns 空ならtrue
+	 * ストリームに要素が含まれていないかどうかを判定する (終端操作)
+	 * @returns 空なら true
 	 */
 	public isEmpty(): boolean {
 		return this.findFirst() === undefined;
 	}
 
 	/**
-	 * いずれかの要素が条件を満たすか判定する (終端操作)
+	 * 条件を満たす要素が少なくとも一つ存在するかどうかを判定する (終端操作)
 	 * @param fn - 判定関数
-	 * @returns 満たす要素があればtrue
+	 * @returns 条件を満たす要素があれば true
 	 */
 	public some(fn: (item: BigFloat) => boolean): boolean {
 		for (const item of this) {
@@ -808,9 +831,9 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * すべての要素が条件を満たすか判定する (終端操作)
+	 * すべての要素が条件を満たすかどうかを判定する (終端操作)
 	 * @param fn - 判定関数
-	 * @returns すべて満たせばtrue
+	 * @returns すべての要素が条件を満たせば true
 	 */
 	public every(fn: (item: BigFloat) => boolean): boolean {
 		for (const item of this) {
@@ -820,9 +843,9 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 条件に一致する最初の要素を返す (終端操作)
+	 * 条件を満たす最初の要素を返す (終端操作)
 	 * @param fn - 判定関数
-	 * @returns 条件に一致した要素、存在しない場合はundefined
+	 * @returns 最初に見つかった要素、見つからない場合は undefined
 	 */
 	public find(fn: (item: BigFloat) => boolean): BigFloat | undefined {
 		for (const item of this) {
@@ -832,8 +855,8 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 最初の要素を返す (終端操作)
-	 * @returns 最初の要素、空の場合はundefined
+	 * ストリームの最初の要素を取得する (終端操作)
+	 * @returns 最初の要素、ストリームが空なら undefined
 	 */
 	public findFirst(): BigFloat | undefined {
 		for (const item of this) return item;
@@ -841,17 +864,17 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 最初の要素を返す (終端操作)
-	 * @returns 最初の要素、空の場合はundefined
+	 * findFirst の別名。ストリームの最初の要素を取得する
+	 * @returns 最初の要素
 	 */
 	public first(): BigFloat | undefined {
 		return this.findFirst();
 	}
 
 	/**
-	 * 指定位置の要素を返す (終端操作)
-	 * @param index - インデックス
-	 * @returns 要素、存在しない場合はundefined
+	 * 指定されたインデックスの要素を取得する (終端操作)
+	 * @param index - 0 から始まるインデックス
+	 * @returns 指定位置の要素、インデックスが範囲外なら undefined
 	 */
 	public at(index: number): BigFloat | undefined {
 		if (index < 0) return undefined;
@@ -869,7 +892,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	/**
 	 * すべての要素の精度を変更する
 	 * @param precision - 新しい精度
-	 * @returns 精度が変更されたストリーム
+	 * @returns 精度が変更された新しいストリーム
 	 */
 	public changePrecision(precision: PrecisionValue): this {
 		const precisionBig = BigInt(precision);
@@ -877,35 +900,35 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 各要素と指定値の相対差を計算する
+	 * 各要素と別の値との相対差を計算する
 	 * @param other - 比較対象
-	 * @returns 相対差を要素ごとに計算したストリーム
+	 * @returns 相対差を各要素に持つストリーム
 	 */
 	public relativeDiff(other: BigFloatValue): this {
 		return this.map((x) => x.relativeDiff(other));
 	}
 
 	/**
-	 * 各要素と指定値の絶対差を計算する
+	 * 各要素と別の値との絶対差を計算する
 	 * @param other - 比較対象
-	 * @returns 絶対差を要素ごとに計算したストリーム
+	 * @returns 絶対差を各要素に持つストリーム
 	 */
 	public absoluteDiff(other: BigFloatValue): this {
 		return this.map((x) => x.absoluteDiff(other));
 	}
 
 	/**
-	 * 各要素と指定値の百分率差分を計算する
+	 * 各要素と別の値との百分率差分を計算する
 	 * @param other - 比較対象
-	 * @returns 百分率差分を要素ごとに計算したストリーム
+	 * @returns 百分率差分を各要素に持つストリーム (%)
 	 */
 	public percentDiff(other: BigFloatValue): this {
 		return this.map((x) => x.percentDiff(other));
 	}
 
 	/**
-	 * 各要素に加算する
-	 * @param other - 加算する値
+	 * 各要素に別の値を加算する
+	 * @param other - 加算する数値
 	 * @returns 加算後のストリーム
 	 */
 	public add(other: BigFloatValue): this {
@@ -913,8 +936,8 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 各要素から減算する
-	 * @param other - 減算する値
+	 * 各要素から別の値を減算する
+	 * @param other - 減算する数値
 	 * @returns 減算後のストリーム
 	 */
 	public sub(other: BigFloatValue): this {
@@ -922,8 +945,8 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 各要素に乗算する
-	 * @param other - 乗算する値
+	 * 各要素に別の値を乗算する
+	 * @param other - 乗算する数値
 	 * @returns 乗算後のストリーム
 	 */
 	public mul(other: BigFloatValue): this {
@@ -931,8 +954,8 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 各要素を除算する
-	 * @param other - 除算する値
+	 * 各要素を別の値で除算する
+	 * @param other - 除数
 	 * @returns 除算後のストリーム
 	 */
 	public div(other: BigFloatValue): this {
@@ -940,7 +963,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 各要素の剰余を計算する
+	 * 各要素に対して剰余演算を行う
 	 * @param other - 法
 	 * @returns 剰余後のストリーム
 	 */
@@ -950,23 +973,23 @@ export class BigFloatStream implements Iterable<BigFloat> {
 
 	/**
 	 * 各要素の符号を反転させる
-	 * @returns 反転後のストリーム
+	 * @returns 符号反転後のストリーム
 	 */
 	public neg(): this {
 		return this.map((x) => x.neg());
 	}
 
 	/**
-	 * 各要素の絶対値を取得する
-	 * @returns 絶対値後のストリーム
+	 * 各要素を絶対値にする
+	 * @returns 絶対値適用後のストリーム
 	 */
 	public abs(): this {
 		return this.map((x) => x.abs());
 	}
 
 	/**
-	 * 各要素の符号を取得する
-	 * @returns 符号後のストリーム
+	 * 各要素の符号 (1, 0, -1) を取得する
+	 * @returns 符号値を持つストリーム
 	 */
 	public sign(): this {
 		return this.map((x) => x.sign());
@@ -974,14 +997,14 @@ export class BigFloatStream implements Iterable<BigFloat> {
 
 	/**
 	 * 各要素の逆数を取得する
-	 * @returns 逆数後のストリーム
+	 * @returns 逆数を持つストリーム
 	 */
 	public reciprocal(): this {
 		return this.map((x) => x.reciprocal());
 	}
 
 	/**
-	 * 各要素の冪乗を計算する
+	 * 各要素を指定した指数で冪乗する
 	 * @param exponent - 指数
 	 * @returns 冪乗後のストリーム
 	 */
@@ -991,7 +1014,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 
 	/**
 	 * 各要素の平方根を計算する
-	 * @returns 平方根後のストリーム
+	 * @returns 平方根適用後のストリーム
 	 */
 	public sqrt(): this {
 		return this.map((x) => x.sqrt());
@@ -999,32 +1022,32 @@ export class BigFloatStream implements Iterable<BigFloat> {
 
 	/**
 	 * 各要素の立方根を計算する
-	 * @returns 立方根後のストリーム
+	 * @returns 立方根適用後のストリーム
 	 */
 	public cbrt(): this {
 		return this.map((x) => x.cbrt());
 	}
 
 	/**
-	 * 各要素のn乗根を計算する
+	 * 各要素の n 乗根を計算する
 	 * @param n - 指数
-	 * @returns n乗根後のストリーム
+	 * @returns n 乗根適用後のストリーム
 	 */
 	public nthRoot(n: number | bigint): this {
 		return this.map((x) => x.nthRoot(n));
 	}
 
 	/**
-	 * 各要素を切り下げる
-	 * @returns 切り下げ後のストリーム
+	 * 各要素を床関数 (負の無限大方向への丸め) で処理する
+	 * @returns 床関数適用後のストリーム
 	 */
 	public floor(): this {
 		return this.map((x) => x.floor());
 	}
 
 	/**
-	 * 各要素を切り上げる
-	 * @returns 切り上げ後のストリーム
+	 * 各要素を天井関数 (正の無限大方向への丸め) で処理する
+	 * @returns 天井関数適用後のストリーム
 	 */
 	public ceil(): this {
 		return this.map((x) => x.ceil());
@@ -1039,7 +1062,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 各要素を0方向へ切り捨てる
+	 * 各要素を 0 方向に切り捨てる
 	 * @returns 切り捨て後のストリーム
 	 */
 	public trunc(): this {
@@ -1047,193 +1070,193 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 各要素をFloat32相当に丸める
-	 * @returns Float32相当へ丸めたストリーム
+	 * 各要素を Float32 精度に丸める
+	 * @returns 丸め後のストリーム
 	 */
 	public fround(): this {
 		return this.map((x) => x.fround());
 	}
 
 	/**
-	 * 各要素の先頭ゼロビット数を取得する
-	 * @returns 先頭ゼロビット数のストリーム
+	 * 各要素を 32 ビット整数として見た時の先頭のゼロビット数を数える
+	 * @returns 結果のストリーム
 	 */
 	public clz32(): this {
 		return this.map((x) => x.clz32());
 	}
 
 	/**
-	 * 各要素の正弦を計算する
-	 * @returns 正弦後のストリーム
+	 * 各要素の正弦 (sin) を計算する
+	 * @returns sin 適用後のストリーム
 	 */
 	public sin(): this {
 		return this.map((x) => x.sin());
 	}
 
 	/**
-	 * 各要素の余弦を計算する
-	 * @returns 余弦後のストリーム
+	 * 各要素の余弦 (cos) を計算する
+	 * @returns cos 適用後のストリーム
 	 */
 	public cos(): this {
 		return this.map((x) => x.cos());
 	}
 
 	/**
-	 * 各要素の正接を計算する
-	 * @returns 正接後のストリーム
+	 * 各要素の正接 (tan) を計算する
+	 * @returns tan 適用後のストリーム
 	 */
 	public tan(): this {
 		return this.map((x) => x.tan());
 	}
 
 	/**
-	 * 各要素の逆正弦を計算する
-	 * @returns 逆正弦後のストリーム
+	 * 各要素の逆正弦 (asin) を計算する
+	 * @returns asin 適用後のストリーム
 	 */
 	public asin(): this {
 		return this.map((x) => x.asin());
 	}
 
 	/**
-	 * 各要素の逆余弦を計算する
-	 * @returns 逆余弦後のストリーム
+	 * 各要素の逆余弦 (acos) を計算する
+	 * @returns acos 適用後のストリーム
 	 */
 	public acos(): this {
 		return this.map((x) => x.acos());
 	}
 
 	/**
-	 * 各要素の逆正接を計算する
-	 * @returns 逆正接後のストリーム
+	 * 各要素の逆正接 (atan) を計算する
+	 * @returns atan 適用後のストリーム
 	 */
 	public atan(): this {
 		return this.map((x) => x.atan());
 	}
 
 	/**
-	 * 各要素と指定値から逆正接を計算する
-	 * @param x - x座標
-	 * @returns 逆正接後のストリーム
+	 * 各要素に対して atan2 を計算する
+	 * @param x - x 座標
+	 * @returns atan2 適用後のストリーム
 	 */
 	public atan2(x: BigFloatValue): this {
 		return this.map((value) => value.atan2(x));
 	}
 
 	/**
-	 * 各要素の双曲線正弦を計算する
-	 * @returns 双曲線正弦後のストリーム
+	 * 各要素の双曲線正弦 (sinh) を計算する
+	 * @returns sinh 適用後のストリーム
 	 */
 	public sinh(): this {
 		return this.map((x) => x.sinh());
 	}
 
 	/**
-	 * 各要素の双曲線余弦を計算する
-	 * @returns 双曲線余弦後のストリーム
+	 * 各要素の双曲線余弦 (cosh) を計算する
+	 * @returns cosh 適用後のストリーム
 	 */
 	public cosh(): this {
 		return this.map((x) => x.cosh());
 	}
 
 	/**
-	 * 各要素の双曲線正接を計算する
-	 * @returns 双曲線正接後のストリーム
+	 * 各要素の双曲線正接 (tanh) を計算する
+	 * @returns tanh 適用後のストリーム
 	 */
 	public tanh(): this {
 		return this.map((x) => x.tanh());
 	}
 
 	/**
-	 * 各要素の逆双曲線正弦を計算する
-	 * @returns 逆双曲線正弦後のストリーム
+	 * 各要素の逆双曲線正弦 (asinh) を計算する
+	 * @returns asinh 適用後のストリーム
 	 */
 	public asinh(): this {
 		return this.map((x) => x.asinh());
 	}
 
 	/**
-	 * 各要素の逆双曲線余弦を計算する
-	 * @returns 逆双曲線余弦後のストリーム
+	 * 各要素の逆双曲線余弦 (acosh) を計算する
+	 * @returns acosh 適用後のストリーム
 	 */
 	public acosh(): this {
 		return this.map((x) => x.acosh());
 	}
 
 	/**
-	 * 各要素の逆双曲線正接を計算する
-	 * @returns 逆双曲線正接後のストリーム
+	 * 各要素の逆双曲線正接 (atanh) を計算する
+	 * @returns atanh 適用後のストリーム
 	 */
 	public atanh(): this {
 		return this.map((x) => x.atanh());
 	}
 
 	/**
-	 * 各要素の指数関数を計算する
-	 * @returns 指数関数適用後のストリーム
+	 * 各要素の指数関数 (exp) を計算する
+	 * @returns exp 適用後のストリーム
 	 */
 	public exp(): this {
 		return this.map((x) => x.exp());
 	}
 
 	/**
-	 * 各要素の2冪指数関数を計算する
-	 * @returns 2冪指数関数適用後のストリーム
+	 * 各要素の 2 を底とする指数関数 (exp2) を計算する
+	 * @returns exp2 適用後のストリーム
 	 */
 	public exp2(): this {
 		return this.map((x) => x.exp2());
 	}
 
 	/**
-	 * 各要素のexp(x)-1を計算する
-	 * @returns expm1適用後のストリーム
+	 * 各要素に対して exp(x) - 1 を計算する
+	 * @returns expm1 適用後のストリーム
 	 */
 	public expm1(): this {
 		return this.map((x) => x.expm1());
 	}
 
 	/**
-	 * 各要素の自然対数を計算する
-	 * @returns 自然対数後のストリーム
+	 * 各要素の自然対数 (ln) を計算する
+	 * @returns ln 適用後のストリーム
 	 */
 	public ln(): this {
 		return this.map((x) => x.ln());
 	}
 
 	/**
-	 * 各要素の任意底対数を計算する
+	 * 各要素の任意の底による対数を計算する
 	 * @param base - 底
-	 * @returns 対数後のストリーム
+	 * @returns 対数計算後のストリーム
 	 */
 	public log(base: BigFloatValue): this {
 		return this.map((x) => x.log(base));
 	}
 
 	/**
-	 * 各要素の底2対数を計算する
-	 * @returns 底2対数後のストリーム
+	 * 各要素の底を 2 とする対数を計算する
+	 * @returns log2 適用後のストリーム
 	 */
 	public log2(): this {
 		return this.map((x) => x.log2());
 	}
 
 	/**
-	 * 各要素の底10対数を計算する
-	 * @returns 底10対数後のストリーム
+	 * 各要素の常用対数 (log10) を計算する
+	 * @returns log10 適用後のストリーム
 	 */
 	public log10(): this {
 		return this.map((x) => x.log10());
 	}
 
 	/**
-	 * 各要素のlog(1+x)を計算する
-	 * @returns log1p適用後のストリーム
+	 * 各要素に対して ln(1 + x) を計算する
+	 * @returns log1p 適用後のストリーム
 	 */
 	public log1p(): this {
 		return this.map((x) => x.log1p());
 	}
 
 	/**
-	 * 各要素のガンマ関数を計算する
+	 * 各要素に対してガンマ関数を計算する
 	 * @returns ガンマ関数適用後のストリーム
 	 */
 	public gamma(): this {
@@ -1241,7 +1264,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 各要素のゼータ関数を計算する
+	 * 各要素に対してリーマンゼータ関数を計算する
 	 * @returns ゼータ関数適用後のストリーム
 	 */
 	public zeta(): this {
@@ -1249,17 +1272,17 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 各要素の階乗を計算する
-	 * @returns 階乗後のストリーム
+	 * 各要素に対して階乗を計算する
+	 * @returns 階乗適用後のストリーム
 	 */
 	public factorial(): this {
 		return this.map((x) => x.factorial());
 	}
 
 	/**
-	 * 要素の最大値を返す (終端操作)
+	 * ストリームの要素の中から最大値を返す (終端操作)
 	 * @returns 最大値
-	 * @throws {TypeError} 要素が存在しない場合
+	 * @throws {TypeError} ストリームが空の場合
 	 */
 	public max(): BigFloat {
 		const iter = this[Symbol.iterator]();
@@ -1274,9 +1297,9 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 要素の最小値を返す (終端操作)
+	 * ストリームの要素の中から最小値を返す (終端操作)
 	 * @returns 最小値
-	 * @throws {TypeError} 要素が存在しない場合
+	 * @throws {TypeError} ストリームが空の場合
 	 */
 	public min(): BigFloat {
 		const iter = this[Symbol.iterator]();
@@ -1291,7 +1314,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 要素の合計を返す (終端操作)
+	 * ストリームの全要素の合計を計算する (終端操作)
 	 * @returns 合計
 	 */
 	public sum(): BigFloat {
@@ -1307,8 +1330,8 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 要素の積を返す (終端操作)
-	 * @returns 積
+	 * ストリームの全要素の積を計算する (終端操作)
+	 * @returns 総乗
 	 */
 	public product(): BigFloat {
 		const iter = this[Symbol.iterator]();
@@ -1323,8 +1346,8 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 要素の平均を返す (終端操作)
-	 * @returns 平均
+	 * ストリームの全要素の平均値を計算する (終端操作)
+	 * @returns 平均値
 	 */
 	public average(): BigFloat {
 		const iter = this[Symbol.iterator]();
@@ -1341,7 +1364,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 要素の中央値を返す (終端操作)
+	 * ストリームの要素の中央値を計算する (終端操作)
 	 * @returns 中央値
 	 */
 	public median(): BigFloat {
@@ -1349,7 +1372,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 要素の分散を返す (終端操作)
+	 * ストリームの要素の分散を計算する (終端操作)
 	 * @returns 分散
 	 */
 	public variance(): BigFloat {
@@ -1357,7 +1380,7 @@ export class BigFloatStream implements Iterable<BigFloat> {
 	}
 
 	/**
-	 * 要素の標準偏差を返す (終端操作)
+	 * ストリームの要素の標準偏差を計算する (終端操作)
 	 * @returns 標準偏差
 	 */
 	public stddev(): BigFloat {
