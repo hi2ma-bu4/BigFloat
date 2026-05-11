@@ -3,11 +3,115 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>BigFloat</title>
-
+	<title>BigFloat Function Calculator</title>
+	<link rel="icon" href="data:,">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.45/dist/katex.min.css" integrity="sha384-UA8juhPf75SzzAMA/4fo3yOU7sBJ0om7SCD2GHq0fZqZco6tr1UCV7nUbk9J90JM" crossorigin="anonymous">
+	<link rel="stylesheet" href="./styles.css">
+	<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.45/dist/katex.min.js" integrity="sha384-Tt7wBxLKwSzFVRET4O4U9H6v8MNaQ/CjN2FMP4xFm0ErrFu6aNqoonRVW5W40iGI" crossorigin="anonymous"></script>
 	<script type="module" src="./main.js"></script>
+	<script src="https://hi2ma-bu4.github.io/bio/assets/js/static/auto-gtag.js" async></script>
 </head>
 <body>
-	
+	<div class="app-shell">
+		<header class="topbar">
+			<strong class="brand-mark">BigFloat</strong>
+			<section class="control-row">
+				<label class="compact-field">
+					<span>Precision</span>
+					<input id="precision-input" type="number" min="1" step="1" value="28">
+				</label>
+				<label class="compact-field">
+					<span>Ex Prec</span>
+					<input id="extra-precision-input" type="number" min="0" step="1" value="6">
+				</label>
+				<label class="compact-field wide">
+					<span>Rounding Mode</span>
+					<select id="rounding-mode"></select>
+				</label>
+			</section>
+		</header>
+
+		<div class="workspace">
+			<section class="display-card">
+				<div class="display-head">
+					<div class="display-actions">
+						<button id="btn-left" class="action-button" type="button">←</button>
+						<button id="btn-right" class="action-button" type="button">→</button>
+						<button id="btn-backspace" class="action-button" type="button">⌫</button>
+						<button id="btn-clear" class="action-button accent" type="button">AC</button>
+					</div>
+				</div>
+				<div class="editor-box">
+					<textarea id="expression-input" class="expression-input" rows="2" spellcheck="false" aria-label="expression"></textarea>
+					<div id="expression-ghost" class="expression-ghost" aria-hidden="true"></div>
+				</div>
+				<div id="expression-math" class="math-preview"></div>
+				<div class="result-card">
+					<div class="result-output-wrap">
+						<output id="result-output" class="result-output">-</output>
+					</div>
+				</div>
+			</section>
+
+			<section class="keypad-panel">
+				<div class="keypad-toolbar">
+					<button class="mini-toggle" data-group-id="trig" type="button">Trig</button>
+					<button class="mini-toggle" data-group-id="power" type="button">Pow</button>
+					<button class="mini-toggle" data-group-id="logs" type="button">Log</button>
+					<button class="mini-toggle" data-group-id="complex" type="button">Cx</button>
+					<button class="mini-toggle" data-group-id="linear" type="button">Lin</button>
+					<button class="mini-toggle" data-group-id="stats" type="button">Stat</button>
+					<button class="mini-toggle" data-group-id="more" type="button">More</button>
+				</div>
+				<div id="function-overlay" class="function-overlay" hidden>
+					<div class="overlay-head">
+						<strong id="function-overlay-title" class="overlay-title"></strong>
+						<button class="overlay-close" data-close-overlay type="button">×</button>
+					</div>
+					<div id="function-grid" class="function-grid" aria-live="polite"></div>
+				</div>
+				<div class="keypad-grid">
+					<button class="key function" data-insert="(" type="button">(</button>
+					<button class="key function" data-insert=")" type="button">)</button>
+					<button class="key function" data-insert="[" type="button">[</button>
+					<button class="key function" data-insert="]" type="button">]</button>
+					<button class="key function" data-insert="," type="button">,</button>
+					<button class="key function" data-insert="!" type="button"><span data-tex-label="x!"></span></button>
+
+					<button class="key" data-insert="7" type="button">7</button>
+					<button class="key" data-insert="8" type="button">8</button>
+					<button class="key" data-insert="9" type="button">9</button>
+					<button class="key accent" data-insert="/" type="button">÷</button>
+					<button class="key accent" data-insert="^" type="button">^</button>
+					<button class="key function" data-insert="pi" type="button"><span data-tex-label="\\pi"></span></button>
+
+					<button class="key" data-insert="4" type="button">4</button>
+					<button class="key" data-insert="5" type="button">5</button>
+					<button class="key" data-insert="6" type="button">6</button>
+					<button class="key accent" data-insert="*" type="button">×</button>
+					<button class="key accent" data-insert="%" type="button">mod</button>
+					<button class="key function" data-insert="i" type="button"><span data-tex-label="i"></span></button>
+
+					<button class="key" data-insert="1" type="button">1</button>
+					<button class="key" data-insert="2" type="button">2</button>
+					<button class="key" data-insert="3" type="button">3</button>
+					<button class="key accent" data-insert="-" type="button">−</button>
+					<button class="key function" data-insert="e" type="button"><span data-tex-label="e"></span></button>
+					<button class="key function" data-insert="ans" type="button">Ans</button>
+
+					<button class="key span2" data-insert="0" type="button">0</button>
+					<button class="key" data-insert="." type="button">.</button>
+					<button class="key accent" data-insert="+" type="button">+</button>
+					<button class="key function" data-insert="[1,2,3]" type="button">vec</button>
+					<button id="btn-evaluate" class="key equals" type="button">=</button>
+				</div>
+			</section>
+		</div>
+
+		<section class="lane history-lane" hidden>
+			<div class="lane-title">History</div>
+			<ul id="history-list" class="history-list"></ul>
+		</section>
+	</div>
 </body>
 </html>
