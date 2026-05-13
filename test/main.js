@@ -128,6 +128,7 @@ const FUNCTION_GROUPS = [
 	},
 ];
 
+const VARIADIC_FUNCTIONS = new Set(["sum", "product", "average", "max", "min", "median", "variance", "stddev"]);
 const FUNCTION_SIGNATURES = new Map(FUNCTION_GROUPS.flatMap((group) => group.items.filter((item) => item.insert.endsWith("(") && item.hint.includes("(")).map((item) => [item.insert.slice(0, -1), extractHintArguments(item.hint)])));
 
 function extractHintArguments(hint) {
@@ -145,23 +146,28 @@ function extractHintArguments(hint) {
 
 function deriveGhostCompletion(value, cursor) {
 	const beforeCursor = value.slice(0, cursor);
-	if (!beforeCursor.trim()) {
-		return null;
-	}
 
 	const stack = [];
 	let identifier = "";
 
-	for (const char of beforeCursor) {
+	for (let i = 0; i < beforeCursor.length; i++) {
+		const char = beforeCursor[i];
 		if (/[A-Za-z0-9_]/.test(char)) {
 			identifier += char;
 			if (stack.at(-1)?.type === "function") {
 				stack.at(-1).currentArgHasText = true;
+			} else if (stack.at(-1)?.type === "array") {
+				stack.at(-1).hasContent = true;
 			}
 			continue;
 		}
 
 		if (char === "(") {
+			if (stack.at(-1)?.type === "function") {
+				stack.at(-1).currentArgHasText = true;
+			} else if (stack.at(-1)?.type === "array") {
+				stack.at(-1).hasContent = true;
+			}
 			if (FUNCTION_SIGNATURES.has(identifier)) {
 				stack.push({
 					type: "function",
@@ -169,16 +175,56 @@ function deriveGhostCompletion(value, cursor) {
 					args: FUNCTION_SIGNATURES.get(identifier),
 					argIndex: 0,
 					currentArgHasText: false,
+					isVariadic: VARIADIC_FUNCTIONS.has(identifier),
+					closed: false,
 				});
 			} else {
-				stack.push({ type: "generic" });
+				stack.push({ type: "generic", closed: false });
 			}
 			identifier = "";
 			continue;
 		}
 
+		if (char === "[") {
+			if (stack.at(-1)?.type === "function") {
+				stack.at(-1).currentArgHasText = true;
+			} else if (stack.at(-1)?.type === "array") {
+				stack.at(-1).hasContent = true;
+				stack.at(-1).containsArray = true;
+			}
+			stack.push({
+				type: "array",
+				depth: stack.at(-1)?.type === "array" ? stack.at(-1).depth + 1 : 1,
+				hasContent: false,
+				containsArray: false,
+				closed: false,
+			});
+			identifier = "";
+			continue;
+		}
+
 		if (char === ")") {
-			stack.pop();
+			for (let j = stack.length - 1; j >= 0; j--) {
+				if ((stack[j].type === "function" || stack[j].type === "generic") && !stack[j].closed) {
+					stack[j].closed = true;
+					break;
+				}
+			}
+			identifier = "";
+			continue;
+		}
+
+		if (char === "]") {
+			for (let j = stack.length - 1; j >= 0; j--) {
+				if (stack[j].type === "array" && !stack[j].closed) {
+					stack[j].closed = true;
+					const parent = stack.slice(0, j).findLast((e) => !e.closed);
+					if (parent?.type === "array") {
+						parent.containsArray = true;
+					}
+					break;
+				}
+			}
 			identifier = "";
 			continue;
 		}
@@ -187,43 +233,85 @@ function deriveGhostCompletion(value, cursor) {
 			if (stack.at(-1)?.type === "function") {
 				stack.at(-1).argIndex += 1;
 				stack.at(-1).currentArgHasText = false;
+			} else if (stack.at(-1)?.type === "array") {
+				stack.at(-1).hasContent = false;
 			}
 			identifier = "";
 			continue;
 		}
 
-		if (!/\s/.test(char) && stack.at(-1)?.type === "function") {
-			stack.at(-1).currentArgHasText = true;
+		if (!/\s/.test(char)) {
+			if (stack.at(-1)?.type === "function") {
+				stack.at(-1).currentArgHasText = true;
+			} else if (stack.at(-1)?.type === "array") {
+				stack.at(-1).hasContent = true;
+			}
 		}
 		identifier = "";
 	}
 
-	const openFunctions = stack.filter((entry) => entry.type === "function");
-	if (openFunctions.length === 0) {
-		return null;
+	const unclosed = stack.filter((e) => !e.closed);
+	let suffix = "";
+	for (let i = unclosed.length - 1; i >= 0; i--) {
+		const frame = unclosed[i];
+		const isInnermost = i === unclosed.length - 1;
+		if (frame.type === "function") {
+			let funcSuffix = "";
+			if (frame.isVariadic) {
+				const nextFrame = unclosed[i + 1];
+				const startsWithArray = nextFrame?.type === "array" && frame.argIndex === 0;
+				if (startsWithArray) {
+					// Single array mode for variadic functions
+				} else {
+					if (frame.currentArgHasText) {
+						funcSuffix += `, x${frame.argIndex + 2}`;
+					} else {
+						funcSuffix += `x${frame.argIndex + 1}`;
+					}
+				}
+			} else {
+				const remaining = [];
+				if (!frame.currentArgHasText && frame.argIndex < frame.args.length) {
+					remaining.push(frame.args[frame.argIndex]);
+				}
+				if (frame.argIndex < frame.args.length - 1) {
+					remaining.push(...frame.args.slice(frame.argIndex + 1));
+				}
+				if (frame.currentArgHasText && frame.argIndex < frame.args.length - 1) {
+					funcSuffix += ", " + remaining.join(", ");
+				} else {
+					funcSuffix += remaining.join(", ");
+				}
+			}
+			suffix += funcSuffix + ")";
+		} else if (frame.type === "generic") {
+			suffix += ")";
+		} else if (frame.type === "array") {
+			let arrSuffix = "";
+			if (isInnermost) {
+				if (frame.depth === 1) {
+					if (!frame.hasContent) {
+						arrSuffix += frame.containsArray ? "[a]" : "a";
+					} else {
+						arrSuffix += ", b";
+					}
+				} else if (frame.depth === 2) {
+					if (!frame.hasContent) arrSuffix += "a";
+				}
+			}
+			suffix += arrSuffix + "]";
+		}
 	}
 
-	let suffix = "";
-	for (let index = openFunctions.length - 1; index >= 0; index -= 1) {
-		const frame = openFunctions[index];
-		const remainingArgs = [];
-		if (index === openFunctions.length - 1) {
-			if (!frame.currentArgHasText && frame.argIndex < frame.args.length) {
-				remainingArgs.push(frame.args[frame.argIndex]);
+	const afterCursor = value.slice(cursor).trim();
+	if (afterCursor) {
+		let matchLen = 0;
+		for (let j = 1; j <= Math.min(suffix.length, afterCursor.length); j++) {
+			if (suffix.startsWith(afterCursor.slice(0, j))) {
+				matchLen = j;
 			}
-			if (frame.argIndex < frame.args.length - 1) {
-				remainingArgs.push(...frame.args.slice(frame.argIndex + 1));
-			}
-			suffix = `${remainingArgs.join(", ")}${remainingArgs.length ? ")" : ")"}`;
-			continue;
 		}
-
-		if (frame.argIndex < frame.args.length - 1) {
-			const outerArgs = frame.args.slice(frame.argIndex + 1).join(", ");
-			suffix += `${outerArgs ? `, ${outerArgs}` : ""})`;
-		} else {
-			suffix += ")";
-		}
+		suffix = suffix.slice(matchLen);
 	}
 
 	return {
@@ -310,8 +398,10 @@ class EditorBuffer {
 	}
 
 	cacheSelection() {
-		this.selectionStart = this.textarea.selectionStart ?? this.textarea.value.length;
-		this.selectionEnd = this.textarea.selectionEnd ?? this.selectionStart;
+		if (document.activeElement === this.textarea) {
+			this.selectionStart = this.textarea.selectionStart ?? this.textarea.value.length;
+			this.selectionEnd = this.textarea.selectionEnd ?? this.selectionStart;
+		}
 	}
 
 	getValue() {
@@ -337,9 +427,13 @@ class EditorBuffer {
 		const start = this.selectionStart;
 		const end = this.selectionEnd;
 		this.textarea.setRangeText(text, start, end, "end");
-		this.cacheSelection();
+		this.selectionStart = this.textarea.selectionStart;
+		this.selectionEnd = this.textarea.selectionEnd;
 		if (preserveFocus) {
 			this.safelyFocus();
+		} else {
+			this.textarea.selectionStart = this.selectionStart;
+			this.textarea.selectionEnd = this.selectionEnd;
 		}
 	}
 
@@ -348,17 +442,25 @@ class EditorBuffer {
 		const end = this.selectionEnd;
 		if (start !== end) {
 			this.textarea.setRangeText("", start, end, "end");
-			this.cacheSelection();
+			this.selectionStart = this.textarea.selectionStart;
+			this.selectionEnd = this.selectionStart;
 			if (preserveFocus) {
 				this.safelyFocus();
+			} else {
+				this.textarea.selectionStart = this.selectionStart;
+				this.textarea.selectionEnd = this.selectionEnd;
 			}
 			return;
 		}
 		if (start > 0) {
 			this.textarea.setRangeText("", start - 1, start, "end");
-			this.cacheSelection();
+			this.selectionStart = this.textarea.selectionStart;
+			this.selectionEnd = this.selectionStart;
 			if (preserveFocus) {
 				this.safelyFocus();
+			} else {
+				this.textarea.selectionStart = this.selectionStart;
+				this.textarea.selectionEnd = this.selectionEnd;
 			}
 		}
 	}
@@ -506,6 +608,10 @@ class CalculatorApp {
 		this.handleInput(false);
 		this.editor.textarea.addEventListener("input", () => this.handleInput(false));
 		this.editor.textarea.addEventListener("focus", () => this.updateGhostHint());
+		this.editor.textarea.addEventListener("blur", () => this.updateGhostHint());
+		this.editor.textarea.addEventListener("scroll", () => {
+			this.expressionGhost.scrollTop = this.editor.textarea.scrollTop;
+		});
 		this.precisionController.subscribe(() => this.handleInput(false));
 		this.editor.textarea.addEventListener("keydown", (event) => {
 			if (event.key === "Enter" && !event.shiftKey) {
@@ -631,20 +737,26 @@ class CalculatorApp {
 
 	updateGhostHint() {
 		const value = this.editor.getValue();
+		const isFocused = document.activeElement === this.editor.textarea;
 		const completion = value.trim() ? deriveGhostCompletion(value, this.editor.selectionStart) : { prefix: "", suffix: this.currentHint || DEFAULT_HINT };
 		const suffix = completion?.suffix ?? "";
-		if (!suffix) {
+		if (!suffix && isFocused) {
 			this.expressionGhost.replaceChildren();
 			this.expressionGhost.hidden = true;
 			return;
 		}
 		const prefixNode = document.createElement("span");
 		prefixNode.className = "ghost-prefix";
-		prefixNode.textContent = completion.prefix;
+		prefixNode.textContent = completion?.prefix ?? "";
+		const cursorNode = document.createElement("span");
+		cursorNode.className = "virtual-cursor";
+		if (isFocused) {
+			cursorNode.style.display = "none";
+		}
 		const suffixNode = document.createElement("span");
 		suffixNode.className = "ghost-suffix";
-		suffixNode.textContent = completion.suffix;
-		this.expressionGhost.replaceChildren(prefixNode, suffixNode);
+		suffixNode.textContent = suffix;
+		this.expressionGhost.replaceChildren(prefixNode, cursorNode, suffixNode);
 		this.expressionGhost.hidden = false;
 	}
 
