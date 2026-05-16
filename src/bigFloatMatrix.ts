@@ -1,9 +1,11 @@
 import { BigFloat } from "./bigFloat";
+import { BigFloatComplex } from "./bigFloatComplex";
+import { BigFloatComplexMatrix } from "./bigFloatComplexMatrix";
 import { BigFloatStream } from "./bigFloatStream";
 import { BigFloatVector } from "./bigFloatVector";
 import type { BigFloatValue, PrecisionValue } from "./types";
 
-type BigFloatMatrixRowSource = Iterable<BigFloatValue>;
+type BigFloatMatrixRowSource = Iterable<BigFloatValue | BigFloatComplex>;
 type BigFloatMatrixSource = Iterable<BigFloatMatrixRowSource>;
 type BigFloatMatrixOperand = BigFloatMatrix | BigFloatMatrixSource;
 type BigFloatMatrixRandomOptions = {
@@ -28,10 +30,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {RangeError} 行列の行が同じ長さを持たない場合
 	 */
 	public constructor(rows: BigFloatMatrixSource = [], precision?: PrecisionValue) {
-		const rawRows = Array.from(rows, (row) => Array.from(row));
+		const rawRows = Array.from(rows, (row) => Array.from(row)) as (BigFloatValue | BigFloatComplex)[][];
 		BigFloatMatrix._assertRectangularRaw(rawRows);
 		const resolvedPrecision = BigFloatMatrix._resolvePrecision(rawRows.flat(), precision);
-		this._values = rawRows.map((row) => row.map((value) => BigFloatMatrix._toBigFloat(value, resolvedPrecision)));
+		this._values = rawRows.map((row) => row.map((value) => BigFloatMatrix._toBigFloat(value as any, resolvedPrecision)));
 	}
 
 	/**
@@ -67,7 +69,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param precision - 明示的に指定された精度
 	 * @returns 解決された精度
 	 */
-	protected static _resolvePrecision(values: BigFloatValue[], precision?: PrecisionValue): bigint {
+	protected static _resolvePrecision(values: (BigFloatValue | BigFloatComplex)[], precision?: PrecisionValue): bigint {
 		if (precision !== undefined) return BigInt(precision);
 		let resolved = BigFloat.DEFAULT_PRECISION;
 		for (const value of values) {
@@ -91,7 +93,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * 生配列が長方形か検証する
 	 * @throws {RangeError} 行列の行が同じ長さを持たない場合
 	 */
-	protected static _assertRectangularRaw(rows: BigFloatValue[][]): void {
+	protected static _assertRectangularRaw(rows: (BigFloatValue | BigFloatComplex)[][]): void {
 		if (rows.length === 0) return;
 		const columnCount = rows[0].length;
 		for (const row of rows) {
@@ -147,7 +149,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param referenceValues - 精度解決のための参照値リスト
 	 * @returns BigFloatMatrix インスタンス
 	 */
-	protected static _coerceMatrix(value: BigFloatMatrixOperand, referenceValues: BigFloatValue[] = []): BigFloatMatrix {
+	protected static _coerceMatrix(value: BigFloatMatrixOperand, referenceValues: (BigFloatValue | BigFloatComplex)[] = []): BigFloatMatrix {
 		if (value instanceof BigFloatMatrix) return value;
 		const rows = Array.from(value, (row) => Array.from(row));
 		const resolvedPrecision = BigFloatMatrix._resolvePrecision([...referenceValues, ...rows.flat()]);
@@ -160,7 +162,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param referenceValues - 精度解決のための参照値リスト
 	 * @returns BigFloatVector インスタンス
 	 */
-	protected static _coerceVector(value: BigFloatVector | Iterable<BigFloatValue>, referenceValues: BigFloatValue[] = []): BigFloatVector {
+	protected static _coerceVector(value: BigFloatVector | Iterable<BigFloatValue | BigFloatComplex>, referenceValues: (BigFloatValue | BigFloatComplex)[] = []): BigFloatVector {
 		if (value instanceof BigFloatVector) return value;
 		const values = Array.from(value);
 		const resolvedPrecision = BigFloatMatrix._resolvePrecision([...referenceValues, ...values]);
@@ -185,7 +187,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		const values = this._values.map((currentRow, rowIndex) =>
 			currentRow.map((value, columnIndex) => {
 				const mapped = fn(value.clone(), rowIndex, columnIndex);
-				return mapped instanceof BigFloat ? mapped.clone() : BigFloatMatrix._toBigFloat(mapped, value._precision);
+				return mapped instanceof BigFloat ? mapped.clone() : BigFloatMatrix._toBigFloat(mapped as any, value._precision);
 			}),
 		);
 		return BigFloatMatrix._fromBigFloatGrid(values) as this;
@@ -198,21 +200,31 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns 演算後の新しい行列
 	 * @throws {RangeError} 行列形状が一致しない場合
 	 */
-	protected _mapWithOperand(other: BigFloatMatrixOperand | BigFloatValue, fn: (left: BigFloat, right: BigFloat, row: number, column: number) => BigFloatValue): this {
-		if (other instanceof BigFloatMatrix || (typeof other === "object" && other !== null && Symbol.iterator in other && !(other instanceof BigFloat))) {
+	protected _mapWithOperand(other: BigFloatMatrixOperand | BigFloatValue | BigFloatComplex | BigFloatComplexMatrix, fn: (left: BigFloat, right: BigFloat, row: number, column: number) => BigFloatValue): this {
+		if (other instanceof BigFloatComplexMatrix || BigFloat._isComplexValue(other)) {
+			if (this._values.length > 0 && this._values[0].length > 0) {
+				this._values[0][0]._assertComplexNumbersEnabled("operation");
+			} else if (!BigFloat.config.allowComplexNumbers) {
+				throw new TypeError("BigFloatMatrix operation does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.");
+			}
+			const op = other instanceof BigFloatComplexMatrix ? other : (other as any);
+			return BigFloatComplexMatrix.from(this.toArray()).zipMap(op, (l, r, row, col) => fn(l.real, r as any, row, col)) as any;
+		}
+
+		if (other instanceof BigFloatMatrix || (typeof other === "object" && other !== null && Symbol.iterator in other && !(other instanceof BigFloat) && !(other instanceof BigFloatComplex))) {
 			const matrix = BigFloatMatrix._coerceMatrix(other as BigFloatMatrixOperand, this._flattenValues());
 			BigFloatMatrix._assertSameShape(this, matrix);
 			/** @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合 */
 			const values = this._values.map((currentRow, rowIndex) =>
 				currentRow.map((value, columnIndex) => {
 					const mapped = fn(value.clone(), matrix._values[rowIndex][columnIndex].clone(), rowIndex, columnIndex);
-					return mapped instanceof BigFloat ? mapped.clone() : BigFloatMatrix._toBigFloat(mapped, value._precision);
+					return mapped instanceof BigFloat ? mapped.clone() : BigFloatMatrix._toBigFloat(mapped as any, value._precision);
 				}),
 			);
 			return BigFloatMatrix._fromBigFloatGrid(values) as this;
 		}
 
-		return this._mapValues((value, row, column) => fn(value, BigFloatMatrix._toBigFloat(other as BigFloatValue, value._precision), row, column));
+		return this._mapValues((value, row, column) => fn(value, BigFloatMatrix._toBigFloat(other as any, value._precision), row, column));
 	}
 
 	/**
@@ -287,7 +299,14 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns BigFloatMatrix インスタンス
 	 */
 	public static from(rows: BigFloatMatrixSource, precision?: PrecisionValue): BigFloatMatrix {
-		return new BigFloatMatrix(rows, precision);
+		const rawRows = Array.from(rows, (row) => Array.from(row));
+		if (rawRows.flat().some((v) => BigFloat._isComplexValue(v))) {
+			if (!BigFloat.config.allowComplexNumbers) {
+				throw new TypeError("BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.");
+			}
+			return BigFloatComplexMatrix.from(rawRows as any, precision) as any;
+		}
+		return new BigFloatMatrix(rawRows as any, precision);
 	}
 
 	/**

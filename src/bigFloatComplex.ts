@@ -1212,6 +1212,97 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		const one = BigFloatComplex.one(this._precision);
 		return one.add(this).ln().sub(one.sub(this).ln()).div(2);
 	}
+
+	/**
+	 * 床関数 (負の無限大方向への丸め)
+	 * @returns 丸められた結果
+	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+	 */
+	public floor(): BigFloatComplex {
+		if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part cannot be floored");
+		return BigFloatComplex._fromBigFloats(this._real.floor(), this._imag.clone());
+	}
+
+	/**
+	 * 天井関数 (正の無限大方向への丸め)
+	 * @returns 丸められた結果
+	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+	 */
+	public ceil(): BigFloatComplex {
+		if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part cannot be ceiled");
+		return BigFloatComplex._fromBigFloats(this._real.ceil(), this._imag.clone());
+	}
+
+	/**
+	 * 0に近い方向へ切り捨てる
+	 * @returns 切り捨てられた結果
+	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+	 */
+	public trunc(): BigFloatComplex {
+		if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part cannot be truncated");
+		return BigFloatComplex._fromBigFloats(this._real.trunc(), this._imag.clone());
+	}
+
+	/**
+	 * 四捨五入する
+	 * @returns 四捨五入された結果
+	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public round(): BigFloatComplex {
+		if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part cannot be rounded");
+		return BigFloatComplex._fromBigFloats(this._real.round(), this._imag.clone());
+	}
+
+	/**
+	 * 剰余を計算する (%)
+	 * @param other - 法
+	 * @returns 剰余
+	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public mod(other: BigFloatComplexValue): BigFloatComplex {
+		const rhs = BigFloatComplex._toComplex(other, this._precision);
+		if (!this._imag.isZero() || !rhs._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part does not support mod");
+		return BigFloatComplex._fromBigFloats(this._real.mod(rhs._real), this._imag.clone());
+	}
+
+	/**
+	 * Float32 精度へ丸める
+	 * @returns Float32相当に丸めた結果
+	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+	 * @throws {RangeError} 基数が2から36の範囲外の場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public fround(): BigFloatComplex {
+		if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part does not support fround");
+		return BigFloatComplex._fromBigFloats(this._real.fround(), this._imag.clone());
+	}
+
+	/**
+	 * 32bit整数として見たときの先頭ゼロビット数を返す
+	 * @returns 先頭ゼロビット数
+	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+	 * @throws {RangeError} 基数が2から36の範囲外の場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public clz32(): BigFloatComplex {
+		if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part does not support clz32");
+		return BigFloatComplex._fromBigFloats(this._real.clz32(), this._imag.clone());
+	}
 }
 
 /**

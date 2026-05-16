@@ -5186,7 +5186,8 @@ var BigFloatStream = class _BigFloatStream {
   static _flatMapStageDefinition = {
     createState: () => null,
     process: (value, _state, data, context, nextStageIndex) => {
-      context.pushIterator(_BigFloatStream._toIterator(data(value), value._precision), nextStageIndex);
+      const p = value instanceof BigFloat ? value._precision : value.precision;
+      context.pushIterator(_BigFloatStream._toIterator(data(value), p), nextStageIndex);
       return BIGFLOAT_STREAM_SKIP;
     }
   };
@@ -5250,7 +5251,7 @@ var BigFloatStream = class _BigFloatStream {
   _stageData;
   /**
    * BigFloatStream コンストラクタ
-   * @param source - BigFloat の反復可能オブジェクト、またはイテレータを生成する関数
+   * @param source - 要素の反復可能オブジェクト、またはイテレータを生成する関数
    */
   constructor(source) {
     if (typeof source === "function") {
@@ -5279,13 +5280,16 @@ var BigFloatStream = class _BigFloatStream {
     return stream;
   }
   /**
-   * ストリーム値を BigFloat へ変換する (内部用)
+   * ストリーム値を BigFloat または BigFloatComplex へ変換する (内部用)
    * @param value - 変換対象
    * @param precision - 精度
-   * @returns 変換された BigFloat
+   * @returns 変換された値
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
-  static _toBigFloat(value, precision) {
+  static _toItem(value, precision) {
+    if (value instanceof BigFloatComplex) {
+      return precision === void 0 || value.precision === precision ? value : value.changePrecision(precision);
+    }
     if (value instanceof BigFloat) {
       if (precision === void 0 || value._precision === precision) return value;
       return value.clone().changePrecision(precision);
@@ -5293,16 +5297,16 @@ var BigFloatStream = class _BigFloatStream {
     return new BigFloat(value, precision ?? BigFloat.DEFAULT_PRECISION);
   }
   /**
-   * 反復可能オブジェクトを BigFloat のイテレータへ変換する (内部用)
+   * 反復可能オブジェクトを BigFloatItem のイテレータへ変換する (内部用)
    * @param iterable - 変換対象
    * @param precision - 精度
-   * @returns BigFloat のイテレータ
+   * @returns BigFloatItem のイテレータ
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   static _toIterator(iterable, precision) {
     return (function* () {
       for (const item of iterable) {
-        yield _BigFloatStream._toBigFloat(item, precision);
+        yield _BigFloatStream._toItem(item, precision);
       }
     })();
   }
@@ -5316,9 +5320,8 @@ var BigFloatStream = class _BigFloatStream {
     if (precision !== void 0) return BigInt(precision);
     let resolved = BigFloat.DEFAULT_PRECISION;
     for (const value of values) {
-      if (value instanceof BigFloat && value._precision > resolved) {
-        resolved = value._precision;
-      }
+      const p = value instanceof BigFloatComplex ? value.precision : value instanceof BigFloat ? value._precision : 0n;
+      if (p > resolved) resolved = p;
     }
     return resolved;
   }
@@ -5352,14 +5355,14 @@ var BigFloatStream = class _BigFloatStream {
     if (precision === void 0) {
       return new _BigFloatStream(function* () {
         for (const item of iterable) {
-          yield item instanceof BigFloat ? item : new BigFloat(item);
+          yield item instanceof BigFloat || item instanceof BigFloatComplex ? item : new BigFloat(item);
         }
       });
     }
     const precisionBig = BigInt(precision);
     return new _BigFloatStream(function* () {
       for (const item of iterable) {
-        yield _BigFloatStream._toBigFloat(item, precisionBig);
+        yield _BigFloatStream._toItem(item, precisionBig);
       }
     });
   }
@@ -5390,8 +5393,8 @@ var BigFloatStream = class _BigFloatStream {
     if (normalizedCount === 0) return this.empty();
     const resolvedPrecision = this._resolvePrecision([start, step], precision);
     return new _BigFloatStream(function* () {
-      let current = _BigFloatStream._toBigFloat(start, resolvedPrecision);
-      const stepValue = _BigFloatStream._toBigFloat(step, resolvedPrecision);
+      let current = _BigFloatStream._toItem(start, resolvedPrecision);
+      const stepValue = _BigFloatStream._toItem(step, resolvedPrecision);
       for (let i = 0; i < normalizedCount; i++) {
         yield current;
         if (i + 1 < normalizedCount) current = current.add(stepValue);
@@ -5416,8 +5419,8 @@ var BigFloatStream = class _BigFloatStream {
     if (normalizedCount === 0) return this.empty();
     const resolvedPrecision = this._resolvePrecision([start, ratio], precision);
     return new _BigFloatStream(function* () {
-      let current = _BigFloatStream._toBigFloat(start, resolvedPrecision);
-      const ratioValue = _BigFloatStream._toBigFloat(ratio, resolvedPrecision);
+      let current = _BigFloatStream._toItem(start, resolvedPrecision);
+      const ratioValue = _BigFloatStream._toItem(ratio, resolvedPrecision);
       for (let i = 0; i < normalizedCount; i++) {
         yield current;
         if (i + 1 < normalizedCount) current = current.mul(ratioValue);
@@ -5443,12 +5446,12 @@ var BigFloatStream = class _BigFloatStream {
     if (normalizedCount === 0) return this.empty();
     const resolvedPrecision = this._resolvePrecision([start, end], precision);
     return new _BigFloatStream(function* () {
-      const startValue = _BigFloatStream._toBigFloat(start, resolvedPrecision);
+      const startValue = _BigFloatStream._toItem(start, resolvedPrecision);
       if (normalizedCount === 1) {
         yield startValue;
         return;
       }
-      const endValue = _BigFloatStream._toBigFloat(end, resolvedPrecision);
+      const endValue = _BigFloatStream._toItem(end, resolvedPrecision);
       const stepValue = endValue.sub(startValue).div(normalizedCount - 1);
       let current = startValue;
       for (let i = 0; i < normalizedCount; i++) {
@@ -5484,13 +5487,13 @@ var BigFloatStream = class _BigFloatStream {
     const resolvedPrecision = this._resolvePrecision([start, end], precision);
     return new _BigFloatStream(function* () {
       const base = new BigFloat(10, resolvedPrecision);
-      const startValue = _BigFloatStream._toBigFloat(start, resolvedPrecision);
+      const startValue = _BigFloatStream._toItem(start, resolvedPrecision);
       let current = base.pow(startValue);
       if (normalizedCount === 1) {
         yield current;
         return;
       }
-      const endValue = _BigFloatStream._toBigFloat(end, resolvedPrecision);
+      const endValue = _BigFloatStream._toItem(end, resolvedPrecision);
       const endTerm = base.pow(endValue);
       const stepExponent = endValue.sub(startValue).div(normalizedCount - 1);
       const ratio = base.pow(stepExponent);
@@ -5545,8 +5548,8 @@ var BigFloatStream = class _BigFloatStream {
     const max = options.max ?? 1;
     const resolvedPrecision = this._resolvePrecision([min, max], options.precision);
     return new _BigFloatStream(function* () {
-      const minValue = _BigFloatStream._toBigFloat(min, resolvedPrecision);
-      const maxValue = _BigFloatStream._toBigFloat(max, resolvedPrecision);
+      const minValue = _BigFloatStream._toItem(min, resolvedPrecision);
+      const maxValue = _BigFloatStream._toItem(max, resolvedPrecision);
       const span = maxValue.sub(minValue);
       if (span.lt(0)) throw new RangeError("Random range requires max >= min");
       if (span.isZero()) {
@@ -5571,7 +5574,7 @@ var BigFloatStream = class _BigFloatStream {
     if (normalizedCount === 0) return this.empty();
     const resolvedPrecision = this._resolvePrecision([value], precision);
     return new _BigFloatStream(function* () {
-      const baseValue = _BigFloatStream._toBigFloat(value, resolvedPrecision);
+      const baseValue = _BigFloatStream._toItem(value, resolvedPrecision);
       for (let i = 0; i < normalizedCount; i++) {
         yield baseValue.clone();
       }
@@ -5644,9 +5647,9 @@ var BigFloatStream = class _BigFloatStream {
     const actualEnd = end === void 0 ? start : end;
     const resolvedPrecision = this._resolvePrecision([actualStart, actualEnd, step], precision);
     return new _BigFloatStream(function* () {
-      let current = _BigFloatStream._toBigFloat(actualStart, resolvedPrecision);
-      const endValue = _BigFloatStream._toBigFloat(actualEnd, resolvedPrecision);
-      const stepValue = _BigFloatStream._toBigFloat(step, resolvedPrecision);
+      let current = _BigFloatStream._toItem(actualStart, resolvedPrecision);
+      const endValue = _BigFloatStream._toItem(actualEnd, resolvedPrecision);
+      const stepValue = _BigFloatStream._toItem(step, resolvedPrecision);
       if (stepValue.isZero()) throw new RangeError("Step cannot be zero");
       if (stepValue.gt(0)) {
         while (current.lt(endValue)) {
@@ -5838,7 +5841,7 @@ var BigFloatStream = class _BigFloatStream {
   // ==================================================
   /**
    * ストリームを反復するためのイテレータを取得する
-   * @returns BigFloat のイテレータ
+   * @returns 要素のイテレータ
    */
   [Symbol.iterator]() {
     const stages = this._collectPipelineStages();
@@ -6462,7 +6465,10 @@ var BigFloatStream = class _BigFloatStream {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   exp2() {
-    return this.map((x) => x.exp2());
+    return this.map((x) => {
+      if (x instanceof BigFloat) return x.exp2();
+      throw new TypeError("exp2 is not supported for complex numbers");
+    });
   }
   /**
    * 各要素に対して exp(x) - 1 を計算する
@@ -6505,7 +6511,10 @@ var BigFloatStream = class _BigFloatStream {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log2() {
-    return this.map((x) => x.log2());
+    return this.map((x) => {
+      if (x instanceof BigFloat) return x.log2();
+      return x.log(2);
+    });
   }
   /**
    * 各要素の常用対数 (log10) を計算する
@@ -6515,7 +6524,10 @@ var BigFloatStream = class _BigFloatStream {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log10() {
-    return this.map((x) => x.log10());
+    return this.map((x) => {
+      if (x instanceof BigFloat) return x.log10();
+      return x.log(10);
+    });
   }
   /**
    * 各要素に対して ln(1 + x) を計算する
@@ -6526,7 +6538,10 @@ var BigFloatStream = class _BigFloatStream {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   log1p() {
-    return this.map((x) => x.log1p());
+    return this.map((x) => {
+      if (x instanceof BigFloat) return x.log1p();
+      return x.add(1).ln();
+    });
   }
   /**
    * 各要素に対してガンマ関数を計算する
@@ -6537,7 +6552,11 @@ var BigFloatStream = class _BigFloatStream {
    * @throws {DivisionByZeroError} division by zero
    */
   gamma() {
-    return this.map((x) => x.gamma());
+    return this.map((x) => {
+      if (x instanceof BigFloat) return x.gamma();
+      if (!x.isReal()) throw new TypeError("gamma is not supported for non-real complex numbers");
+      return new BigFloatComplex(x.real.gamma(), 0, x.precision);
+    });
   }
   /**
    * 各要素に対してリーマンゼータ関数を計算する
@@ -6548,7 +6567,11 @@ var BigFloatStream = class _BigFloatStream {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   zeta() {
-    return this.map((x) => x.zeta());
+    return this.map((x) => {
+      if (x instanceof BigFloat) return x.zeta();
+      if (!x.isReal()) throw new TypeError("zeta is not supported for non-real complex numbers");
+      return new BigFloatComplex(x.real.zeta(), 0, x.precision);
+    });
   }
   /**
    * 各要素に対して階乗を計算する
@@ -6559,7 +6582,11 @@ var BigFloatStream = class _BigFloatStream {
    * @throws {DivisionByZeroError} division by zero
    */
   factorial() {
-    return this.map((x) => x.factorial());
+    return this.map((x) => {
+      if (x instanceof BigFloat) return x.factorial();
+      if (!x.isReal()) throw new TypeError("factorial is not supported for non-real complex numbers");
+      return new BigFloatComplex(x.real.factorial(), 0, x.precision);
+    });
   }
   /**
    * ストリームの要素の中から最大値を返す (終端操作)
@@ -6668,7 +6695,15 @@ var BigFloatStream = class _BigFloatStream {
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   median() {
-    return BigFloat.median(this.toArray());
+    const arr = this.toArray();
+    if (arr.length === 0) throw new TypeError("No arguments provided");
+    const sorted = arr.sort((a, b) => a.compare(b));
+    const mid = Math.floor(sorted.length / 2);
+    if (sorted.length % 2 === 1) {
+      return sorted[mid].clone();
+    } else {
+      return sorted[mid - 1].add(sorted[mid]).div(2);
+    }
   }
   /**
    * ストリームの要素の分散を計算する (終端操作)
@@ -6681,7 +6716,25 @@ var BigFloatStream = class _BigFloatStream {
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   variance() {
-    return BigFloat.variance(this.toArray());
+    const arr = this.toArray();
+    if (arr.length === 0) throw new TypeError("No arguments provided");
+    if (arr.length === 1) {
+      const p = arr[0] instanceof BigFloat ? arr[0]._precision : arr[0].precision;
+      return new BigFloat(0, p);
+    }
+    const n = arr.length;
+    const meanVal = this.average();
+    let sumSquares = null;
+    for (const item of arr) {
+      const diff = item.sub(meanVal);
+      const sq = diff.mul(diff);
+      if (sumSquares === null) {
+        sumSquares = sq;
+      } else {
+        sumSquares = sumSquares.add(sq);
+      }
+    }
+    return sumSquares.div(n);
   }
   /**
    * ストリームの要素の標準偏差を計算する (終端操作)
@@ -6694,7 +6747,469 @@ var BigFloatStream = class _BigFloatStream {
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   stddev() {
-    return BigFloat.stddev(this.toArray());
+    const varianceVal = this.variance();
+    return varianceVal.sqrt();
+  }
+};
+
+// src/bigFloatComplexVector.ts
+var BigFloatComplexVector = class _BigFloatComplexVector {
+  /**
+   * 内部要素 (BigFloatComplex の配列)
+   */
+  _values;
+  /**
+   * BigFloatComplexVector コンストラクタ
+   * @param values - 要素のソース
+   * @param precision - 精度
+   */
+  constructor(values = [], precision) {
+    const array = Array.from(values);
+    const resolvedPrecision = _BigFloatComplexVector._resolvePrecision(array, precision);
+    this._values = array.map((value) => _BigFloatComplexVector._toComplex(value, resolvedPrecision));
+  }
+  /**
+   * 内部配列からベクトルを生成する (内部用)
+   * @param values - 内部所有済みの要素列
+   * @returns 生成された BigFloatComplexVector
+   */
+  static _fromComplexArray(values) {
+    const vector = Object.create(_BigFloatComplexVector.prototype);
+    vector._values = values;
+    return vector;
+  }
+  /**
+   * 値を BigFloatComplex へ変換する (内部用)
+   * @param value - 変換対象
+   * @param precision - 精度
+   * @returns 変換された BigFloatComplex
+   */
+  static _toComplex(value, precision) {
+    if (value instanceof BigFloatComplex) {
+      return precision === void 0 || value.precision === precision ? value.clone() : value.changePrecision(precision);
+    }
+    return new BigFloatComplex(value, 0, precision);
+  }
+  /**
+   * 与えられた値リストから適切な精度を解決する (内部用)
+   * @param values - 値列
+   * @param precision - 明示精度
+   * @returns 解決された精度
+   */
+  static _resolvePrecision(values, precision) {
+    if (precision !== void 0) return BigInt(precision);
+    let resolved = BigFloat.DEFAULT_PRECISION;
+    for (const value of values) {
+      const p = value instanceof BigFloatComplex ? value.precision : value instanceof BigFloat ? value._precision : 0n;
+      if (p > resolved) resolved = p;
+    }
+    return resolved;
+  }
+  /**
+   * 次元一致を検証する
+   * @throws {RangeError} 次元が一致しない場合
+   */
+  static _assertSameLength(left, right) {
+    if (left.length !== right.length) throw new RangeError("Vector dimensions must match");
+  }
+  /**
+   * 任意入力を BigFloatComplexVector へ変換する (内部用)
+   * @param value - オペランド
+   * @param referenceValues - 精度解決のための参照値リスト
+   * @returns 変換された BigFloatComplexVector
+   */
+  static _coerceVector(value, referenceValues = []) {
+    if (value instanceof _BigFloatComplexVector) return value;
+    if (value instanceof BigFloatVector) {
+      return _BigFloatComplexVector._fromComplexArray(value.toArray().map((v) => new BigFloatComplex(v)));
+    }
+    const array = Array.from(value);
+    const resolvedPrecision = _BigFloatComplexVector._resolvePrecision([...referenceValues, ...array]);
+    return new _BigFloatComplexVector(array, resolvedPrecision);
+  }
+  /**
+   * 各要素に対して変換関数を適用した新しいベクトルを返す (内部用)
+   * @param fn - 変換関数
+   * @returns 変換後の新しいベクトル
+   */
+  _mapValues(fn) {
+    const values = this._values.map((value, index) => {
+      const mapped = fn(value.clone(), index);
+      return _BigFloatComplexVector._toComplex(mapped, value.precision);
+    });
+    return _BigFloatComplexVector._fromComplexArray(values);
+  }
+  /**
+   * オペランドとの二項演算を各要素に対して行う (内部用)
+   * @param other - ベクトルまたはスカラ値
+   * @param fn - 二項演算関数
+   * @returns 演算後の新しいベクトル
+   */
+  _mapWithOperand(other, fn) {
+    if (other instanceof _BigFloatComplexVector || other instanceof BigFloatVector || typeof other === "object" && other !== null && Symbol.iterator in other && !(other instanceof BigFloat) && !(other instanceof BigFloatComplex)) {
+      const vector = _BigFloatComplexVector._coerceVector(other, this._values);
+      _BigFloatComplexVector._assertSameLength(this, vector);
+      const values = this._values.map((value, index) => {
+        const mapped = fn(value.clone(), vector._values[index].clone(), index);
+        return _BigFloatComplexVector._toComplex(mapped, value.precision);
+      });
+      return _BigFloatComplexVector._fromComplexArray(values);
+    }
+    const right = _BigFloatComplexVector._toComplex(other, this._values[0]?.precision);
+    return this._mapValues((value, index) => fn(value, right, index));
+  }
+  /**
+   * 空のベクトル (次元 0) を生成する
+   */
+  static empty() {
+    return this._fromComplexArray([]);
+  }
+  /**
+   * 要素の反復可能オブジェクトから BigFloatComplexVector を生成する
+   */
+  static from(values, precision) {
+    return new _BigFloatComplexVector(values, precision);
+  }
+  /**
+   * BigFloatStream からベクトルを生成する
+   */
+  static fromStream(stream) {
+    return this.from(stream.toArray());
+  }
+  /**
+   * 引数リストからベクトルを生成する
+   */
+  static of(...values) {
+    return this.from(values);
+  }
+  /**
+   * 指定された値で埋められたベクトルを生成する
+   */
+  static fill(length, value, precision) {
+    if (length <= 0) return this.empty();
+    const resolvedPrecision = _BigFloatComplexVector._resolvePrecision([value], precision);
+    const base = _BigFloatComplexVector._toComplex(value, resolvedPrecision);
+    return this._fromComplexArray(Array.from({ length }, () => base.clone()));
+  }
+  /**
+   * 零ベクトルを生成する
+   */
+  static zeros(length, precision) {
+    return this.fill(length, 0, precision);
+  }
+  /**
+   * すべての要素が 1 のベクトルを生成する
+   */
+  static ones(length, precision) {
+    return this.fill(length, 1, precision);
+  }
+  /**
+   * 標準基底ベクトルを取得する
+   */
+  static basis(length, index, precision) {
+    if (index < 0 || index >= length) throw new RangeError("Index out of range");
+    const p = precision === void 0 ? BigFloat.DEFAULT_PRECISION : BigInt(precision);
+    return this._fromComplexArray(Array.from({ length }, (_, i) => new BigFloatComplex(i === index ? 1 : 0, 0, p)));
+  }
+  /**
+   * 指定した範囲を等分割する数値ベクトルを生成する
+   */
+  static linspace(start, end, count, precision) {
+    if (count <= 0) return this.empty();
+    const resolvedPrecision = this._resolvePrecision([start, end], precision);
+    const s = this._toComplex(start, resolvedPrecision);
+    if (count === 1) return this._fromComplexArray([s]);
+    const e = this._toComplex(end, resolvedPrecision);
+    const step = e.sub(s).div(count - 1);
+    const values = [];
+    let current = s.clone();
+    for (let i = 0; i < count; i++) {
+      if (i === count - 1) {
+        values.push(e);
+      } else {
+        values.push(current);
+        current = current.add(step);
+      }
+    }
+    return this._fromComplexArray(values);
+  }
+  /**
+   * 乱数ベクトルを生成する
+   */
+  static random(length, options = {}) {
+    if (length <= 0) return this.empty();
+    const min = options.min ?? 0;
+    const max = options.max ?? 1;
+    const resolvedPrecision = _BigFloatComplexVector._resolvePrecision([min, max], options.precision);
+    const minVal = _BigFloatComplexVector._toComplex(min, resolvedPrecision);
+    const maxVal = _BigFloatComplexVector._toComplex(max, resolvedPrecision);
+    const span = maxVal.sub(minVal);
+    const values = Array.from({ length }, () => {
+      if (span.isReal()) {
+        return minVal.add(span.real.mul(BigFloat.random(resolvedPrecision)));
+      }
+      const r = BigFloat.random(resolvedPrecision);
+      const i = BigFloat.random(resolvedPrecision);
+      return minVal.add(new BigFloatComplex(span.real.mul(r), span.imag.mul(i)));
+    });
+    return this._fromComplexArray(values);
+  }
+  get length() {
+    return this._values.length;
+  }
+  dimension() {
+    return this.length;
+  }
+  isEmpty() {
+    return this.length === 0;
+  }
+  at(index) {
+    if (index < 0 || index >= this.length) return void 0;
+    return this._values[index].clone();
+  }
+  clone() {
+    return _BigFloatComplexVector._fromComplexArray(this._values.map((v) => v.clone()));
+  }
+  toArray() {
+    return this._values.map((v) => v.clone());
+  }
+  /**
+   * 要素を流すストリームへ変換する
+   */
+  toStream() {
+    return BigFloatStream.from(this.toArray());
+  }
+  [Symbol.iterator]() {
+    return this.toArray()[Symbol.iterator]();
+  }
+  forEach(fn) {
+    this._values.forEach((v, i) => fn(v.clone(), i));
+  }
+  map(fn) {
+    return this._mapValues(fn);
+  }
+  zipMap(other, fn) {
+    return this._mapWithOperand(other, fn);
+  }
+  reduce(fn, initial) {
+    return this._values.reduce((acc, v, i) => fn(acc, v.clone(), i), initial);
+  }
+  some(fn) {
+    return this._values.some((v, i) => fn(v.clone(), i));
+  }
+  every(fn) {
+    return this._values.every((v, i) => fn(v.clone(), i));
+  }
+  concat(...others) {
+    const values = this.toArray();
+    for (const other of others) {
+      values.push(..._BigFloatComplexVector._coerceVector(other, this._values).toArray());
+    }
+    return _BigFloatComplexVector._fromComplexArray(values);
+  }
+  slice(start, end) {
+    return _BigFloatComplexVector._fromComplexArray(this._values.slice(start, end).map((v) => v.clone()));
+  }
+  reverse() {
+    return _BigFloatComplexVector._fromComplexArray([...this._values].reverse().map((v) => v.clone()));
+  }
+  changePrecision(precision) {
+    const p = BigInt(precision);
+    return this._mapValues((v) => v.changePrecision(p));
+  }
+  equals(other) {
+    const vector = _BigFloatComplexVector._coerceVector(other, this._values);
+    if (this.length !== vector.length) return false;
+    return this._values.every((v, i) => v.equals(vector._values[i]));
+  }
+  add(other) {
+    return this._mapWithOperand(other, (l, r) => l.add(r));
+  }
+  sub(other) {
+    return this._mapWithOperand(other, (l, r) => l.sub(r));
+  }
+  mul(scalar) {
+    const s = _BigFloatComplexVector._toComplex(scalar, this._values[0]?.precision);
+    return this._mapValues((v) => v.mul(s));
+  }
+  div(scalar) {
+    const s = _BigFloatComplexVector._toComplex(scalar, this._values[0]?.precision);
+    return this._mapValues((v) => v.div(s));
+  }
+  mod(other) {
+    return this._mapWithOperand(other, (l, r) => l.mod(r));
+  }
+  hadamard(other) {
+    return this._mapWithOperand(other, (l, r) => l.mul(r));
+  }
+  neg() {
+    return this._mapValues((v) => v.neg());
+  }
+  abs() {
+    return BigFloatVector.from(this._values.map((v) => v.abs()));
+  }
+  sign() {
+    return this._mapValues((v) => v.sign());
+  }
+  reciprocal() {
+    return this._mapValues((v) => v.reciprocal());
+  }
+  pow(exponent) {
+    return this._mapWithOperand(exponent, (l, r) => l.pow(r));
+  }
+  sqrt() {
+    return this._mapValues((v) => v.sqrt());
+  }
+  cbrt() {
+    return this._mapValues((v) => v.cbrt());
+  }
+  nthRoot(n) {
+    return this._mapValues((v) => v.nthRoot(n));
+  }
+  floor() {
+    return this._mapValues((v) => v.floor());
+  }
+  ceil() {
+    return this._mapValues((v) => v.ceil());
+  }
+  round() {
+    return this._mapValues((v) => v.round());
+  }
+  trunc() {
+    return this._mapValues((v) => v.trunc());
+  }
+  fround() {
+    return this._mapValues((v) => v.fround());
+  }
+  clz32() {
+    return this._mapValues((v) => v.clz32());
+  }
+  relativeDiff(other) {
+    return this._mapWithOperand(other, (l, r) => l.relativeDiff(r));
+  }
+  absoluteDiff(other) {
+    return this._mapWithOperand(other, (l, r) => l.absoluteDiff(r));
+  }
+  percentDiff(other) {
+    return this._mapWithOperand(other, (l, r) => l.percentDiff(r));
+  }
+  sin() {
+    return this._mapValues((v) => v.sin());
+  }
+  cos() {
+    return this._mapValues((v) => v.cos());
+  }
+  tan() {
+    return this._mapValues((v) => v.tan());
+  }
+  asin() {
+    return this._mapValues((v) => v.asin());
+  }
+  acos() {
+    return this._mapValues((v) => v.acos());
+  }
+  atan() {
+    return this._mapValues((v) => v.atan());
+  }
+  sinh() {
+    return this._mapValues((v) => v.sinh());
+  }
+  cosh() {
+    return this._mapValues((v) => v.cosh());
+  }
+  tanh() {
+    return this._mapValues((v) => v.tanh());
+  }
+  asinh() {
+    return this._mapValues((v) => v.asinh());
+  }
+  acosh() {
+    return this._mapValues((v) => v.acosh());
+  }
+  atanh() {
+    return this._mapValues((v) => v.atanh());
+  }
+  exp() {
+    return this._mapValues((v) => v.exp());
+  }
+  expm1() {
+    return this._mapValues((v) => v.expm1());
+  }
+  ln() {
+    return this._mapValues((v) => v.ln());
+  }
+  log(base) {
+    return this._mapWithOperand(base, (l, r) => l.log(r));
+  }
+  log2() {
+    return this._mapValues((v) => v.log(2));
+  }
+  log10() {
+    return this._mapValues((v) => v.log(10));
+  }
+  max() {
+    if (this.isEmpty()) throw new TypeError("No elements");
+    throw new TypeError("max() is not supported for complex vectors");
+  }
+  min() {
+    if (this.isEmpty()) throw new TypeError("No elements");
+    throw new TypeError("min() is not supported for complex vectors");
+  }
+  sum() {
+    if (this.isEmpty()) return new BigFloatComplex(0);
+    return this._values.reduce((acc, v) => acc.add(v), new BigFloatComplex(0, this._values[0].precision));
+  }
+  product() {
+    if (this.isEmpty()) return new BigFloatComplex(1);
+    return this._values.reduce((acc, v) => acc.mul(v), new BigFloatComplex(1, this._values[0].precision));
+  }
+  average() {
+    if (this.isEmpty()) return new BigFloatComplex(0);
+    return this.sum().div(this.length);
+  }
+  dot(other) {
+    const vector = _BigFloatComplexVector._coerceVector(other, this._values);
+    _BigFloatComplexVector._assertSameLength(this, vector);
+    let total = new BigFloatComplex(0, _BigFloatComplexVector._resolvePrecision([...this._values, ...vector._values]));
+    for (let i = 0; i < this.length; i++) {
+      total = total.add(this._values[i].mul(vector._values[i]));
+    }
+    return total;
+  }
+  squaredNorm() {
+    return this._values.reduce((acc, v) => acc.add(v.absSquared()), new BigFloat(0, this._values[0]?.precision));
+  }
+  norm() {
+    return this.squaredNorm().sqrt();
+  }
+  normalize() {
+    const length = this.norm();
+    if (length.isZero()) throw new RangeError("Cannot normalize zero vector");
+    return this.div(length);
+  }
+  distanceTo(other) {
+    return this.sub(other).norm();
+  }
+  cross(other) {
+    const vector = _BigFloatComplexVector._coerceVector(other, this._values);
+    _BigFloatComplexVector._assertSameLength(this, vector);
+    if (this.length !== 3) throw new RangeError("Cross product is only defined for 3-dimensional vectors");
+    const [ax, ay, az] = this._values;
+    const [bx, by, bz] = vector._values;
+    return _BigFloatComplexVector._fromComplexArray([ay.mul(bz).sub(az.mul(by)), az.mul(bx).sub(ax.mul(bz)), ax.mul(by).sub(ay.mul(bx))]);
+  }
+  squaredDistanceTo(other) {
+    return this.sub(other).squaredNorm();
+  }
+  /**
+   * 別のベクトルへの正射影ベクトルを計算する
+   */
+  projectOnto(other) {
+    const vector = _BigFloatComplexVector._coerceVector(other, this._values);
+    const denominator = vector.squaredNorm();
+    if (denominator.isZero()) throw new RangeError("Cannot project onto zero vector");
+    const scale = this.dot(vector).div(denominator);
+    return vector.mul(scale);
   }
 };
 
@@ -6809,7 +7324,16 @@ var BigFloatVector = class _BigFloatVector {
    * @throws {RangeError} ベクトルの次元が一致しない場合
    */
   _mapWithOperand(other, fn) {
-    if (other instanceof _BigFloatVector || typeof other === "object" && other !== null && Symbol.iterator in other && !(other instanceof BigFloat)) {
+    if (other instanceof BigFloatComplexVector || BigFloat._isComplexValue(other)) {
+      if (this._values.length > 0) {
+        this._values[0]._assertComplexNumbersEnabled("operation");
+      } else if (!BigFloat.config.allowComplexNumbers) {
+        throw new TypeError("BigFloatVector operation does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.");
+      }
+      const op = other instanceof BigFloatComplexVector ? other : BigFloatComplex.from(other);
+      return BigFloatComplexVector.from(this.toArray()).zipMap(op, (l, r, i) => fn(l.real, r, i));
+    }
+    if (other instanceof _BigFloatVector || typeof other === "object" && other !== null && Symbol.iterator in other && !(other instanceof BigFloat) && !(other instanceof BigFloatComplex)) {
       const vector = _BigFloatVector._coerceVector(other, this._values);
       _BigFloatVector._assertSameLength(this, vector);
       const values = this._values.map((value, index) => {
@@ -6834,7 +7358,14 @@ var BigFloatVector = class _BigFloatVector {
    * @returns BigFloatVector インスタンス
    */
   static from(values, precision) {
-    return new _BigFloatVector(values, precision);
+    const array = Array.from(values);
+    if (array.some((v) => BigFloat._isComplexValue(v))) {
+      if (!BigFloat.config.allowComplexNumbers) {
+        throw new TypeError("BigFloatVector.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.");
+      }
+      return BigFloatComplexVector.from(array, precision);
+    }
+    return new _BigFloatVector(array, precision);
   }
   /**
    * BigFloatStream からベクトルを生成する
@@ -9003,6 +9534,90 @@ var BigFloatComplex = class _BigFloatComplex {
     const one = _BigFloatComplex.one(this._precision);
     return one.add(this).ln().sub(one.sub(this).ln()).div(2);
   }
+  /**
+   * 床関数 (負の無限大方向への丸め)
+   * @returns 丸められた結果
+   * @throws {TypeError} 虚部が 0 でない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   */
+  floor() {
+    if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part cannot be floored");
+    return _BigFloatComplex._fromBigFloats(this._real.floor(), this._imag.clone());
+  }
+  /**
+   * 天井関数 (正の無限大方向への丸め)
+   * @returns 丸められた結果
+   * @throws {TypeError} 虚部が 0 でない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   */
+  ceil() {
+    if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part cannot be ceiled");
+    return _BigFloatComplex._fromBigFloats(this._real.ceil(), this._imag.clone());
+  }
+  /**
+   * 0に近い方向へ切り捨てる
+   * @returns 切り捨てられた結果
+   * @throws {TypeError} 虚部が 0 でない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   */
+  trunc() {
+    if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part cannot be truncated");
+    return _BigFloatComplex._fromBigFloats(this._real.trunc(), this._imag.clone());
+  }
+  /**
+   * 四捨五入する
+   * @returns 四捨五入された結果
+   * @throws {TypeError} 虚部が 0 でない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
+  round() {
+    if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part cannot be rounded");
+    return _BigFloatComplex._fromBigFloats(this._real.round(), this._imag.clone());
+  }
+  /**
+   * 剰余を計算する (%)
+   * @param other - 法
+   * @returns 剰余
+   * @throws {TypeError} 虚部が 0 でない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
+  mod(other) {
+    const rhs = _BigFloatComplex._toComplex(other, this._precision);
+    if (!this._imag.isZero() || !rhs._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part does not support mod");
+    return _BigFloatComplex._fromBigFloats(this._real.mod(rhs._real), this._imag.clone());
+  }
+  /**
+   * Float32 精度へ丸める
+   * @returns Float32相当に丸めた結果
+   * @throws {TypeError} 虚部が 0 でない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
+  fround() {
+    if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part does not support fround");
+    return _BigFloatComplex._fromBigFloats(this._real.fround(), this._imag.clone());
+  }
+  /**
+   * 32bit整数として見たときの先頭ゼロビット数を返す
+   * @returns 先頭ゼロビット数
+   * @throws {TypeError} 虚部が 0 でない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
+  clz32() {
+    if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part does not support clz32");
+    return _BigFloatComplex._fromBigFloats(this._real.clz32(), this._imag.clone());
+  }
 };
 function bigFloatComplex(real = 0, imagOrPrecision, precision) {
   return new BigFloatComplex(real, imagOrPrecision, precision);
@@ -9177,7 +9792,16 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @throws {RangeError} 行列形状が一致しない場合
    */
   _mapWithOperand(other, fn) {
-    if (other instanceof _BigFloatMatrix || typeof other === "object" && other !== null && Symbol.iterator in other && !(other instanceof BigFloat)) {
+    if (other instanceof BigFloatComplexMatrix || BigFloat._isComplexValue(other)) {
+      if (this._values.length > 0 && this._values[0].length > 0) {
+        this._values[0][0]._assertComplexNumbersEnabled("operation");
+      } else if (!BigFloat.config.allowComplexNumbers) {
+        throw new TypeError("BigFloatMatrix operation does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.");
+      }
+      const op = other instanceof BigFloatComplexMatrix ? other : other;
+      return BigFloatComplexMatrix.from(this.toArray()).zipMap(op, (l, r, row, col) => fn(l.real, r, row, col));
+    }
+    if (other instanceof _BigFloatMatrix || typeof other === "object" && other !== null && Symbol.iterator in other && !(other instanceof BigFloat) && !(other instanceof BigFloatComplex)) {
       const matrix = _BigFloatMatrix._coerceMatrix(other, this._flattenValues());
       _BigFloatMatrix._assertSameShape(this, matrix);
       const values = this._values.map(
@@ -9255,7 +9879,14 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @returns BigFloatMatrix インスタンス
    */
   static from(rows, precision) {
-    return new _BigFloatMatrix(rows, precision);
+    const rawRows = Array.from(rows, (row) => Array.from(row));
+    if (rawRows.flat().some((v) => BigFloat._isComplexValue(v))) {
+      if (!BigFloat.config.allowComplexNumbers) {
+        throw new TypeError("BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.");
+      }
+      return BigFloatComplexMatrix.from(rawRows, precision);
+    }
+    return new _BigFloatMatrix(rawRows, precision);
   }
   /**
    * 行ベクトルのリストから行列を生成する
@@ -10509,9 +11140,652 @@ var BigFloatMatrix = class _BigFloatMatrix {
     return result;
   }
 };
+
+// src/bigFloatComplexMatrix.ts
+var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
+  /**
+   * 内部要素 (行ごとの配列)
+   */
+  _values;
+  /**
+   * BigFloatComplexMatrix コンストラクタ
+   * @param rows - 行列要素の反復可能オブジェクト
+   * @param precision - 精度
+   */
+  constructor(rows = [], precision) {
+    const rawRows = Array.from(rows, (row) => Array.from(row));
+    _BigFloatComplexMatrix._assertRectangularRaw(rawRows);
+    const resolvedPrecision = _BigFloatComplexMatrix._resolvePrecision(rawRows.flat(), precision);
+    this._values = rawRows.map((row) => row.map((value) => _BigFloatComplexMatrix._toComplex(value, resolvedPrecision)));
+  }
+  static _fromComplexGrid(values) {
+    const matrix = Object.create(_BigFloatComplexMatrix.prototype);
+    matrix._values = values;
+    return matrix;
+  }
+  static _toComplex(value, precision) {
+    if (value instanceof BigFloatComplex) {
+      return precision === void 0 || value.precision === precision ? value.clone() : value.changePrecision(precision);
+    }
+    return new BigFloatComplex(value, 0, precision);
+  }
+  static _resolvePrecision(values, precision) {
+    if (precision !== void 0) return BigInt(precision);
+    let resolved = BigFloat.DEFAULT_PRECISION;
+    for (const value of values) {
+      const p = value instanceof BigFloatComplex ? value.precision : value instanceof BigFloat ? value._precision : 0n;
+      if (p > resolved) resolved = p;
+    }
+    return resolved;
+  }
+  static _assertRectangularRaw(rows) {
+    if (rows.length === 0) return;
+    const columnCount = rows[0].length;
+    for (const row of rows) {
+      if (row.length !== columnCount) throw new RangeError("Matrix rows must have the same length");
+    }
+  }
+  static _assertSameShape(left, right) {
+    if (left.rowCount !== right.rowCount || left.columnCount !== right.columnCount) {
+      throw new RangeError("Matrix shapes must match");
+    }
+  }
+  static _coerceMatrix(value, referenceValues = []) {
+    if (value instanceof _BigFloatComplexMatrix) return value;
+    if (value instanceof BigFloatMatrix) {
+      return _BigFloatComplexMatrix._fromComplexGrid(value.toArray().map((row) => row.map((v) => new BigFloatComplex(v))));
+    }
+    const rows = Array.from(value, (row) => Array.from(row));
+    const resolvedPrecision = _BigFloatComplexMatrix._resolvePrecision([...referenceValues, ...rows.flat()]);
+    return new _BigFloatComplexMatrix(rows, resolvedPrecision);
+  }
+  _flattenValues() {
+    return this._values.flat();
+  }
+  _mapValues(fn) {
+    const values = this._values.map(
+      (currentRow, rowIndex) => currentRow.map((value, columnIndex) => {
+        const mapped = fn(value.clone(), rowIndex, columnIndex);
+        return _BigFloatComplexMatrix._toComplex(mapped, value.precision);
+      })
+    );
+    return _BigFloatComplexMatrix._fromComplexGrid(values);
+  }
+  _mapWithOperand(other, fn) {
+    if (other instanceof _BigFloatComplexMatrix || other instanceof BigFloatMatrix || typeof other === "object" && other !== null && Symbol.iterator in other && !(other instanceof BigFloat) && !(other instanceof BigFloatComplex)) {
+      const matrix = _BigFloatComplexMatrix._coerceMatrix(other, this._flattenValues());
+      _BigFloatComplexMatrix._assertSameShape(this, matrix);
+      const values = this._values.map(
+        (currentRow, rowIndex) => currentRow.map((value, columnIndex) => {
+          const mapped = fn(value.clone(), matrix._values[rowIndex][columnIndex].clone(), rowIndex, columnIndex);
+          return _BigFloatComplexMatrix._toComplex(mapped, value.precision);
+        })
+      );
+      return _BigFloatComplexMatrix._fromComplexGrid(values);
+    }
+    const right = _BigFloatComplexMatrix._toComplex(other, this._values[0]?.[0]?.precision);
+    return this._mapValues((value, row, column) => fn(value, right, row, column));
+  }
+  static empty() {
+    return this._fromComplexGrid([]);
+  }
+  static from(rows, precision) {
+    return new _BigFloatComplexMatrix(rows, precision);
+  }
+  static fromRows(rows, precision) {
+    return this.from(rows, precision);
+  }
+  static fromColumns(columns, precision) {
+    const rawColumns = Array.from(columns, (col) => Array.from(col));
+    if (rawColumns.length === 0) return this.empty();
+    const rowCount = rawColumns[0].length;
+    const rows = Array.from({ length: rowCount }, (_, r) => rawColumns.map((col) => col[r]));
+    return this.from(rows, precision);
+  }
+  static of(...rows) {
+    return this.from(rows);
+  }
+  static fill(rowCount, columnCount, value, precision) {
+    if (rowCount <= 0 || columnCount <= 0) return this.empty();
+    const resolvedPrecision = _BigFloatComplexMatrix._resolvePrecision([value], precision);
+    const base = this._toComplex(value, resolvedPrecision);
+    return this._fromComplexGrid(Array.from({ length: rowCount }, () => Array.from({ length: columnCount }, () => base.clone())));
+  }
+  static zeros(rowCount, columnCount, precision) {
+    return this.fill(rowCount, columnCount, 0, precision);
+  }
+  static ones(rowCount, columnCount, precision) {
+    return this.fill(rowCount, columnCount, 1, precision);
+  }
+  static diagonal(values, precision) {
+    const entries = Array.from(values);
+    const resolvedPrecision = this._resolvePrecision(entries, precision);
+    return this._fromComplexGrid(entries.map((v, r) => entries.map((_, c) => r === c ? this._toComplex(v, resolvedPrecision) : new BigFloatComplex(0, 0, resolvedPrecision))));
+  }
+  static random(rowCount, columnCount, options = {}) {
+    if (rowCount <= 0 || columnCount <= 0) return this.empty();
+    const min = options.min ?? 0;
+    const max = options.max ?? 1;
+    const resolvedPrecision = this._resolvePrecision([min, max], options.precision);
+    const minVal = this._toComplex(min, resolvedPrecision);
+    const maxVal = this._toComplex(max, resolvedPrecision);
+    const span = maxVal.sub(minVal);
+    return this._fromComplexGrid(
+      Array.from(
+        { length: rowCount },
+        () => Array.from({ length: columnCount }, () => {
+          if (span.isReal()) {
+            return minVal.add(span.real.mul(BigFloat.random(resolvedPrecision)));
+          }
+          const r = BigFloat.random(resolvedPrecision);
+          const i = BigFloat.random(resolvedPrecision);
+          return minVal.add(new BigFloatComplex(span.real.mul(r), span.imag.mul(i)));
+        })
+      )
+    );
+  }
+  get rowCount() {
+    return this._values.length;
+  }
+  get columnCount() {
+    return this.rowCount === 0 ? 0 : this._values[0].length;
+  }
+  isSquare() {
+    return this.rowCount === this.columnCount;
+  }
+  isEmpty() {
+    return this.rowCount === 0 || this.columnCount === 0;
+  }
+  shape() {
+    return [this.rowCount, this.columnCount];
+  }
+  at(row, column) {
+    if (row < 0 || column < 0 || row >= this.rowCount || column >= this.columnCount) return void 0;
+    return this._values[row][column].clone();
+  }
+  row(index) {
+    if (index < 0 || index >= this.rowCount) return void 0;
+    return BigFloatComplexVector.from(this._values[index].map((v) => v.clone()));
+  }
+  column(index) {
+    if (index < 0 || index >= this.columnCount) return void 0;
+    return BigFloatComplexVector.from(this._values.map((row) => row[index].clone()));
+  }
+  clone() {
+    return _BigFloatComplexMatrix._fromComplexGrid(this._values.map((row) => row.map((v) => v.clone())));
+  }
+  toArray() {
+    return this._values.map((row) => row.map((v) => v.clone()));
+  }
+  toVectors() {
+    return this._values.map((row) => BigFloatComplexVector.from(row.map((v) => v.clone())));
+  }
+  [Symbol.iterator]() {
+    return this.toVectors()[Symbol.iterator]();
+  }
+  forEach(fn) {
+    for (let r = 0; r < this.rowCount; r++) {
+      for (let c = 0; c < this.columnCount; c++) {
+        fn(this._values[r][c].clone(), r, c);
+      }
+    }
+  }
+  map(fn) {
+    return this._mapValues(fn);
+  }
+  /**
+   * 要素を流すストリームへ変換する
+   */
+  toStream() {
+    return BigFloatStream.from(this._flattenValues());
+  }
+  add(other) {
+    return this._mapWithOperand(other, (l, r) => l.add(r));
+  }
+  sub(other) {
+    return this._mapWithOperand(other, (l, r) => l.sub(r));
+  }
+  hadamard(other) {
+    return this._mapWithOperand(other, (l, r) => l.mul(r));
+  }
+  mul(scalar) {
+    const s = _BigFloatComplexMatrix._toComplex(scalar, this._values[0]?.[0]?.precision);
+    return this._mapValues((v) => v.mul(s));
+  }
+  div(scalar) {
+    const s = _BigFloatComplexMatrix._toComplex(scalar, this._values[0]?.[0]?.precision);
+    return this._mapValues((v) => v.div(s));
+  }
+  matmul(other) {
+    const matrix = _BigFloatComplexMatrix._coerceMatrix(other, this._flattenValues());
+    if (this.columnCount !== matrix.rowCount) throw new RangeError("Inner matrix dimensions must agree");
+    if (this.rowCount === 0 || this.columnCount === 0 || matrix.columnCount === 0) return _BigFloatComplexMatrix.empty();
+    const resolvedPrecision = _BigFloatComplexMatrix._resolvePrecision([...this._flattenValues(), ...matrix._flattenValues()]);
+    const values = Array.from(
+      { length: this.rowCount },
+      (_, row) => Array.from({ length: matrix.columnCount }, (_2, column) => {
+        let total = new BigFloatComplex(0, 0, resolvedPrecision);
+        for (let i = 0; i < this.columnCount; i++) {
+          total = total.add(this._values[row][i].mul(matrix._values[i][column]));
+        }
+        return total;
+      })
+    );
+    return _BigFloatComplexMatrix._fromComplexGrid(values);
+  }
+  transpose() {
+    if (this.rowCount === 0) return _BigFloatComplexMatrix.empty();
+    return _BigFloatComplexMatrix._fromComplexGrid(Array.from({ length: this.columnCount }, (_, column) => this._values.map((row) => row[column].clone())));
+  }
+  rowSums() {
+    return BigFloatComplexVector.from(this._values.map((row) => BigFloatComplexVector.from(row).sum()));
+  }
+  columnSums() {
+    if (this.isEmpty()) return BigFloatComplexVector.empty();
+    const resolvedPrecision = _BigFloatComplexMatrix._resolvePrecision(this._flattenValues());
+    return BigFloatComplexVector.from(Array.from({ length: this.columnCount }, (_, col) => this._values.reduce((acc, row) => acc.add(row[col]), new BigFloatComplex(0, 0, resolvedPrecision))));
+  }
+  trace() {
+    if (!this.isSquare()) throw new RangeError("Matrix must be square");
+    const resolvedPrecision = _BigFloatComplexMatrix._resolvePrecision(this._flattenValues());
+    let total = new BigFloatComplex(0, 0, resolvedPrecision);
+    for (let i = 0; i < this.rowCount; i++) {
+      total = total.add(this._values[i][i]);
+    }
+    return total;
+  }
+  determinant() {
+    if (!this.isSquare()) throw new RangeError("Matrix must be square");
+    const size = this.rowCount;
+    if (size === 0) return new BigFloatComplex(1, 0, BigFloat.DEFAULT_PRECISION);
+    const values = this.toArray();
+    let sign = 1;
+    let det = new BigFloatComplex(1, 0, _BigFloatComplexMatrix._resolvePrecision(this._flattenValues()));
+    for (let column = 0; column < size; column++) {
+      let bestRow = -1;
+      let bestValue = null;
+      for (let row = column; row < size; row++) {
+        const current = values[row][column].abs();
+        if (current.isZero()) continue;
+        if (bestValue === null || current.gt(bestValue)) {
+          bestValue = current;
+          bestRow = row;
+        }
+      }
+      if (bestRow === -1) return new BigFloatComplex(0, 0, det.precision);
+      if (bestRow !== column) {
+        [values[column], values[bestRow]] = [values[bestRow], values[column]];
+        sign *= -1;
+      }
+      const pivot = values[column][column].clone();
+      det = det.mul(pivot);
+      for (let row = column + 1; row < size; row++) {
+        const factor = values[row][column].div(pivot);
+        if (factor.isZero()) continue;
+        for (let index = column; index < size; index++) {
+          values[row][index] = values[row][index].sub(factor.mul(values[column][index]));
+        }
+      }
+    }
+    return sign < 0 ? det.neg() : det;
+  }
+  inverse() {
+    if (!this.isSquare()) throw new RangeError("Matrix must be square");
+    const size = this.rowCount;
+    const identity = Array.from({ length: size }, (_, row) => Array.from({ length: size }, (_2, col) => new BigFloatComplex(row === col ? 1 : 0, 0, this._values[0]?.[0]?.precision)));
+    const augmented = this._values.map((row, i) => [...row.map((v) => v.clone()), ...identity[i]]);
+    const rowCount = size;
+    const totalColumns = 2 * size;
+    let pivotRow = 0;
+    for (let column = 0; column < size && pivotRow < rowCount; column++) {
+      let bestRow = -1;
+      let bestValue = null;
+      for (let candidate = pivotRow; candidate < rowCount; candidate++) {
+        const current = augmented[candidate][column].abs();
+        if (current.isZero()) continue;
+        if (bestValue === null || current.gt(bestValue)) {
+          bestValue = current;
+          bestRow = candidate;
+        }
+      }
+      if (bestRow === -1) throw new RangeError("Matrix is singular");
+      if (bestRow !== pivotRow) {
+        [augmented[pivotRow], augmented[bestRow]] = [augmented[bestRow], augmented[pivotRow]];
+      }
+      const pivot = augmented[pivotRow][column].clone();
+      for (let index = column; index < totalColumns; index++) {
+        augmented[pivotRow][index] = augmented[pivotRow][index].div(pivot);
+      }
+      for (let row = 0; row < rowCount; row++) {
+        if (row === pivotRow) continue;
+        const factor = augmented[row][column].clone();
+        if (factor.isZero()) continue;
+        for (let index = column; index < totalColumns; index++) {
+          augmented[row][index] = augmented[row][index].sub(factor.mul(augmented[pivotRow][index]));
+        }
+      }
+      pivotRow++;
+    }
+    return _BigFloatComplexMatrix._fromComplexGrid(augmented.map((row) => row.slice(size)));
+  }
+  solveVector(rhs) {
+    if (!this.isSquare()) throw new RangeError("Matrix must be square");
+    const vector = BigFloatComplexVector.from(rhs);
+    if (vector.length !== this.rowCount) throw new RangeError("Dimension mismatch");
+    const solution = this.solveMatrix(_BigFloatComplexMatrix.from(vector.toArray().map((v) => [v])));
+    return solution.column(0) ?? BigFloatComplexVector.empty();
+  }
+  solveMatrix(rhs) {
+    if (!this.isSquare()) throw new RangeError("Matrix must be square");
+    const right = _BigFloatComplexMatrix._coerceMatrix(rhs, this._flattenValues());
+    if (right.rowCount !== this.rowCount) throw new RangeError("Dimension mismatch");
+    const size = this.rowCount;
+    const augmented = this._values.map((row, i) => [...row.map((v) => v.clone()), ...right._values[i].map((v) => v.clone())]);
+    const { values, pivotColumns } = _BigFloatComplexMatrix._reducedRowEchelon(augmented, size);
+    if (pivotColumns.length !== size) throw new RangeError("Matrix is singular");
+    return _BigFloatComplexMatrix._fromComplexGrid(values.map((row) => row.slice(size)));
+  }
+  static _reducedRowEchelon(values, leftColumnCount = values[0]?.length ?? 0) {
+    const rows = values.map((row) => row.map((v) => v.clone()));
+    const pivotColumns = [];
+    const rowCount = rows.length;
+    if (rowCount === 0) return { values: rows, pivotColumns };
+    const totalColumns = rows[0].length;
+    let pivotRow = 0;
+    for (let column = 0; column < leftColumnCount && pivotRow < rowCount; column++) {
+      let bestRow = -1;
+      let bestValue = null;
+      for (let candidate = pivotRow; candidate < rowCount; candidate++) {
+        const current = rows[candidate][column].abs();
+        if (current.isZero()) continue;
+        if (bestValue === null || current.gt(bestValue)) {
+          bestValue = current;
+          bestRow = candidate;
+        }
+      }
+      if (bestRow === -1) continue;
+      if (bestRow !== pivotRow) {
+        [rows[pivotRow], rows[bestRow]] = [rows[bestRow], rows[pivotRow]];
+      }
+      const pivot = rows[pivotRow][column].clone();
+      for (let index = column; index < totalColumns; index++) {
+        rows[pivotRow][index] = rows[pivotRow][index].div(pivot);
+      }
+      for (let row = 0; row < rowCount; row++) {
+        if (row === pivotRow) continue;
+        const factor = rows[row][column].clone();
+        if (factor.isZero()) continue;
+        for (let index = column; index < totalColumns; index++) {
+          rows[row][index] = rows[row][index].sub(factor.mul(rows[pivotRow][index]));
+        }
+      }
+      pivotColumns.push(column);
+      pivotRow++;
+    }
+    return { values: rows, pivotColumns };
+  }
+  matrixPow(exponent) {
+    if (!this.isSquare()) throw new RangeError("Matrix must be square");
+    if (!Number.isInteger(exponent)) throw new RangeError("Exponent must be integer");
+    if (exponent === 0) return _BigFloatComplexMatrix.identity(this.rowCount, _BigFloatComplexMatrix._resolvePrecision(this._flattenValues()));
+    if (exponent < 0) return this.inverse().matrixPow(-exponent);
+    let result = _BigFloatComplexMatrix.identity(this.rowCount, _BigFloatComplexMatrix._resolvePrecision(this._flattenValues()));
+    let base = this.clone();
+    let p = exponent;
+    while (p > 0) {
+      if (p & 1) result = result.matmul(base);
+      p >>= 1;
+      if (p > 0) base = base.matmul(base);
+    }
+    return result;
+  }
+  static identity(size, precision) {
+    const s = Math.trunc(size);
+    const p = precision === void 0 ? BigFloat.DEFAULT_PRECISION : BigInt(precision);
+    return _BigFloatComplexMatrix._fromComplexGrid(Array.from({ length: s }, (_, r) => Array.from({ length: s }, (_2, c) => new BigFloatComplex(r === c ? 1 : 0, 0, p))));
+  }
+  equals(other) {
+    const matrix = _BigFloatComplexMatrix._coerceMatrix(other, this._flattenValues());
+    if (this.rowCount !== matrix.rowCount || this.columnCount !== matrix.columnCount) return false;
+    for (let r = 0; r < this.rowCount; r++) {
+      for (let c = 0; c < this.columnCount; c++) {
+        if (!this._values[r][c].equals(matrix._values[r][c])) return false;
+      }
+    }
+    return true;
+  }
+  sum() {
+    if (this.isEmpty()) return new BigFloatComplex(0, 0, BigFloat.DEFAULT_PRECISION);
+    const resolvedPrecision = _BigFloatComplexMatrix._resolvePrecision(this._flattenValues());
+    return this._flattenValues().reduce((acc, v) => acc.add(v), new BigFloatComplex(0, 0, resolvedPrecision));
+  }
+  product() {
+    if (this.isEmpty()) return new BigFloatComplex(1, 0, BigFloat.DEFAULT_PRECISION);
+    const resolvedPrecision = _BigFloatComplexMatrix._resolvePrecision(this._flattenValues());
+    return this._flattenValues().reduce((acc, v) => acc.mul(v), new BigFloatComplex(1, 0, resolvedPrecision));
+  }
+  average() {
+    if (this.isEmpty()) return new BigFloatComplex(0, 0, BigFloat.DEFAULT_PRECISION);
+    return this.sum().div(this.rowCount * this.columnCount);
+  }
+  frobeniusNorm() {
+    return this._flattenValues().reduce((acc, v) => acc.add(v.absSquared()), new BigFloat(0, this._values[0]?.[0]?.precision)).sqrt();
+  }
+  mulVector(vector) {
+    const rhs = BigFloatComplexVector.from(vector);
+    if (this.columnCount !== rhs.length) throw new RangeError("Inner matrix dimensions must agree");
+    return BigFloatComplexVector.from(this._values.map((row) => BigFloatComplexVector.from(row).dot(rhs)));
+  }
+  diagonalVector() {
+    if (!this.isSquare()) throw new RangeError("Matrix must be square");
+    return BigFloatComplexVector.from(this._values.map((row, index) => row[index].clone()));
+  }
+  flatten() {
+    return BigFloatComplexVector.from(this._flattenValues().map((v) => v.clone()));
+  }
+  zipMap(other, fn) {
+    return this._mapWithOperand(other, fn);
+  }
+  reduce(fn, initial) {
+    let acc = initial;
+    for (let r = 0; r < this.rowCount; r++) {
+      for (let c = 0; c < this.columnCount; c++) {
+        acc = fn(acc, this._values[r][c].clone(), r, c);
+      }
+    }
+    return acc;
+  }
+  some(fn) {
+    for (let r = 0; r < this.rowCount; r++) {
+      for (let c = 0; c < this.columnCount; c++) {
+        if (fn(this._values[r][c].clone(), r, c)) return true;
+      }
+    }
+    return false;
+  }
+  every(fn) {
+    for (let r = 0; r < this.rowCount; r++) {
+      for (let c = 0; c < this.columnCount; c++) {
+        if (!fn(this._values[r][c].clone(), r, c)) return false;
+      }
+    }
+    return true;
+  }
+  concatRows(...others) {
+    const values = this.toArray();
+    for (const other of others) {
+      const matrix = _BigFloatComplexMatrix._coerceMatrix(other, this._flattenValues());
+      if (this.columnCount !== 0 && matrix.columnCount !== this.columnCount) throw new RangeError("Column counts must match");
+      values.push(...matrix.toArray());
+    }
+    return _BigFloatComplexMatrix._fromComplexGrid(values);
+  }
+  concatColumns(...others) {
+    let result = this.clone();
+    for (const other of others) {
+      const matrix = _BigFloatComplexMatrix._coerceMatrix(other, result._flattenValues());
+      if (result.rowCount !== matrix.rowCount) throw new RangeError("Row counts must match");
+      result = _BigFloatComplexMatrix._fromComplexGrid(result._values.map((row, rowIndex) => [...row.map((v) => v.clone()), ...matrix._values[rowIndex].map((v) => v.clone())]));
+    }
+    return result;
+  }
+  sliceRows(start, end) {
+    return _BigFloatComplexMatrix._fromComplexGrid(this._values.slice(start, end).map((row) => row.map((v) => v.clone())));
+  }
+  sliceColumns(start, end) {
+    return _BigFloatComplexMatrix._fromComplexGrid(this._values.map((row) => row.slice(start, end).map((v) => v.clone())));
+  }
+  changePrecision(precision) {
+    const p = BigInt(precision);
+    return this._mapValues((v) => v.changePrecision(p));
+  }
+  mod(other) {
+    return this._mapWithOperand(other, (l, r) => l.mod(r));
+  }
+  neg() {
+    return this._mapValues((v) => v.neg());
+  }
+  abs() {
+    return BigFloatMatrix.from(this._values.map((row) => row.map((v) => v.abs())));
+  }
+  sign() {
+    return this._mapValues((v) => v.sign());
+  }
+  reciprocal() {
+    return this._mapValues((v) => v.reciprocal());
+  }
+  pow(exponent) {
+    return this._mapWithOperand(exponent, (l, r) => l.pow(r));
+  }
+  sqrt() {
+    return this._mapValues((v) => v.sqrt());
+  }
+  cbrt() {
+    return this._mapValues((v) => v.cbrt());
+  }
+  nthRoot(n) {
+    return this._mapValues((v) => v.nthRoot(n));
+  }
+  floor() {
+    return this._mapValues((v) => v.floor());
+  }
+  ceil() {
+    return this._mapValues((v) => v.ceil());
+  }
+  round() {
+    return this._mapValues((v) => v.round());
+  }
+  trunc() {
+    return this._mapValues((v) => v.trunc());
+  }
+  fround() {
+    return this._mapValues((v) => v.fround());
+  }
+  clz32() {
+    return this._mapValues((v) => v.clz32());
+  }
+  relativeDiff(other) {
+    return this._mapWithOperand(other, (l, r) => l.relativeDiff(r));
+  }
+  absoluteDiff(other) {
+    return this._mapWithOperand(other, (l, r) => l.absoluteDiff(r));
+  }
+  percentDiff(other) {
+    return this._mapWithOperand(other, (l, r) => l.percentDiff(r));
+  }
+  sin() {
+    return this._mapValues((v) => v.sin());
+  }
+  cos() {
+    return this._mapValues((v) => v.cos());
+  }
+  tan() {
+    return this._mapValues((v) => v.tan());
+  }
+  asin() {
+    return this._mapValues((v) => v.asin());
+  }
+  acos() {
+    return this._mapValues((v) => v.acos());
+  }
+  atan() {
+    return this._mapValues((v) => v.atan());
+  }
+  atan2(x) {
+    return this._mapWithOperand(x, (l, r) => {
+      if (!l.isReal() || !r.isReal()) throw new TypeError("atan2 is not supported for non-real complex numbers");
+      return new BigFloatComplex(l.real.atan2(r.real), 0, l.precision);
+    });
+  }
+  sinh() {
+    return this._mapValues((v) => v.sinh());
+  }
+  cosh() {
+    return this._mapValues((v) => v.cosh());
+  }
+  tanh() {
+    return this._mapValues((v) => v.tanh());
+  }
+  asinh() {
+    return this._mapValues((v) => v.asinh());
+  }
+  acosh() {
+    return this._mapValues((v) => v.acosh());
+  }
+  atanh() {
+    return this._mapValues((v) => v.atanh());
+  }
+  exp() {
+    return this._mapValues((v) => v.exp());
+  }
+  exp2() {
+    return this._mapValues((v) => v.pow(2));
+  }
+  expm1() {
+    return this._mapValues((v) => v.expm1());
+  }
+  ln() {
+    return this._mapValues((v) => v.ln());
+  }
+  log(base) {
+    return this._mapWithOperand(base, (l, r) => l.log(r));
+  }
+  log2() {
+    return this._mapValues((v) => v.log(2));
+  }
+  log10() {
+    return this._mapValues((v) => v.log(10));
+  }
+  log1p() {
+    return this._mapValues((v) => v.add(1).ln());
+  }
+  gamma() {
+    return this._mapValues((v) => {
+      if (!v.isReal()) throw new TypeError("gamma is not supported for non-real complex numbers");
+      return new BigFloatComplex(v.real.gamma(), 0, v.precision);
+    });
+  }
+  zeta() {
+    return this._mapValues((v) => {
+      if (!v.isReal()) throw new TypeError("zeta is not supported for non-real complex numbers");
+      return new BigFloatComplex(v.real.zeta(), 0, v.precision);
+    });
+  }
+  factorial() {
+    return this._mapValues((v) => {
+      if (!v.isReal()) throw new TypeError("factorial is not supported for non-real complex numbers");
+      return new BigFloatComplex(v.real.factorial(), 0, v.precision);
+    });
+  }
+  rank() {
+    return _BigFloatComplexMatrix._reducedRowEchelon(this.toArray(), this.columnCount).pivotColumns.length;
+  }
+};
 export {
   BigFloat,
   BigFloatComplex,
+  BigFloatComplexMatrix,
+  BigFloatComplexVector,
   BigFloatConfig,
   BigFloatError,
   BigFloatMatrix,

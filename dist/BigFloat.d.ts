@@ -84,17 +84,18 @@ export type BigFloatAggregateArgs = BigFloatValue[] | [
 /**
  * BigFloatStreamで扱う値
  */
-export type BigFloatStreamValue = BigFloatValue;
-export type BigFloatIterator = Iterator<BigFloat, void, undefined>;
+export type BigFloatStreamValue = BigFloatValue | BigFloatComplex;
+export type BigFloatItem = BigFloat | BigFloatComplex;
+export type BigFloatIterator = Iterator<BigFloatItem, void, undefined>;
 export type BigFloatStreamFactory = () => BigFloatIterator;
-export type BigFloatStreamStageSignal = BigFloat | typeof BIGFLOAT_STREAM_SKIP;
+export type BigFloatStreamStageSignal = BigFloatItem | typeof BIGFLOAT_STREAM_SKIP;
 export type BigFloatStreamStageContext = {
-	pushIterator: (iterator: Iterator<BigFloat, void, undefined>, stageIndex: number) => void;
+	pushIterator: (iterator: Iterator<BigFloatItem, void, undefined>, stageIndex: number) => void;
 	stop: () => void;
 };
 export type BigFloatStreamStageDefinition = {
 	createState: (data: unknown) => unknown;
-	process: (value: BigFloat, state: unknown, data: unknown, context: BigFloatStreamStageContext, nextStageIndex: number) => BigFloatStreamStageSignal;
+	process: (value: BigFloatItem, state: unknown, data: unknown, context: BigFloatStreamStageContext, nextStageIndex: number) => BigFloatStreamStageSignal;
 };
 export type BigFloatStreamStage = {
 	definition: BigFloatStreamStageDefinition;
@@ -109,7 +110,7 @@ declare const BIGFLOAT_STREAM_SKIP: unique symbol;
 /**
  * BigFloat 用の遅延評価ストリーム (Lazy List) クラス
  */
-export declare class BigFloatStream implements Iterable<BigFloat> {
+export declare class BigFloatStream implements Iterable<BigFloatItem> {
 	/**
 	 * mapステージ定義
 	 */
@@ -156,9 +157,9 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	private _stageData;
 	/**
 	 * BigFloatStream コンストラクタ
-	 * @param source - BigFloat の反復可能オブジェクト、またはイテレータを生成する関数
+	 * @param source - 要素の反復可能オブジェクト、またはイテレータを生成する関数
 	 */
-	constructor(source: Iterable<BigFloat> | BigFloatStreamFactory);
+	constructor(source: Iterable<BigFloatItem> | BigFloatStreamFactory);
 	/**
 	 * 内部状態からストリームを生成する (内部用)
 	 * @param sourceFactory - ソースファクトリ
@@ -169,28 +170,28 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 */
 	protected static _fromState(sourceFactory: BigFloatStreamFactory, previousStream: BigFloatStream | null, stageDefinition: BigFloatStreamStageDefinition | null, stageData: unknown): BigFloatStream;
 	/**
-	 * ストリーム値を BigFloat へ変換する (内部用)
+	 * ストリーム値を BigFloat または BigFloatComplex へ変換する (内部用)
 	 * @param value - 変換対象
 	 * @param precision - 精度
-	 * @returns 変換された BigFloat
+	 * @returns 変換された値
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
-	protected static _toBigFloat(value: BigFloatStreamValue, precision?: bigint): BigFloat;
+	protected static _toItem(value: BigFloatStreamValue | BigFloatComplex, precision?: bigint): BigFloatItem;
 	/**
-	 * 反復可能オブジェクトを BigFloat のイテレータへ変換する (内部用)
+	 * 反復可能オブジェクトを BigFloatItem のイテレータへ変換する (内部用)
 	 * @param iterable - 変換対象
 	 * @param precision - 精度
-	 * @returns BigFloat のイテレータ
+	 * @returns BigFloatItem のイテレータ
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
-	protected static _toIterator(iterable: Iterable<BigFloatStreamValue>, precision?: bigint): IterableIterator<BigFloat, void, undefined>;
+	protected static _toIterator(iterable: Iterable<BigFloatStreamValue | BigFloatComplex>, precision?: bigint): IterableIterator<BigFloatItem, void, undefined>;
 	/**
 	 * 与えられた値リストから適切な精度を解決する (内部用)
 	 * @param values - 値のリスト
 	 * @param precision - 明示的に指定された精度
 	 * @returns 解決された精度
 	 */
-	protected static _resolvePrecision(values: BigFloatStreamValue[], precision?: PrecisionValue): bigint;
+	protected static _resolvePrecision(values: (BigFloatStreamValue | BigFloatComplex)[], precision?: PrecisionValue): bigint;
 	/**
 	 * 要素数を非負の整数に正規化する (内部用)
 	 * @param count - 要素数
@@ -210,14 +211,14 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns BigFloatStream インスタンス
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
-	static from(iterable: Iterable<BigFloatStreamValue>, precision?: PrecisionValue): BigFloatStream;
+	static from(iterable: Iterable<BigFloatStreamValue | BigFloatComplex>, precision?: PrecisionValue): BigFloatStream;
 	/**
 	 * 引数のリストからストリームを作成する
 	 * @param values - 要素のリスト
 	 * @returns BigFloatStream インスタンス
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
-	static of(...values: BigFloatStreamValue[]): BigFloatStream;
+	static of(...values: (BigFloatStreamValue | BigFloatComplex)[]): BigFloatStream;
 	/**
 	 * 等差数列のストリームを生成する
 	 * @param start - 初項
@@ -231,7 +232,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	static arithmetic(start: BigFloatStreamValue, step: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream;
+	static arithmetic(start: BigFloatStreamValue | BigFloatComplex, step: BigFloatStreamValue | BigFloatComplex, count: number, precision?: PrecisionValue): BigFloatStream;
 	/**
 	 * 等比数列のストリームを生成する
 	 * @param start - 初項
@@ -245,7 +246,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	static geometric(start: BigFloatStreamValue, ratio: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream;
+	static geometric(start: BigFloatStreamValue | BigFloatComplex, ratio: BigFloatStreamValue | BigFloatComplex, count: number, precision?: PrecisionValue): BigFloatStream;
 	/**
 	 * 指定した範囲を等分割する数値ストリームを生成する
 	 * @param start - 開始値
@@ -260,7 +261,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {DivisionByZeroError} Division by zero
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	static linspace(start: BigFloatStreamValue, end: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream;
+	static linspace(start: BigFloatStreamValue | BigFloatComplex, end: BigFloatStreamValue | BigFloatComplex, count: number, precision?: PrecisionValue): BigFloatStream;
 	/**
 	 * 10 を底とする対数スケールで等間隔な数値ストリームを生成する
 	 * @param start - 開始指数
@@ -312,7 +313,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns BigFloatStream インスタンス
 	 * @throws {RangeError} 有限の数値でない場合、または負の場合
 	 */
-	static repeat(value: BigFloatStreamValue, count: number, precision?: PrecisionValue): BigFloatStream;
+	static repeat(value: BigFloatStreamValue | BigFloatComplex, count: number, precision?: PrecisionValue): BigFloatStream;
 	/**
 	 * フィボナッチ数列のストリームを生成する
 	 * @param count - 要素数
@@ -350,7 +351,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	static range(start: BigFloatStreamValue, end?: BigFloatStreamValue, step?: BigFloatStreamValue, precision?: PrecisionValue): BigFloatStream;
+	static range(start: BigFloatStreamValue | BigFloatComplex, end?: BigFloatStreamValue | BigFloatComplex, step?: BigFloatStreamValue | BigFloatComplex, precision?: PrecisionValue): BigFloatStream;
 	/**
 	 * ストリームを複製する
 	 * @returns 複製された BigFloatStream
@@ -381,19 +382,19 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @param fn - 変換関数
 	 * @returns 写像後のストリーム
 	 */
-	map(fn: (item: BigFloat) => BigFloat): this;
+	map(fn: (item: BigFloatItem) => BigFloatItem): this;
 	/**
 	 * 条件を満たす要素のみを通過させる
 	 * @param fn - フィルタリング関数
 	 * @returns フィルタリング後のストリーム
 	 */
-	filter(fn: (item: BigFloat) => boolean): this;
+	filter(fn: (item: BigFloatItem) => boolean): this;
 	/**
 	 * 各要素を複数の要素に展開して平坦化する
 	 * @param fn - 要素を反復可能オブジェクトへ変換する関数
 	 * @returns 平坦化後のストリーム
 	 */
-	flatMap(fn: (item: BigFloat) => Iterable<BigFloatStreamValue>): this;
+	flatMap(fn: (item: BigFloatItem) => Iterable<BigFloatStreamValue | BigFloatComplex>): this;
 	/**
 	 * 要素の重複を除去する
 	 * @param keyFn - 一致判定に使うキーを生成する関数 (デフォルトは toString)
@@ -404,7 +405,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	distinct(keyFn?: (item: BigFloat) => unknown): this;
+	distinct(keyFn?: (item: BigFloatItem) => unknown): this;
 	/**
 	 * 要素をソートする (注意: この操作は全要素をメモリ上に展開します)
 	 * @param compareFn - 比較関数
@@ -413,19 +414,19 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
-	sorted(compareFn?: (a: BigFloat, b: BigFloat) => number): this;
+	sorted(compareFn?: (a: BigFloatItem, b: BigFloatItem) => number): this;
 	/**
 	 * 各要素に対して副作用のある処理を実行する (デバッグやロギング用)
 	 * @param fn - 要素を受け取る関数
 	 * @returns 自身
 	 */
-	peek(fn: (item: BigFloat) => void): this;
+	peek(fn: (item: BigFloatItem) => void): this;
 	/**
 	 * peek の別名。各要素に対して副作用のある処理を実行する
 	 * @param fn - 要素を受け取る関数
 	 * @returns 自身
 	 */
-	tap(fn: (item: BigFloat) => void): this;
+	tap(fn: (item: BigFloatItem) => void): this;
 	/**
 	 * 要素数を最大 n 個に制限する
 	 * @param n - 最大要素数
@@ -456,34 +457,34 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @returns 連結後のストリーム
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
-	concat(...iterables: Iterable<BigFloatStreamValue>[]): this;
+	concat(...iterables: Iterable<BigFloatStreamValue | BigFloatComplex>[]): this;
 	/**
 	 * ストリームを反復するためのイテレータを取得する
-	 * @returns BigFloat のイテレータ
+	 * @returns 要素のイテレータ
 	 */
-	[Symbol.iterator](): Iterator<BigFloat, void, undefined>;
+	[Symbol.iterator](): Iterator<BigFloatItem, void, undefined>;
 	/**
 	 * ストリームの各要素に対して関数を実行する (終端操作)
 	 * @param fn - 実行する関数
 	 */
-	forEach(fn: (item: BigFloat) => void): void;
+	forEach(fn: (item: BigFloatItem) => void): void;
 	/**
 	 * ストリームの全要素を収集して配列として返す (終端操作)
 	 * @returns 要素の配列
 	 */
-	toArray(): BigFloat[];
+	toArray(): BigFloatItem[];
 	/**
 	 * toArray の別名。ストリームの全要素を収集して配列として返す (終端操作)
 	 * @returns 要素の配列
 	 */
-	collect(): BigFloat[];
+	collect(): BigFloatItem[];
 	/**
 	 * 全要素を累積して単一の値を計算する (終端操作)
 	 * @param fn - 累積関数
 	 * @param initial - 初期値
 	 * @returns 累積結果
 	 */
-	reduce<U>(fn: (acc: U, item: BigFloat) => U, initial: U): U;
+	reduce<U>(fn: (acc: U, item: BigFloatItem) => U, initial: U): U;
 	/**
 	 * ストリームに含まれる要素数を数える (終端操作)
 	 * @returns 要素数
@@ -499,35 +500,35 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @param fn - 判定関数
 	 * @returns 条件を満たす要素があれば true
 	 */
-	some(fn: (item: BigFloat) => boolean): boolean;
+	some(fn: (item: BigFloatItem) => boolean): boolean;
 	/**
 	 * すべての要素が条件を満たすかどうかを判定する (終端操作)
 	 * @param fn - 判定関数
 	 * @returns すべての要素が条件を満たせば true
 	 */
-	every(fn: (item: BigFloat) => boolean): boolean;
+	every(fn: (item: BigFloatItem) => boolean): boolean;
 	/**
 	 * 条件を満たす最初の要素を返す (終端操作)
 	 * @param fn - 判定関数
 	 * @returns 最初に見つかった要素、見つからない場合は undefined
 	 */
-	find(fn: (item: BigFloat) => boolean): BigFloat | undefined;
+	find(fn: (item: BigFloatItem) => boolean): BigFloatItem | undefined;
 	/**
 	 * ストリームの最初の要素を取得する (終端操作)
 	 * @returns 最初の要素、ストリームが空なら undefined
 	 */
-	findFirst(): BigFloat | undefined;
+	findFirst(): BigFloatItem | undefined;
 	/**
 	 * findFirst の別名。ストリームの最初の要素を取得する
 	 * @returns 最初の要素
 	 */
-	first(): BigFloat | undefined;
+	first(): BigFloatItem | undefined;
 	/**
 	 * 指定されたインデックスの要素を取得する (終端操作)
 	 * @param index - 0 から始まるインデックス
 	 * @returns 指定位置の要素、インデックスが範囲外なら undefined
 	 */
-	at(index: number): BigFloat | undefined;
+	at(index: number): BigFloatItem | undefined;
 	/**
 	 * すべての要素の精度を変更する
 	 * @param precision - 新しい精度
@@ -547,7 +548,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 *      *      *
 	 */
-	relativeDiff(other: BigFloatValue): this;
+	relativeDiff(other: BigFloatValue | BigFloatComplex): this;
 	/**
 	 * 各要素と別の値との絶対差を計算する
 	 * @param other - 比較対象
@@ -558,7 +559,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	absoluteDiff(other: BigFloatValue): this;
+	absoluteDiff(other: BigFloatValue | BigFloatComplex): this;
 	/**
 	 * 各要素と別の値との百分率差分を計算する
 	 * @param other - 比較対象
@@ -570,7 +571,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	percentDiff(other: BigFloatValue): this;
+	percentDiff(other: BigFloatValue | BigFloatComplex): this;
 	/**
 	 * 各要素に別の値を加算する
 	 * @param other - 加算する数値
@@ -581,7 +582,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	add(other: BigFloatValue): this;
+	add(other: BigFloatValue | BigFloatComplex): this;
 	/**
 	 * 各要素から別の値を減算する
 	 * @param other - 減算する数値
@@ -592,7 +593,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	sub(other: BigFloatValue): this;
+	sub(other: BigFloatValue | BigFloatComplex): this;
 	/**
 	 * 各要素に別の値を乗算する
 	 * @param other - 乗算する数値
@@ -603,7 +604,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	mul(other: BigFloatValue): this;
+	mul(other: BigFloatValue | BigFloatComplex): this;
 	/**
 	 * 各要素を別の値で除算する
 	 * @param other - 除数
@@ -615,7 +616,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	div(other: BigFloatValue): this;
+	div(other: BigFloatValue | BigFloatComplex): this;
 	/**
 	 * 各要素に対して剰余演算を行う
 	 * @param other - 法
@@ -625,7 +626,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
-	mod(other: BigFloatValue): this;
+	mod(other: BigFloatValue | BigFloatComplex): this;
 	/**
 	 * 各要素の符号を反転させる
 	 * @returns 符号反転後のストリーム
@@ -669,7 +670,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
 	 *      *      *      *      *
 	 */
-	pow(exponent: BigFloatValue): this;
+	pow(exponent: BigFloatValue | BigFloatComplex): this;
 	/**
 	 * 各要素の平方根を計算する
 	 * @returns 平方根適用後のストリーム
@@ -826,7 +827,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	atan2(x: BigFloatValue): this;
+	atan2(x: BigFloatValue | BigFloatComplex): this;
 	/**
 	 * 各要素の双曲線正弦 (sinh) を計算する
 	 * @returns sinh 適用後のストリーム
@@ -937,7 +938,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
-	log(base: BigFloatValue): this;
+	log(base: BigFloatValue | BigFloatComplex): this;
 	/**
 	 * 各要素の底を 2 とする対数を計算する
 	 * @returns log2 適用後のストリーム
@@ -998,7 +999,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
-	max(): BigFloat;
+	max(): BigFloatItem;
 	/**
 	 * ストリームの要素の中から最小値を返す (終端操作)
 	 * @returns 最小値
@@ -1007,7 +1008,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
-	min(): BigFloat;
+	min(): BigFloatItem;
 	/**
 	 * ストリームの全要素の合計を計算する (終端操作)
 	 * @returns 合計
@@ -1017,7 +1018,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	sum(): BigFloat;
+	sum(): BigFloatItem;
 	/**
 	 * ストリームの全要素の積を計算する (終端操作)
 	 * @returns 総乗
@@ -1027,7 +1028,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	product(): BigFloat;
+	product(): BigFloatItem;
 	/**
 	 * ストリームの全要素の平均値を計算する (終端操作)
 	 * @returns 平均値
@@ -1038,7 +1039,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	average(): BigFloat;
+	average(): BigFloatItem;
 	/**
 	 * ストリームの要素の中央値を計算する (終端操作)
 	 * @returns 中央値
@@ -1049,7 +1050,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	median(): BigFloat;
+	median(): BigFloatItem;
 	/**
 	 * ストリームの要素の分散を計算する (終端操作)
 	 * @returns 分散
@@ -1060,7 +1061,7 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	variance(): BigFloat;
+	variance(): BigFloatItem;
 	/**
 	 * ストリームの要素の標準偏差を計算する (終端操作)
 	 * @returns 標準偏差
@@ -1071,9 +1072,195 @@ export declare class BigFloatStream implements Iterable<BigFloat> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	stddev(): BigFloat;
+	stddev(): BigFloatItem;
 }
-export type BigFloatVectorSource = Iterable<BigFloatValue>;
+export type BigFloatComplexVectorSource = Iterable<BigFloatComplex | BigFloatValue>;
+export type BigFloatComplexVectorOperand = BigFloatComplexVector | BigFloatVector | BigFloatComplexVectorSource;
+export type BigFloatComplexVectorRandomOptions = {
+	min?: BigFloatComplex | BigFloatValue;
+	max?: BigFloatComplex | BigFloatValue;
+	precision?: PrecisionValue;
+};
+/**
+ * BigFloatComplex を要素とする固定長ベクトルクラス
+ */
+export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> {
+	/**
+	 * 内部要素 (BigFloatComplex の配列)
+	 */
+	protected _values: BigFloatComplex[];
+	/**
+	 * BigFloatComplexVector コンストラクタ
+	 * @param values - 要素のソース
+	 * @param precision - 精度
+	 */
+	constructor(values?: BigFloatComplexVectorSource, precision?: PrecisionValue);
+	/**
+	 * 内部配列からベクトルを生成する (内部用)
+	 * @param values - 内部所有済みの要素列
+	 * @returns 生成された BigFloatComplexVector
+	 */
+	protected static _fromComplexArray(values: BigFloatComplex[]): BigFloatComplexVector;
+	/**
+	 * 値を BigFloatComplex へ変換する (内部用)
+	 * @param value - 変換対象
+	 * @param precision - 精度
+	 * @returns 変換された BigFloatComplex
+	 */
+	protected static _toComplex(value: BigFloatComplex | BigFloatValue, precision?: bigint): BigFloatComplex;
+	/**
+	 * 与えられた値リストから適切な精度を解決する (内部用)
+	 * @param values - 値列
+	 * @param precision - 明示精度
+	 * @returns 解決された精度
+	 */
+	protected static _resolvePrecision(values: (BigFloatComplex | BigFloatValue)[], precision?: PrecisionValue): bigint;
+	/**
+	 * 次元一致を検証する
+	 * @throws {RangeError} 次元が一致しない場合
+	 */
+	protected static _assertSameLength(left: BigFloatComplexVector | BigFloatVector, right: BigFloatComplexVector | BigFloatVector): void;
+	/**
+	 * 任意入力を BigFloatComplexVector へ変換する (内部用)
+	 * @param value - オペランド
+	 * @param referenceValues - 精度解決のための参照値リスト
+	 * @returns 変換された BigFloatComplexVector
+	 */
+	protected static _coerceVector(value: BigFloatComplexVectorOperand, referenceValues?: (BigFloatComplex | BigFloatValue)[]): BigFloatComplexVector;
+	/**
+	 * 各要素に対して変換関数を適用した新しいベクトルを返す (内部用)
+	 * @param fn - 変換関数
+	 * @returns 変換後の新しいベクトル
+	 */
+	protected _mapValues(fn: (value: BigFloatComplex, index: number) => BigFloatComplex | BigFloatValue): this;
+	/**
+	 * オペランドとの二項演算を各要素に対して行う (内部用)
+	 * @param other - ベクトルまたはスカラ値
+	 * @param fn - 二項演算関数
+	 * @returns 演算後の新しいベクトル
+	 */
+	protected _mapWithOperand(other: BigFloatComplexVectorOperand | BigFloatComplex | BigFloatValue, fn: (left: BigFloatComplex, right: BigFloatComplex, index: number) => BigFloatComplex | BigFloatValue): this;
+	/**
+	 * 空のベクトル (次元 0) を生成する
+	 */
+	static empty(): BigFloatComplexVector;
+	/**
+	 * 要素の反復可能オブジェクトから BigFloatComplexVector を生成する
+	 */
+	static from(values: BigFloatComplexVectorSource, precision?: PrecisionValue): BigFloatComplexVector;
+	/**
+	 * BigFloatStream からベクトルを生成する
+	 */
+	static fromStream(stream: BigFloatStream): BigFloatComplexVector;
+	/**
+	 * 引数リストからベクトルを生成する
+	 */
+	static of(...values: (BigFloatComplex | BigFloatValue)[]): BigFloatComplexVector;
+	/**
+	 * 指定された値で埋められたベクトルを生成する
+	 */
+	static fill(length: number, value: BigFloatComplex | BigFloatValue, precision?: PrecisionValue): BigFloatComplexVector;
+	/**
+	 * 零ベクトルを生成する
+	 */
+	static zeros(length: number, precision?: PrecisionValue): BigFloatComplexVector;
+	/**
+	 * すべての要素が 1 のベクトルを生成する
+	 */
+	static ones(length: number, precision?: PrecisionValue): BigFloatComplexVector;
+	/**
+	 * 標準基底ベクトルを取得する
+	 */
+	static basis(length: number, index: number, precision?: PrecisionValue): BigFloatComplexVector;
+	/**
+	 * 指定した範囲を等分割する数値ベクトルを生成する
+	 */
+	static linspace(start: BigFloatComplex | BigFloatValue, end: BigFloatComplex | BigFloatValue, count: number, precision?: PrecisionValue): BigFloatComplexVector;
+	/**
+	 * 乱数ベクトルを生成する
+	 */
+	static random(length: number, options?: BigFloatComplexVectorRandomOptions): BigFloatComplexVector;
+	get length(): number;
+	dimension(): number;
+	isEmpty(): boolean;
+	at(index: number): BigFloatComplex | undefined;
+	clone(): BigFloatComplexVector;
+	toArray(): BigFloatComplex[];
+	/**
+	 * 要素を流すストリームへ変換する
+	 */
+	toStream(): BigFloatStream;
+	[Symbol.iterator](): Iterator<BigFloatComplex, void, undefined>;
+	forEach(fn: (value: BigFloatComplex, index: number) => void): void;
+	map(fn: (value: BigFloatComplex, index: number) => BigFloatComplex | BigFloatValue): this;
+	zipMap(other: BigFloatComplexVectorOperand, fn: (left: BigFloatComplex, right: BigFloatComplex, index: number) => BigFloatComplex | BigFloatValue): this;
+	reduce<U>(fn: (acc: U, value: BigFloatComplex, index: number) => U, initial: U): U;
+	some(fn: (value: BigFloatComplex, index: number) => boolean): boolean;
+	every(fn: (value: BigFloatComplex, index: number) => boolean): boolean;
+	concat(...others: BigFloatComplexVectorOperand[]): this;
+	slice(start?: number, end?: number): this;
+	reverse(): this;
+	changePrecision(precision: PrecisionValue): this;
+	equals(other: BigFloatComplexVectorOperand): boolean;
+	add(other: BigFloatComplex | BigFloatValue | BigFloatComplexVectorOperand): this;
+	sub(other: BigFloatComplex | BigFloatValue | BigFloatComplexVectorOperand): this;
+	mul(scalar: BigFloatComplex | BigFloatValue): this;
+	div(scalar: BigFloatComplex | BigFloatValue): this;
+	mod(other: BigFloatComplex | BigFloatValue | BigFloatComplexVectorOperand): this;
+	hadamard(other: BigFloatComplexVectorOperand): this;
+	neg(): this;
+	abs(): BigFloatVector;
+	sign(): this;
+	reciprocal(): this;
+	pow(exponent: BigFloatComplex | BigFloatValue | BigFloatComplexVectorOperand): this;
+	sqrt(): this;
+	cbrt(): this;
+	nthRoot(n: number | bigint): this;
+	floor(): this;
+	ceil(): this;
+	round(): this;
+	trunc(): this;
+	fround(): this;
+	clz32(): this;
+	relativeDiff(other: BigFloatComplex | BigFloatValue | BigFloatComplexVectorOperand): this;
+	absoluteDiff(other: BigFloatComplex | BigFloatValue | BigFloatComplexVectorOperand): this;
+	percentDiff(other: BigFloatComplex | BigFloatValue | BigFloatComplexVectorOperand): this;
+	sin(): this;
+	cos(): this;
+	tan(): this;
+	asin(): this;
+	acos(): this;
+	atan(): this;
+	sinh(): this;
+	cosh(): this;
+	tanh(): this;
+	asinh(): this;
+	acosh(): this;
+	atanh(): this;
+	exp(): this;
+	expm1(): this;
+	ln(): this;
+	log(base: BigFloatComplex | BigFloatValue | BigFloatComplexVectorOperand): this;
+	log2(): this;
+	log10(): this;
+	max(): BigFloatComplex;
+	min(): BigFloatComplex;
+	sum(): BigFloatComplex;
+	product(): BigFloatComplex;
+	average(): BigFloatComplex;
+	dot(other: BigFloatComplexVectorOperand): BigFloatComplex;
+	squaredNorm(): BigFloat;
+	norm(): BigFloat;
+	normalize(): this;
+	distanceTo(other: BigFloatComplexVectorOperand): BigFloat;
+	cross(other: BigFloatComplexVectorOperand): this;
+	squaredDistanceTo(other: BigFloatComplexVectorOperand): BigFloat;
+	/**
+	 * 別のベクトルへの正射影ベクトルを計算する
+	 */
+	projectOnto(other: BigFloatComplexVectorOperand): this;
+}
+export type BigFloatVectorSource = Iterable<BigFloatValue | BigFloatComplex>;
 export type BigFloatVectorOperand = BigFloatVector | BigFloatVectorSource;
 export type BigFloatVectorRandomOptions = {
 	min?: BigFloatValue;
@@ -1115,7 +1302,7 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @param precision - 明示精度
 	 * @returns 解決された精度
 	 */
-	protected static _resolvePrecision(values: BigFloatValue[], precision?: PrecisionValue): bigint;
+	protected static _resolvePrecision(values: (BigFloatValue | BigFloatComplex)[], precision?: PrecisionValue): bigint;
 	/**
 	 * ベクトルの長さを非負の整数に正規化する (内部用)
 	 * @param length - ベクトル長
@@ -1136,7 +1323,7 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @param referenceValues - 精度解決のための参照値リスト
 	 * @returns 変換された BigFloatVector
 	 */
-	protected static _coerceVector(value: BigFloatVectorOperand, referenceValues?: BigFloatValue[]): BigFloatVector;
+	protected static _coerceVector(value: BigFloatVectorOperand, referenceValues?: (BigFloatValue | BigFloatComplex)[]): BigFloatVector;
 	/**
 	 * 各要素に対して変換関数を適用した新しいベクトルを返す (内部用)
 	 * @param fn - 変換関数
@@ -1150,7 +1337,7 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @returns 演算後の新しいベクトル
 	 * @throws {RangeError} ベクトルの次元が一致しない場合
 	 */
-	protected _mapWithOperand(other: BigFloatVectorOperand | BigFloatValue, fn: (left: BigFloat, right: BigFloat, index: number) => BigFloatValue): this;
+	protected _mapWithOperand(other: BigFloatVectorOperand | BigFloatValue | BigFloatComplex | BigFloatComplexVector, fn: (left: BigFloat, right: BigFloat, index: number) => BigFloatValue): this;
 	/**
 	 * 空のベクトル (次元 0) を生成する
 	 * @returns 空のベクトル
@@ -2789,6 +2976,68 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 *      *      *
 	 */
 	atanh(): BigFloatComplex;
+	/**
+	 * 床関数 (負の無限大方向への丸め)
+	 * @returns 丸められた結果
+	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+	 */
+	floor(): BigFloatComplex;
+	/**
+	 * 天井関数 (正の無限大方向への丸め)
+	 * @returns 丸められた結果
+	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+	 */
+	ceil(): BigFloatComplex;
+	/**
+	 * 0に近い方向へ切り捨てる
+	 * @returns 切り捨てられた結果
+	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+	 */
+	trunc(): BigFloatComplex;
+	/**
+	 * 四捨五入する
+	 * @returns 四捨五入された結果
+	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	round(): BigFloatComplex;
+	/**
+	 * 剰余を計算する (%)
+	 * @param other - 法
+	 * @returns 剰余
+	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	mod(other: BigFloatComplexValue): BigFloatComplex;
+	/**
+	 * Float32 精度へ丸める
+	 * @returns Float32相当に丸めた結果
+	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+	 * @throws {RangeError} 基数が2から36の範囲外の場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	fround(): BigFloatComplex;
+	/**
+	 * 32bit整数として見たときの先頭ゼロビット数を返す
+	 * @returns 先頭ゼロビット数
+	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+	 * @throws {RangeError} 基数が2から36の範囲外の場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	clz32(): BigFloatComplex;
 }
 /**
  * BigFloatComplex を作成する
@@ -2979,13 +3228,13 @@ export declare class BigFloat {
 	 * @param value - 判定対象
 	 * @returns BigFloatComplex の場合は true
 	 */
-	protected static _isComplexValue(value: unknown): value is BigFloatComplex;
+	static _isComplexValue(value: unknown): value is BigFloatComplex;
 	/**
 	 * 複素数モードが無効な場合は例外にする
 	 * @param operation - 操作名
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 */
-	protected _assertComplexNumbersEnabled(operation: string): void;
+	_assertComplexNumbersEnabled(operation: string): void;
 	/**
 	 * 複素数オペランドを解決する
 	 * @param other - 比較対象
@@ -5014,7 +5263,7 @@ export declare class BigFloat {
  * @returns BigFloat インスタンス
  */
 export declare function bigFloat(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
-export type BigFloatMatrixRowSource = Iterable<BigFloatValue>;
+export type BigFloatMatrixRowSource = Iterable<BigFloatValue | BigFloatComplex>;
 export type BigFloatMatrixSource = Iterable<BigFloatMatrixRowSource>;
 export type BigFloatMatrixOperand = BigFloatMatrix | BigFloatMatrixSource;
 export type BigFloatMatrixRandomOptions = {
@@ -5057,7 +5306,7 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param precision - 明示的に指定された精度
 	 * @returns 解決された精度
 	 */
-	protected static _resolvePrecision(values: BigFloatValue[], precision?: PrecisionValue): bigint;
+	protected static _resolvePrecision(values: (BigFloatValue | BigFloatComplex)[], precision?: PrecisionValue): bigint;
 	/**
 	 * 次元を正規化する
 	 * @throws {RangeError} size が負または非有限の場合
@@ -5067,7 +5316,7 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * 生配列が長方形か検証する
 	 * @throws {RangeError} 行列の行が同じ長さを持たない場合
 	 */
-	protected static _assertRectangularRaw(rows: BigFloatValue[][]): void;
+	protected static _assertRectangularRaw(rows: (BigFloatValue | BigFloatComplex)[][]): void;
 	/**
 	 * 同形状か検証する
 	 * @throws {RangeError} 行列の形状が異なる場合
@@ -5101,14 +5350,14 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param referenceValues - 精度解決のための参照値リスト
 	 * @returns BigFloatMatrix インスタンス
 	 */
-	protected static _coerceMatrix(value: BigFloatMatrixOperand, referenceValues?: BigFloatValue[]): BigFloatMatrix;
+	protected static _coerceMatrix(value: BigFloatMatrixOperand, referenceValues?: (BigFloatValue | BigFloatComplex)[]): BigFloatMatrix;
 	/**
 	 * 任意入力を BigFloatVector へ変換する (内部用)
 	 * @param value - 変換対象
 	 * @param referenceValues - 精度解決のための参照値リスト
 	 * @returns BigFloatVector インスタンス
 	 */
-	protected static _coerceVector(value: BigFloatVector | Iterable<BigFloatValue>, referenceValues?: BigFloatValue[]): BigFloatVector;
+	protected static _coerceVector(value: BigFloatVector | Iterable<BigFloatValue | BigFloatComplex>, referenceValues?: (BigFloatValue | BigFloatComplex)[]): BigFloatVector;
 	/**
 	 * 全要素を一次元配列として取得する (内部用)
 	 * @returns 要素の平坦化配列
@@ -5127,7 +5376,7 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns 演算後の新しい行列
 	 * @throws {RangeError} 行列形状が一致しない場合
 	 */
-	protected _mapWithOperand(other: BigFloatMatrixOperand | BigFloatValue, fn: (left: BigFloat, right: BigFloat, row: number, column: number) => BigFloatValue): this;
+	protected _mapWithOperand(other: BigFloatMatrixOperand | BigFloatValue | BigFloatComplex | BigFloatComplexMatrix, fn: (left: BigFloat, right: BigFloat, row: number, column: number) => BigFloatValue): this;
 	/**
 	 * 行列の簡約階段形式 (RREF) を計算する (内部用)
 	 * @param values - 対象行列の二次元配列
@@ -6031,6 +6280,149 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	matrixPow(exponent: number): this;
+}
+export type BigFloatComplexMatrixRowSource = Iterable<BigFloatComplex | BigFloatValue>;
+export type BigFloatComplexMatrixSource = Iterable<BigFloatComplexMatrixRowSource>;
+export type BigFloatComplexMatrixOperand = BigFloatComplexMatrix | BigFloatMatrix | BigFloatComplexMatrixSource;
+export type BigFloatComplexMatrixRandomOptions = {
+	min?: BigFloatComplex | BigFloatValue;
+	max?: BigFloatComplex | BigFloatValue;
+	precision?: PrecisionValue;
+};
+/**
+ * BigFloatComplex を要素とする固定長行列クラス
+ */
+export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
+	/**
+	 * 内部要素 (行ごとの配列)
+	 */
+	protected _values: BigFloatComplex[][];
+	/**
+	 * BigFloatComplexMatrix コンストラクタ
+	 * @param rows - 行列要素の反復可能オブジェクト
+	 * @param precision - 精度
+	 */
+	constructor(rows?: BigFloatComplexMatrixSource, precision?: PrecisionValue);
+	protected static _fromComplexGrid(values: BigFloatComplex[][]): BigFloatComplexMatrix;
+	protected static _toComplex(value: BigFloatComplex | BigFloatValue, precision?: bigint): BigFloatComplex;
+	protected static _resolvePrecision(values: (BigFloatComplex | BigFloatValue)[], precision?: PrecisionValue): bigint;
+	protected static _assertRectangularRaw(rows: (BigFloatComplex | BigFloatValue)[][]): void;
+	protected static _assertSameShape(left: BigFloatComplexMatrix | BigFloatMatrix, right: BigFloatComplexMatrix | BigFloatMatrix): void;
+	protected static _coerceMatrix(value: BigFloatComplexMatrixOperand, referenceValues?: (BigFloatComplex | BigFloatValue)[]): BigFloatComplexMatrix;
+	protected _flattenValues(): BigFloatComplex[];
+	protected _mapValues(fn: (value: BigFloatComplex, row: number, column: number) => BigFloatComplex | BigFloatValue): this;
+	protected _mapWithOperand(other: BigFloatComplexMatrixOperand | BigFloatComplex | BigFloatValue, fn: (left: BigFloatComplex, right: BigFloatComplex, row: number, column: number) => BigFloatComplex | BigFloatValue): this;
+	static empty(): BigFloatComplexMatrix;
+	static from(rows: BigFloatComplexMatrixSource, precision?: PrecisionValue): BigFloatComplexMatrix;
+	static fromRows(rows: BigFloatComplexMatrixSource, precision?: PrecisionValue): BigFloatComplexMatrix;
+	static fromColumns(columns: BigFloatComplexMatrixSource, precision?: PrecisionValue): BigFloatComplexMatrix;
+	static of(...rows: (BigFloatComplex | BigFloatValue)[][]): BigFloatComplexMatrix;
+	static fill(rowCount: number, columnCount: number, value: BigFloatComplex | BigFloatValue, precision?: PrecisionValue): BigFloatComplexMatrix;
+	static zeros(rowCount: number, columnCount: number, precision?: PrecisionValue): BigFloatComplexMatrix;
+	static ones(rowCount: number, columnCount: number, precision?: PrecisionValue): BigFloatComplexMatrix;
+	static diagonal(values: Iterable<BigFloatComplex | BigFloatValue>, precision?: PrecisionValue): BigFloatComplexMatrix;
+	static random(rowCount: number, columnCount: number, options?: BigFloatComplexMatrixRandomOptions): BigFloatComplexMatrix;
+	get rowCount(): number;
+	get columnCount(): number;
+	isSquare(): boolean;
+	isEmpty(): boolean;
+	shape(): [
+		number,
+		number
+	];
+	at(row: number, column: number): BigFloatComplex | undefined;
+	row(index: number): BigFloatComplexVector | undefined;
+	column(index: number): BigFloatComplexVector | undefined;
+	clone(): BigFloatComplexMatrix;
+	toArray(): BigFloatComplex[][];
+	toVectors(): BigFloatComplexVector[];
+	[Symbol.iterator](): Iterator<BigFloatComplexVector, void, undefined>;
+	forEach(fn: (value: BigFloatComplex, row: number, column: number) => void): void;
+	map(fn: (value: BigFloatComplex, row: number, column: number) => BigFloatComplex | BigFloatValue): this;
+	/**
+	 * 要素を流すストリームへ変換する
+	 */
+	toStream(): BigFloatStream;
+	add(other: BigFloatComplex | BigFloatValue | BigFloatComplexMatrixOperand): this;
+	sub(other: BigFloatComplex | BigFloatValue | BigFloatComplexMatrixOperand): this;
+	hadamard(other: BigFloatComplexMatrixOperand): this;
+	mul(scalar: BigFloatComplex | BigFloatValue): this;
+	div(scalar: BigFloatComplex | BigFloatValue): this;
+	matmul(other: BigFloatComplexMatrixOperand): this;
+	transpose(): this;
+	rowSums(): BigFloatComplexVector;
+	columnSums(): BigFloatComplexVector;
+	trace(): BigFloatComplex;
+	determinant(): BigFloatComplex;
+	inverse(): this;
+	solveVector(rhs: BigFloatComplexVector | Iterable<BigFloatComplex | BigFloatValue>): BigFloatComplexVector;
+	solveMatrix(rhs: BigFloatComplexMatrixOperand): this;
+	protected static _reducedRowEchelon(values: BigFloatComplex[][], leftColumnCount?: number): {
+		values: BigFloatComplex[][];
+		pivotColumns: number[];
+	};
+	matrixPow(exponent: number): this;
+	static identity(size: number, precision?: PrecisionValue): BigFloatComplexMatrix;
+	equals(other: BigFloatComplexMatrixOperand): boolean;
+	sum(): BigFloatComplex;
+	product(): BigFloatComplex;
+	average(): BigFloatComplex;
+	frobeniusNorm(): BigFloat;
+	mulVector(vector: BigFloatComplexVector | Iterable<BigFloatComplex | BigFloatValue>): BigFloatComplexVector;
+	diagonalVector(): BigFloatComplexVector;
+	flatten(): BigFloatComplexVector;
+	zipMap(other: BigFloatComplexMatrixOperand, fn: (left: BigFloatComplex, right: BigFloatComplex, row: number, column: number) => BigFloatComplex | BigFloatValue): this;
+	reduce<U>(fn: (acc: U, value: BigFloatComplex, row: number, column: number) => U, initial: U): U;
+	some(fn: (value: BigFloatComplex, row: number, column: number) => boolean): boolean;
+	every(fn: (value: BigFloatComplex, row: number, column: number) => boolean): boolean;
+	concatRows(...others: BigFloatComplexMatrixOperand[]): this;
+	concatColumns(...others: BigFloatComplexMatrixOperand[]): this;
+	sliceRows(start?: number, end?: number): this;
+	sliceColumns(start?: number, end?: number): this;
+	changePrecision(precision: PrecisionValue): this;
+	mod(other: BigFloatComplex | BigFloatValue | BigFloatComplexMatrixOperand): this;
+	neg(): this;
+	abs(): BigFloatMatrix;
+	sign(): this;
+	reciprocal(): this;
+	pow(exponent: BigFloatComplex | BigFloatValue | BigFloatComplexMatrixOperand): this;
+	sqrt(): this;
+	cbrt(): this;
+	nthRoot(n: number | bigint): this;
+	floor(): this;
+	ceil(): this;
+	round(): this;
+	trunc(): this;
+	fround(): this;
+	clz32(): this;
+	relativeDiff(other: BigFloatComplex | BigFloatValue | BigFloatComplexMatrixOperand): this;
+	absoluteDiff(other: BigFloatComplex | BigFloatValue | BigFloatComplexMatrixOperand): this;
+	percentDiff(other: BigFloatComplex | BigFloatValue | BigFloatComplexMatrixOperand): this;
+	sin(): this;
+	cos(): this;
+	tan(): this;
+	asin(): this;
+	acos(): this;
+	atan(): this;
+	atan2(x: BigFloatComplex | BigFloatValue | BigFloatComplexMatrixOperand): this;
+	sinh(): this;
+	cosh(): this;
+	tanh(): this;
+	asinh(): this;
+	acosh(): this;
+	atanh(): this;
+	exp(): this;
+	exp2(): this;
+	expm1(): this;
+	ln(): this;
+	log(base: BigFloatComplex | BigFloatValue | BigFloatComplexMatrixOperand): this;
+	log2(): this;
+	log10(): this;
+	log1p(): this;
+	gamma(): this;
+	zeta(): this;
+	factorial(): this;
+	rank(): number;
 }
 /**
  * BigFloat ライブラリ共通の基底エラークラス

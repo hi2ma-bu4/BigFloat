@@ -299,7 +299,7 @@ export class BigFloat {
 	 * @param value - 判定対象
 	 * @returns BigFloatComplex の場合は true
 	 */
-	protected static _isComplexValue(value: unknown): value is BigFloatComplex {
+	public static _isComplexValue(value: unknown): value is BigFloatComplex {
 		if (typeof value !== "object" || value === null) return false;
 		const candidate = value as Partial<BigFloatComplex>;
 		return typeof candidate.conjugate === "function" && typeof candidate.real === "object" && typeof candidate.imag === "object";
@@ -310,7 +310,7 @@ export class BigFloat {
 	 * @param operation - 操作名
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 */
-	protected _assertComplexNumbersEnabled(operation: string): void {
+	public _assertComplexNumbersEnabled(operation: string): void {
 		const construct = this.constructor as BigFloatConstructor;
 		if (!construct.config.allowComplexNumbers) {
 			throw new TypeError(`BigFloat.${operation} does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.`);

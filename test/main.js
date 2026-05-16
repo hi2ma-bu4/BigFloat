@@ -1,4 +1,4 @@
-import { BigFloat, BigFloatComplex, BigFloatMatrix, BigFloatStream, BigFloatVector } from "../dist/BigFloat.js";
+import { BigFloat, BigFloatComplex, BigFloatComplexMatrix, BigFloatComplexVector, BigFloatMatrix, BigFloatStream, BigFloatVector } from "../dist/BigFloat.js";
 import { AstTeXPrinter, ROUNDING_MODE_OPTIONS, escapeLatex, formatSerializedValue, parseExpression } from "./calculator-core.js";
 
 const DEFAULT_HINT = "sin(x)";
@@ -869,7 +869,9 @@ new CalculatorApp(formatter);
 if (typeof window !== "undefined") {
 	window.BigFloat = BigFloat;
 	window.BigFloatComplex = BigFloatComplex;
-	window.BigFloatMatrix = BigFloatMatrix;
 	window.BigFloatVector = BigFloatVector;
+	window.BigFloatComplexVector = BigFloatComplexVector;
+	window.BigFloatMatrix = BigFloatMatrix;
+	window.BigFloatComplexMatrix = BigFloatComplexMatrix;
 	window.BigFloatStream = BigFloatStream;
 }

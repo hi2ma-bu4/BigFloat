@@ -1,4 +1,5 @@
 import type { BigFloat } from "./bigFloat";
+import type { BigFloatComplex } from "./bigFloatComplex";
 
 /**
  * 丸めモード
@@ -90,4 +91,4 @@ export type BigFloatAggregateArgs = BigFloatValue[] | [readonly BigFloatValue[]]
 /**
  * BigFloatStreamで扱う値
  */
-export type BigFloatStreamValue = BigFloatValue;
+export type BigFloatStreamValue = BigFloatValue | BigFloatComplex;
