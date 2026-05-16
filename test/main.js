@@ -1,20 +1,39 @@
+import { BigFloat, BigFloatComplex, BigFloatMatrix, BigFloatStream, BigFloatVector } from "../dist/BigFloat.js";
 import { AstTeXPrinter, ROUNDING_MODE_OPTIONS, escapeLatex, formatSerializedValue, parseExpression } from "./calculator-core.js";
 
 const DEFAULT_HINT = "sin(x)";
 
 const FUNCTION_GROUPS = [
 	{
+		id: "trig",
+		label: "Trig",
+		items: [
+			{ insert: "sin(", texLabel: "\\sin", hint: "sin(x)" },
+			{ insert: "cos(", texLabel: "\\cos", hint: "cos(x)" },
+			{ insert: "tan(", texLabel: "\\tan", hint: "tan(x)" },
+			{ insert: "asin(", texLabel: "\\arcsin", hint: "asin(x)" },
+			{ insert: "acos(", texLabel: "\\arccos", hint: "acos(x)" },
+			{ insert: "atan(", texLabel: "\\arctan", hint: "atan(x)" },
+			{ insert: "atan2(", texLabel: "\\arctan_2", hint: "atan2(y, x)" },
+			{ insert: "sinh(", texLabel: "\\sinh", hint: "sinh(x)" },
+			{ insert: "cosh(", texLabel: "\\cosh", hint: "cosh(x)" },
+			{ insert: "tanh(", texLabel: "\\tanh", hint: "tanh(x)" },
+			{ insert: "asinh(", texLabel: "\\operatorname{arsinh}", hint: "asinh(x)" },
+			{ insert: "acosh(", texLabel: "\\operatorname{arcosh}", hint: "acosh(x)" },
+			{ insert: "atanh(", texLabel: "\\operatorname{artanh}", hint: "atanh(x)" },
+		],
+	},
+	{
 		id: "power",
 		label: "Pow",
-		title: "Power",
 		items: [
 			{ insert: "sqrt(", texLabel: "\\sqrt{x}", hint: "sqrt(x)" },
 			{ insert: "cbrt(", texLabel: "\\sqrt[3]{x}", hint: "cbrt(x)" },
 			{ insert: "nthRoot(", texLabel: "\\sqrt[n]{x}", hint: "nthRoot(x, n)" },
-			{ insert: "pow(", texLabel: "x^n", hint: "pow(x, n)" },
+			{ insert: "pow(", texLabel: "x^y", hint: "pow(x, n)" },
 			{ insert: "exp(", texLabel: "e^x", hint: "exp(x)" },
 			{ insert: "exp2(", texLabel: "2^x", hint: "exp2(x)" },
-			{ insert: "expm1(", label: "expm1", hint: "expm1(x)" },
+			{ insert: "expm1(", texLabel: "e^x - 1", hint: "expm1(x)" },
 			{ insert: "factorial(", texLabel: "x!", hint: "factorial(n)" },
 			{ insert: "reciprocal(", texLabel: "\\frac{1}{x}", hint: "reciprocal(x)" },
 		],
@@ -22,107 +41,82 @@ const FUNCTION_GROUPS = [
 	{
 		id: "logs",
 		label: "Log",
-		title: "Log / Special",
 		items: [
-			{ insert: "ln(", texLabel: "\\ln(x)", hint: "ln(x)" },
-			{ insert: "log(", texLabel: "\\log_b(x)", hint: "log(x, base)" },
-			{ insert: "log10(", texLabel: "\\log_{10}(x)", hint: "log10(x)" },
-			{ insert: "log2(", texLabel: "\\log_2(x)", hint: "log2(x)" },
-			{ insert: "log1p(", label: "log1p", hint: "log1p(x)" },
+			{ insert: "ln(", texLabel: "\\ln", hint: "ln(x)" },
+			{ insert: "log(", texLabel: "\\log_y x", hint: "log(x, base)" },
+			{ insert: "log10(", texLabel: "\\log_{10}", hint: "log10(x)" },
+			{ insert: "log2(", texLabel: "\\log_2", hint: "log2(x)" },
+			{ insert: "log1p(", texLabel: "\\ln(1+x)", hint: "log1p(x)" },
 			{ insert: "gamma(", texLabel: "\\Gamma(x)", hint: "gamma(x)" },
 			{ insert: "zeta(", texLabel: "\\zeta(x)", hint: "zeta(x)" },
 		],
 	},
 	{
-		id: "trig",
-		label: "Trig",
-		title: "Trig / Hyper",
-		items: [
-			{ insert: "sin(", label: "sin", hint: "sin(x)" },
-			{ insert: "cos(", label: "cos", hint: "cos(x)" },
-			{ insert: "tan(", label: "tan", hint: "tan(x)" },
-			{ insert: "asin(", label: "asin", hint: "asin(x)" },
-			{ insert: "acos(", label: "acos", hint: "acos(x)" },
-			{ insert: "atan(", label: "atan", hint: "atan(x)" },
-			{ insert: "atan2(", label: "atan2", hint: "atan2(y, x)" },
-			{ insert: "sinh(", label: "sinh", hint: "sinh(x)" },
-			{ insert: "cosh(", label: "cosh", hint: "cosh(x)" },
-			{ insert: "tanh(", label: "tanh", hint: "tanh(x)" },
-			{ insert: "asinh(", label: "asinh", hint: "asinh(x)" },
-			{ insert: "acosh(", label: "acosh", hint: "acosh(x)" },
-			{ insert: "atanh(", label: "atanh", hint: "atanh(x)" },
-		],
-	},
-	{
 		id: "complex",
 		label: "Cx",
-		title: "Complex",
 		items: [
-			{ insert: "complex(", label: "complex", hint: "complex(re, im)" },
-			{ insert: "polar(", label: "polar", hint: "polar(r, theta)" },
+			{ insert: "complex(", texLabel: "\\operatorname{complex}", hint: "complex(re, im)" },
+			{ insert: "polar(", texLabel: "r\\angle\\theta", hint: "polar(r, theta)" },
 			{ insert: "conj(", texLabel: "\\overline{z}", hint: "conj(z)" },
 			{ insert: "arg(", texLabel: "\\arg(z)", hint: "arg(z)" },
 			{ insert: "real(", texLabel: "\\Re(z)", hint: "real(z)" },
 			{ insert: "imag(", texLabel: "\\Im(z)", hint: "imag(z)" },
-			{ insert: "rotate(", label: "rotate", hint: "rotate(z, theta)" },
-			{ insert: "roots(", label: "roots", hint: "roots(z, n)" },
+			{ insert: "rotate(", texLabel: "R_{\\theta}(z)", hint: "rotate(z, theta)" },
+			{ insert: "roots(", texLabel: "\\sqrt[n]{z}", hint: "roots(z, n)" },
 		],
 	},
 	{
 		id: "linear",
 		label: "Lin",
-		title: "Vector / Matrix",
 		items: [
 			{ insert: "dot(", texLabel: "v\\cdot w", hint: "dot(v, w)" },
 			{ insert: "cross(", texLabel: "v\\times w", hint: "cross(v, w)" },
 			{ insert: "norm(", texLabel: "\\lVert v \\rVert", hint: "norm(v)" },
-			{ insert: "angle(", label: "angle", hint: "angle(v, w)" },
-			{ insert: "project(", label: "proj", hint: "project(v, onto)" },
-			{ insert: "distance(", label: "dist", hint: "distance(a, b)" },
+			{ insert: "angle(", texLabel: "\\theta_{v,w}", hint: "angle(v, w)" },
+			{ insert: "project(", texLabel: "\\operatorname{proj}_w v", hint: "project(v, onto)" },
+			{ insert: "distance(", texLabel: "d(a,b)", hint: "distance(a, b)" },
 			{ insert: "det(", texLabel: "\\det(A)", hint: "det(matrix)" },
 			{ insert: "trace(", texLabel: "\\operatorname{tr}(A)", hint: "trace(matrix)" },
-			{ insert: "rank(", label: "rank", hint: "rank(matrix)" },
+			{ insert: "rank(", texLabel: "\\operatorname{rank}(A)", hint: "rank(matrix)" },
 			{ insert: "transpose(", texLabel: "A^\\mathsf{T}", hint: "transpose(matrix)" },
 			{ insert: "inv(", texLabel: "A^{-1}", hint: "inv(matrix)" },
-			{ insert: "matmul(", label: "matmul", hint: "matmul(a, b)" },
+			{ insert: "matmul(", texLabel: "AB", hint: "matmul(a, b)" },
 			{ insert: "hadamard(", texLabel: "A\\odot B", hint: "hadamard(a, b)" },
-			{ insert: "solve(", label: "solve", hint: "solve(matrix, vector)" },
-			{ insert: "rowSums(", label: "rowSums", hint: "rowSums(matrix)" },
-			{ insert: "columnSums(", label: "colSums", hint: "columnSums(matrix)" },
-			{ insert: "frobenius(", label: "frobenius", hint: "frobenius(matrix)" },
-			{ insert: "[[1,2],[3,4]]", label: "matrix", hint: "[[a,b],[c,d]]" },
-			{ insert: "[1,2,3]", label: "vector", hint: "[x,y,z]" },
+			{ insert: "solve(", texLabel: "Ax=b", hint: "solve(matrix, vector)" },
+			{ insert: "rowS(", label: "rowS", hint: "rowS(matrix)" },
+			{ insert: "colS(", label: "colS", hint: "colS(matrix)" },
+			{ insert: "frobenius(", texLabel: "\\lVert A \\rVert_F", hint: "frobenius(matrix)" },
+			{ insert: "[[1,2],[3,4]]", texLabel: "\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}", hint: "[[a,b],[c,d]]" },
+			{ insert: "[1,2,3]", texLabel: "[x,y,z]", hint: "[x,y,z]" },
 		],
 	},
 	{
 		id: "stats",
 		label: "Stat",
-		title: "Stats",
 		items: [
-			{ insert: "sum(", label: "sum", hint: "sum([a,b,c])" },
-			{ insert: "product(", label: "product", hint: "product([a,b,c])" },
-			{ insert: "average(", label: "average", hint: "average([a,b,c])" },
-			{ insert: "max(", label: "max", hint: "max([a,b,c])" },
-			{ insert: "min(", label: "min", hint: "min([a,b,c])" },
-			{ insert: "median(", label: "median", hint: "median([a,b,c])" },
-			{ insert: "variance(", label: "variance", hint: "variance([a,b,c])" },
-			{ insert: "stddev(", label: "stddev", hint: "stddev([a,b,c])" },
+			{ insert: "sum(", texLabel: "\\operatorname{sum}", hint: "sum(x1, x2, ...)" },
+			{ insert: "product(", texLabel: "\\operatorname{product}", hint: "product(x1, x2, ...)" },
+			{ insert: "average(", texLabel: "\\operatorname{average}", hint: "average(x1, x2, ...)" },
+			{ insert: "max(", texLabel: "\\operatorname{max}", hint: "max(x1, x2, ...)" },
+			{ insert: "min(", texLabel: "\\operatorname{min}", hint: "min(x1, x2, ...)" },
+			{ insert: "median(", texLabel: "\\operatorname{median}", hint: "median(x1, x2, ...)" },
+			{ insert: "variance(", texLabel: "\\operatorname{variance}", hint: "variance(x1, x2, ...)" },
+			{ insert: "stddev(", texLabel: "\\operatorname{stddev}", hint: "stddev(x1, x2, ...)" },
 		],
 	},
 	{
 		id: "more",
 		label: "More",
-		title: "Round / Utility",
 		items: [
 			{ insert: "abs(", texLabel: "\\left|x\\right|", hint: "abs(x)" },
-			{ insert: "sign(", label: "sign", hint: "sign(x)" },
+			{ insert: "sign(", texLabel: "\\operatorname{sgn}", hint: "sign(x)" },
 			{ insert: "floor(", texLabel: "\\lfloor x \\rfloor", hint: "floor(x)" },
 			{ insert: "ceil(", texLabel: "\\lceil x \\rceil", hint: "ceil(x)" },
-			{ insert: "round(", label: "round", hint: "round(x)" },
-			{ insert: "trunc(", label: "trunc", hint: "trunc(x)" },
-			{ insert: "fround(", label: "fround", hint: "fround(x)" },
-			{ insert: "clz32(", label: "clz32", hint: "clz32(x)" },
-			{ insert: "normalize(", label: "normalize", hint: "normalize(x)" },
+			{ insert: "round(", texLabel: "\\approx x", hint: "round(x)" },
+			{ insert: "trunc(", texLabel: "\\operatorname{trunc}", hint: "trunc(x)" },
+			{ insert: "fround(", texLabel: "32\\text{bit}", hint: "fround(x)" },
+			{ insert: "clz32(", texLabel: "\\operatorname{clz}_{32}", hint: "clz32(x)" },
+			{ insert: "normalize(", texLabel: "\\text{norm.}", hint: "normalize(x)" },
 			{ insert: "tau", texLabel: "\\tau", hint: "tau" },
 		],
 	},
@@ -584,9 +578,8 @@ class CalculatorApp {
 		this.expressionGhost = document.getElementById("expression-ghost");
 		this.expressionMath = document.getElementById("expression-math");
 		this.resultOutput = document.getElementById("result-output");
-		this.functionOverlay = document.getElementById("function-overlay");
-		this.functionGrid = document.getElementById("function-grid");
-		this.functionOverlayTitle = document.getElementById("function-overlay-title");
+		this.keypadGrid = document.getElementById("keypad-grid");
+		this.defaultKeypadHTML = this.keypadGrid.innerHTML;
 		this.activeFunctionGroup = null;
 		this.currentHint = DEFAULT_HINT;
 		this.lastAnswer = null;
@@ -598,6 +591,7 @@ class CalculatorApp {
 		});
 		this.evaluator = new EvaluationManager((payload, expression, isLatest, commit) => this.handleWorkerResult(payload, expression, isLatest, commit));
 		this.bind();
+		this.updateFitty();
 	}
 
 	bind() {
@@ -606,7 +600,9 @@ class CalculatorApp {
 		this.updateGhostHint();
 		this.previewExpression();
 		this.handleInput(false);
-		this.editor.textarea.addEventListener("input", () => this.handleInput(false));
+		this.editor.textarea.addEventListener("input", () => {
+			this.handleInput(false);
+		});
 		this.editor.textarea.addEventListener("focus", () => this.updateGhostHint());
 		this.editor.textarea.addEventListener("blur", () => this.updateGhostHint());
 		this.editor.textarea.addEventListener("scroll", () => {
@@ -627,7 +623,7 @@ class CalculatorApp {
 			this.updateGhostHint();
 			this.previewExpression();
 			this.evaluator.cancelAll();
-			this.closeFunctionOverlay();
+			this.resetKeypad();
 		});
 		document.getElementById("btn-backspace").addEventListener("click", () => {
 			this.editor.backspace(false);
@@ -635,30 +631,22 @@ class CalculatorApp {
 		});
 		document.getElementById("btn-left").addEventListener("click", () => this.editor.moveCursor(-1));
 		document.getElementById("btn-right").addEventListener("click", () => this.editor.moveCursor(1));
-		document.getElementById("btn-evaluate").addEventListener("click", () => this.handleInput(true));
 
-		document.addEventListener("click", (event) => {
-			const element = event.target instanceof Element ? event.target : null;
-			if (!element) {
+		this.keypadGrid.addEventListener("click", (event) => {
+			const button = event.target.closest("button");
+			if (!button) return;
+
+			if (button.id === "btn-evaluate") {
+				this.handleInput(true);
+				this.resetKeypad();
 				return;
 			}
 
-			const button = element.closest("button");
-			if (!button) {
-				if (!element.closest("#function-overlay") && !element.closest(".mini-toggle")) {
-					this.closeFunctionOverlay();
-				}
-				return;
-			}
-
-			if (button.dataset.closeOverlay !== undefined) {
-				this.closeFunctionOverlay();
-				return;
-			}
 			if (button.dataset.groupId) {
-				this.toggleFunctionOverlay(button.dataset.groupId);
+				this.toggleFunctionGroup(button.dataset.groupId);
 				return;
 			}
+
 			if (button.dataset.insert) {
 				const preserveFocus = document.activeElement === this.editor.textarea;
 				this.editor.insert(button.dataset.insert, preserveFocus);
@@ -667,10 +655,17 @@ class CalculatorApp {
 				}
 				this.updateGhostHint();
 				this.handleInput(false);
-				if (button.closest("#function-overlay")) {
-					this.closeFunctionOverlay();
+				if (this.activeFunctionGroup) {
+					this.resetKeypad();
 				}
 			}
+		});
+	}
+
+	updateFitty() {
+		fitty(".fit", {
+			minSize: 4,
+			maxSize: 20,
 		});
 	}
 
@@ -680,50 +675,101 @@ class CalculatorApp {
 		}
 	}
 
-	renderFunctionGroupItems(group) {
-		this.functionOverlayTitle.textContent = group.title;
-		this.functionGrid.replaceChildren();
-		for (const item of group.items) {
-			const button = document.createElement("button");
-			button.type = "button";
-			button.className = "function-chip";
-			button.dataset.insert = item.insert;
-			button.dataset.hint = item.hint;
-			if (item.texLabel) {
-				const label = document.createElement("span");
-				label.dataset.texLabel = item.texLabel;
-				button.append(label);
-			} else {
-				button.textContent = item.label ?? item.insert;
-			}
-			this.functionGrid.append(button);
-		}
-		this.renderButtonLabels(this.functionGrid);
-	}
-
-	toggleFunctionOverlay(groupId) {
-		if (this.activeFunctionGroup === groupId && !this.functionOverlay.hidden) {
-			this.closeFunctionOverlay();
+	toggleFunctionGroup(groupId) {
+		if (this.activeFunctionGroup === groupId) {
+			this.resetKeypad();
 			return;
 		}
 		const group = FUNCTION_GROUPS.find((entry) => entry.id === groupId);
-		if (!group) {
-			return;
+		if (!group) return;
+
+		if (this.activeFunctionGroup) {
+			this.resetKeypad();
 		}
+
 		this.activeFunctionGroup = groupId;
-		this.renderFunctionGroupItems(group);
-		this.functionOverlay.hidden = false;
-		for (const button of document.querySelectorAll(".mini-toggle[data-group-id]")) {
-			const isActive = button.dataset.groupId === groupId;
+		this.renderSwappedKeypad(group);
+	}
+
+	renderSwappedKeypad(group) {
+		const children = Array.from(this.keypadGrid.children);
+		const middleButtons = children.filter((btn) => btn.classList.contains("swappable"));
+		middleButtons.forEach((btn) => (btn.style.display = "none"));
+
+		// Modify Row 6 (last 5 buttons)
+		// children.at(-5) is '0' (span2)
+		// children.at(-4) is '.'
+		// children.at(-3) is '+'
+		// children.at(-2) is 'Stats' ex
+		// children.at(-1) is '='
+		const btnZero = children[children.length - 5];
+		const btnPlus = children[children.length - 3];
+
+		btnZero.style.display = "none";
+		btnPlus.style.display = "none";
+
+		// Add '(' and ')' to replace '0'
+		const createKey = (tex, insert, className = "key function swapped-key-row6") => {
+			const button = document.createElement("button");
+			button.type = "button";
+			button.className = className;
+			button.dataset.insert = insert;
+			const wrapper = document.createElement("span");
+			wrapper.className = "fit-wrapper";
+			const label = document.createElement("span");
+			label.className = "fit";
+			label.dataset.texLabel = tex;
+			wrapper.append(label);
+			button.append(wrapper);
+			return button;
+		};
+
+		this.keypadGrid.insertBefore(createKey("(", "("), children[children.length - 4]);
+		this.keypadGrid.insertBefore(createKey(")", ")"), children[children.length - 4]);
+		this.keypadGrid.insertBefore(createKey(",", ",", "key function swapped-key-row6"), children[children.length - 2]);
+
+		const items = group.items.slice(0, 24);
+		items.forEach((item) => {
+			const button = document.createElement("button");
+			button.type = "button";
+			button.className = "key function swapped-key";
+			button.dataset.insert = item.insert;
+			button.dataset.hint = item.hint;
+			const wrapper = document.createElement("span");
+			wrapper.className = "fit-wrapper";
+			const label = document.createElement("span");
+			label.className = "fit";
+			label.dataset.texLabel = item.texLabel;
+			wrapper.append(label);
+			button.append(wrapper);
+			this.keypadGrid.insertBefore(button, children[children.length - 5]);
+		});
+
+		// Pad with empty buttons to maintain grid structure (Rows 2-5 = 24 slots)
+		for (let i = items.length; i < 24; i++) {
+			const placeholder = document.createElement("button");
+			placeholder.type = "button";
+			placeholder.className = "key swapped-key placeholder";
+			placeholder.disabled = true;
+			placeholder.style.visibility = "hidden";
+			this.keypadGrid.insertBefore(placeholder, children[children.length - 5]);
+		}
+
+		for (const button of this.keypadGrid.querySelectorAll(".key.ex[data-group-id]")) {
+			const isActive = button.dataset.groupId === this.activeFunctionGroup;
 			button.dataset.active = isActive ? "true" : "false";
 			button.setAttribute("aria-pressed", isActive ? "true" : "false");
 		}
+		this.renderButtonLabels(this.keypadGrid);
+		this.updateFitty();
 	}
 
-	closeFunctionOverlay() {
+	resetKeypad() {
 		this.activeFunctionGroup = null;
-		this.functionOverlay.hidden = true;
-		for (const button of document.querySelectorAll(".mini-toggle[data-group-id]")) {
+		this.keypadGrid.querySelectorAll(".swapped-key").forEach((btn) => btn.remove());
+		this.keypadGrid.querySelectorAll(".swapped-key-row6").forEach((btn) => btn.remove());
+		Array.from(this.keypadGrid.children).forEach((btn) => (btn.style.display = ""));
+		for (const button of this.keypadGrid.querySelectorAll(".key.ex[data-group-id]")) {
 			button.dataset.active = "false";
 			button.setAttribute("aria-pressed", "false");
 		}
@@ -819,3 +865,11 @@ function escapeHtml(value) {
 
 const formatter = new MathFormatter(await waitForKatex());
 new CalculatorApp(formatter);
+
+if (typeof window !== "undefined") {
+	window.BigFloat = BigFloat;
+	window.BigFloatComplex = BigFloatComplex;
+	window.BigFloatMatrix = BigFloatMatrix;
+	window.BigFloatVector = BigFloatVector;
+	window.BigFloatStream = BigFloatStream;
+}

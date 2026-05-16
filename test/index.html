@@ -8,7 +8,10 @@
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.45/dist/katex.min.css" integrity="sha384-UA8juhPf75SzzAMA/4fo3yOU7sBJ0om7SCD2GHq0fZqZco6tr1UCV7nUbk9J90JM" crossorigin="anonymous">
 	<link rel="stylesheet" href="./styles.css">
 	<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.45/dist/katex.min.js" integrity="sha384-Tt7wBxLKwSzFVRET4O4U9H6v8MNaQ/CjN2FMP4xFm0ErrFu6aNqoonRVW5W40iGI" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/fitty/dist/fitty.min.js"></script>
+
 	<script type="module" src="./main.js"></script>
+
 	<script src="https://hi2ma-bu4.github.io/bio/assets/js/static/auto-gtag.js" async></script>
 </head>
 <body>
@@ -54,56 +57,47 @@
 			</section>
 
 			<section class="keypad-panel">
-				<div class="keypad-toolbar">
-					<button class="mini-toggle" data-group-id="trig" type="button">Trig</button>
-					<button class="mini-toggle" data-group-id="power" type="button">Pow</button>
-					<button class="mini-toggle" data-group-id="logs" type="button">Log</button>
-					<button class="mini-toggle" data-group-id="complex" type="button">Cx</button>
-					<button class="mini-toggle" data-group-id="linear" type="button">Lin</button>
-					<button class="mini-toggle" data-group-id="stats" type="button">Stat</button>
-					<button class="mini-toggle" data-group-id="more" type="button">More</button>
-				</div>
-				<div id="function-overlay" class="function-overlay" hidden>
-					<div class="overlay-head">
-						<strong id="function-overlay-title" class="overlay-title"></strong>
-						<button class="overlay-close" data-close-overlay type="button">×</button>
-					</div>
-					<div id="function-grid" class="function-grid" aria-live="polite"></div>
-				</div>
-				<div class="keypad-grid">
-					<button class="key function" data-insert="(" type="button">(</button>
-					<button class="key function" data-insert=")" type="button">)</button>
-					<button class="key function" data-insert="[" type="button">[</button>
-					<button class="key function" data-insert="]" type="button">]</button>
-					<button class="key function" data-insert="," type="button">,</button>
-					<button class="key function" data-insert="!" type="button"><span data-tex-label="x!"></span></button>
+				<div id="keypad-grid" class="keypad-grid">
+					<button class="key function ex" data-group-id="trig" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\sin"></span></span><span class="ex-icon"></span></button>
+					<button class="key function ex" data-group-id="power" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\sqrt{x}"></span></span><span class="ex-icon"></span></button>
+					<button class="key function ex" data-group-id="logs" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\log"></span></span><span class="ex-icon"></span></button>
+					<button class="key function ex" data-group-id="complex" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\text{com}"></span></span><span class="ex-icon"></span></button>
+					<button class="key function ex" data-group-id="linear" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\vec{v}"></span></span><span class="ex-icon"></span></button>
+					<button class="key function ex" data-group-id="more" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\left|x\right|"></span></span><span class="ex-icon"></span></button>
 
-					<button class="key" data-insert="7" type="button">7</button>
-					<button class="key" data-insert="8" type="button">8</button>
-					<button class="key" data-insert="9" type="button">9</button>
-					<button class="key accent" data-insert="/" type="button">÷</button>
-					<button class="key accent" data-insert="^" type="button">^</button>
-					<button class="key function" data-insert="pi" type="button"><span data-tex-label="\\pi"></span></button>
+					<button class="key function swappable" data-insert="(" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="("></span></span></button>
+					<button class="key function swappable" data-insert=")" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label=")"></span></span></button>
+					<button class="key function swappable" data-insert="[" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="["></span></span></button>
+					<button class="key function swappable" data-insert="]" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="]"></span></span></button>
+					<button class="key function swappable" data-insert="," type="button"><span class="fit-wrapper"><span class="fit" data-tex-label=","></span></span></button>
+					<button class="key function swappable" data-insert="!" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="x!"></span></span></button>
 
-					<button class="key" data-insert="4" type="button">4</button>
-					<button class="key" data-insert="5" type="button">5</button>
-					<button class="key" data-insert="6" type="button">6</button>
-					<button class="key accent" data-insert="*" type="button">×</button>
-					<button class="key accent" data-insert="%" type="button">mod</button>
-					<button class="key function" data-insert="i" type="button"><span data-tex-label="i"></span></button>
+					<button class="key swappable" data-insert="7" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="7"></span></span></button>
+					<button class="key swappable" data-insert="8" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="8"></span></span></button>
+					<button class="key swappable" data-insert="9" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="9"></span></span></button>
+					<button class="key accent swappable" data-insert="/" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\div"></span></span></button>
+					<button class="key accent swappable" data-insert="^" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\^{}"></span></span></button>
+					<button class="key function swappable" data-insert="pi" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\pi"></span></span></button>
 
-					<button class="key" data-insert="1" type="button">1</button>
-					<button class="key" data-insert="2" type="button">2</button>
-					<button class="key" data-insert="3" type="button">3</button>
-					<button class="key accent" data-insert="-" type="button">−</button>
-					<button class="key function" data-insert="e" type="button"><span data-tex-label="e"></span></button>
-					<button class="key function" data-insert="ans" type="button">Ans</button>
+					<button class="key swappable" data-insert="4" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="4"></span></span></button>
+					<button class="key swappable" data-insert="5" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="5"></span></span></button>
+					<button class="key swappable" data-insert="6" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="6"></span></span></button>
+					<button class="key accent swappable" data-insert="*" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\times"></span></span></button>
+					<button class="key accent swappable" data-insert="%" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\text{mod}"></span></span></button>
+					<button class="key function swappable" data-insert="i" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="i"></span></span></button>
 
-					<button class="key span2" data-insert="0" type="button">0</button>
-					<button class="key" data-insert="." type="button">.</button>
-					<button class="key accent" data-insert="+" type="button">+</button>
-					<button class="key function" data-insert="[1,2,3]" type="button">vec</button>
-					<button id="btn-evaluate" class="key equals" type="button">=</button>
+					<button class="key swappable" data-insert="1" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="1"></span></span></button>
+					<button class="key swappable" data-insert="2" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="2"></span></span></button>
+					<button class="key swappable" data-insert="3" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="3"></span></span></button>
+					<button class="key accent swappable" data-insert="-" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="-"></span></span></button>
+					<button class="key function swappable" data-insert="e" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="e"></span></span></button>
+					<button class="key function swappable" data-insert="ans" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\text{Ans}"></span></span></button>
+
+					<button class="key span2" data-insert="0" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="0"></span></span></button>
+					<button class="key" data-insert="." type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="."></span></span></button>
+					<button class="key accent" data-insert="+" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="+"></span></span></button>
+					<button class="key function ex" data-group-id="stats" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\text{sum}"></span><span class="ex-icon"></span></span></button>
+					<button id="btn-evaluate" class="key equals" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="="></span></span></button>
 				</div>
 			</section>
 		</div>

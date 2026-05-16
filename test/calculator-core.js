@@ -1,50 +1,58 @@
-import {
-	BigFloat,
-	BigFloatComplex,
-	BigFloatMatrix,
-	BigFloatVector,
-	RoundingMode,
-} from "../dist/BigFloat.js";
+import { BigFloat, BigFloatComplex, BigFloatMatrix, BigFloatVector, RoundingMode } from "../dist/BigFloat.js";
 
 export const ROUNDING_MODE_OPTIONS = ["TRUNCATE", "DOWN", "UP", "CEIL", "FLOOR", "HALF_UP", "HALF_DOWN"];
 
 const UNARY_VALUE_FUNCTIONS = new Set([
-	"abs",
-	"acos",
-	"acosh",
-	"asin",
-	"asinh",
-	"atan",
-	"atanh",
-	"cbrt",
-	"ceil",
-	"clz32",
+	// trig
+	"sin",
 	"cos",
+	"tan",
+	"asin",
+	"arcsin",
+	"acos",
+	"arccos",
+	"atan",
+	"arctan",
+	"sinh",
 	"cosh",
+	"tanh",
+	"asinh",
+	"arsinh",
+	"arcsinh",
+	"acosh",
+	"arcosh",
+	"arccosh",
+	"atanh",
+	"artanh",
+	"arctanh",
+	// power
+	"sqrt",
+	"cbrt",
 	"exp",
 	"exp2",
 	"expm1",
 	"factorial",
-	"floor",
-	"fround",
-	"gamma",
+	"reciprocal",
+	// logs
 	"ln",
-	"log1p",
 	"log10",
 	"log2",
-	"normalize",
-	"reciprocal",
-	"round",
-	"sign",
-	"sin",
-	"sinh",
-	"sqrt",
-	"tan",
-	"tanh",
-	"trace",
-	"transpose",
-	"trunc",
+	"log1p",
+	"gamma",
 	"zeta",
+	// linear
+	"transpose",
+	// more
+	"abs",
+	"sign",
+	"floor",
+	"ceil",
+	"round",
+	"trace",
+	"fround",
+	"clz32",
+	"normalize",
+	"trunc",
 ]);
 
 export function escapeLatex(value) {
@@ -349,78 +357,140 @@ export class AstTeXPrinter {
 		const firstTex = first ? this.print(first, 0) : "";
 		const secondTex = second ? this.print(second, 0) : "";
 		switch (node.name) {
+			case "sin":
+			case "cos":
+			case "tan":
+			case "sinh":
+			case "cosh":
+			case "tanh":
+				return `\\${node.name}\\left(${firstTex}\\right)`;
+			case "asin":
+			case "arcsin":
+				return `\\arcsin\\left(${firstTex}\\right)`;
+			case "acos":
+			case "arccos":
+				return `\\arccos\\left(${firstTex}\\right)`;
+			case "atan":
+			case "arctan":
+				return `\\arctan\\left(${firstTex}\\right)`;
+			case "atan2":
+			case "arctan2":
+				return `\\arctan_2\\left(${firstTex}, ${secondTex}\\right)`;
+			case "asinh":
+			case "arsinh":
+			case "arcsinh":
+				return `\\operatorname{arsinh}\\left(${firstTex}\\right)`;
+			case "acosh":
+			case "arsinh":
+			case "arcsinh":
+				return `\\operatorname{arcosh}\\left(${firstTex}\\right)`;
+			case "atanh":
+			case "artanh":
+			case "arctanh":
+				return `\\operatorname{artanh}\\left(${firstTex}\\right)`;
 			case "sqrt":
 				return `\\sqrt{${firstTex}}`;
 			case "cbrt":
 				return `\\sqrt[3]{${firstTex}}`;
 			case "nthRoot":
 				return `\\sqrt[${secondTex}]{${firstTex}}`;
-			case "abs":
-				return `\\left|${firstTex}\\right|`;
-			case "floor":
-				return `\\left\\lfloor ${firstTex} \\right\\rfloor`;
-			case "ceil":
-				return `\\left\\lceil ${firstTex} \\right\\rceil`;
+			case "pow":
+				return `\\left(${firstTex}\\right)^{${secondTex}}`;
 			case "exp":
 				return `e^{${firstTex}}`;
 			case "exp2":
 				return `2^{${firstTex}}`;
+			case "expm1":
+				return `e^{${firstTex}} - 1`;
+			case "factorial":
+				return `{${firstTex}}!`;
+			case "reciprocal":
+				return `\\frac{1}{${firstTex}}`;
 			case "ln":
 				return `\\ln\\left(${firstTex}\\right)`;
 			case "log":
-				return node.args.length >= 2
-					? `\\log_{${secondTex}}\\left(${firstTex}\\right)`
-					: `\\log\\left(${firstTex}\\right)`;
+				return node.args.length >= 2 ? `\\log_{${secondTex}}\\left(${firstTex}\\right)` : `\\log\\left(${firstTex}\\right)`;
 			case "log10":
 				return `\\log_{10}\\left(${firstTex}\\right)`;
 			case "log2":
 				return `\\log_{2}\\left(${firstTex}\\right)`;
+			case "log1p":
+				return `\\ln\\left(1 + ${firstTex}\\right)`;
 			case "gamma":
 				return `\\Gamma\\left(${firstTex}\\right)`;
 			case "zeta":
 				return `\\zeta\\left(${firstTex}\\right)`;
-			case "real":
-				return `\\Re\\left(${firstTex}\\right)`;
-			case "imag":
-				return `\\Im\\left(${firstTex}\\right)`;
+			case "complex":
+				return `${firstTex} + ${secondTex}i`;
+			case "polar":
+				return `${firstTex}\\angle${secondTex}`;
 			case "conj":
 				return `\\overline{${firstTex}}`;
 			case "arg":
 				return `\\arg\\left(${firstTex}\\right)`;
-			case "complex":
-				return `${firstTex} + ${secondTex}i`;
-			case "polar":
-				return `\\operatorname{polar}\\left(${firstTex}, ${secondTex}\\right)`;
+			case "real":
+				return `\\Re\\left(${firstTex}\\right)`;
+			case "imag":
+				return `\\Im\\left(${firstTex}\\right)`;
+			case "rotate":
+				return `R_{${secondTex}}\\left(${firstTex}\\right)`;
+			// roots
 			case "dot":
 				return `${firstTex} \\cdot ${secondTex}`;
 			case "cross":
 				return `${firstTex} \\times ${secondTex}`;
-			case "distance":
-				return `d\\left(${firstTex}, ${secondTex}\\right)`;
+			case "norm":
+				return `\\left\\lVert ${firstTex} \\right\\rVert`;
 			case "angle":
 				return `\\angle\\left(${firstTex}, ${secondTex}\\right)`;
 			case "project":
-				return `\\operatorname{proj}_{${secondTex}}\\left(${firstTex}\\right)`;
-			case "norm":
-				return `\\left\\lVert ${firstTex} \\right\\rVert`;
+				return `\\operatorname{proj}_{${secondTex}}\\left(${firstTex}\right)`;
+			case "distance":
+				return `d\\left(${firstTex}, ${secondTex}\\right)`;
 			case "det":
 				return `\\det\\left(${firstTex}\\right)`;
 			case "trace":
 				return `\\operatorname{tr}\\left(${firstTex}\\right)`;
 			case "rank":
 				return `\\operatorname{rank}\\left(${firstTex}\\right)`;
-			case "inv":
-				return `{${firstTex}}^{-1}`;
 			case "transpose":
-				return `{${firstTex}}^{\\mathsf{T}}`;
+				return `{${this.print(first, 31)}}^{\\mathsf{T}}`;
+			case "inv":
+				return `{${this.print(first, 31)}}^{-1}`;
 			case "matmul":
 				return `${firstTex}${secondTex}`;
 			case "hadamard":
 				return `${firstTex} \\odot ${secondTex}`;
-			case "solve":
-				return `${firstTex}x = ${secondTex}`;
+			// solve
+			case "rowS":
+			case "rowSums":
+				return `\\operatorname{rowS}\\left(${firstTex}\\right)`;
+			case "colS":
+			case "columnSums":
+				return `\\operatorname{colS}\\left(${firstTex}\\right)`;
 			case "frobenius":
 				return `\\left\\lVert ${firstTex} \\right\\rVert_F`;
+			// sum
+			// product
+			// average
+			// max
+			// min
+			// median
+			// variance
+			// stddev
+			case "abs":
+				return `\\left|${firstTex}\\right|`;
+			case "sign":
+				return `\\operatorname{sgn}\\left(${firstTex}\\right)`;
+			case "floor":
+				return `\\left\\lfloor ${firstTex} \\right\\rfloor`;
+			case "ceil":
+				return `\\left\\lceil ${firstTex} \\right\\rceil`;
+			// round
+			// trunc
+			// fround
+			// clz32
+			// normalize
 			default:
 				return `\\operatorname{${escapeLatex(node.name)}}\\left(${node.args.map((argument) => this.print(argument, 0)).join(", ")}\\right)`;
 		}
@@ -586,22 +656,61 @@ export class Evaluator {
 
 	callFunction(name, args) {
 		switch (name) {
+			case "arcsin":
+				name = "asin";
+				break;
+			case "arccos":
+				name = "acos";
+				break;
+			case "arctan":
+				name = "atan";
+				break;
+			case "arsinh":
+			case "arcsinh":
+				name = "asinh";
+				break;
+			case "arcosh":
+			case "arccosh":
+				name = "acosh";
+				break;
+			case "artanh":
+			case "arctanh":
+				name = "atanh";
+		}
+
+		switch (name) {
+			// trig
+			case "atan2":
+				return this.callMethod(args[0], "atan2", args[1]);
+			// power
+			case "nthRoot":
+				return this.callMethod(args[0], "nthRoot", this.toInteger(args[1]));
+			case "pow":
+				return this.pow(args[0], args[1]);
+			// logs
+			case "log":
+				if (args.length >= 2) {
+					return this.callMethod(args[0], "log", args[1]);
+				}
+				return this.callMethod(args[0], "ln");
+			// complex
 			case "complex":
 				return this.context.createComplex(args[0] ?? 0, args[1] ?? 0);
 			case "polar":
 				return BigFloatComplex.fromPolar(this.expectScalar(args[0]), this.expectScalar(args[1]), this.context.precision);
-			case "real":
-				return this.toComplex(args[0]).real;
-			case "imag":
-				return this.toComplex(args[0]).imag;
 			case "conj":
 				return this.toComplex(args[0]).conjugate();
 			case "arg":
 				return this.toComplex(args[0]).arg();
+			case "real":
+				return this.toComplex(args[0]).real;
+			case "imag":
+				return this.toComplex(args[0]).imag;
 			case "rotate":
 				return this.toComplex(args[0]).rotate(this.expectScalar(args[1]));
 			case "roots":
 				return this.toComplex(args[0]).nthRoots(this.toInteger(args[1]));
+			// linear
 			case "dot":
 				return this.expectVector(args[0]).dot(this.expectVector(args[1]));
 			case "cross":
@@ -617,12 +726,12 @@ export class Evaluator {
 					return this.toComplex(args[0]).abs();
 				}
 				return this.expectScalar(args[0]).abs();
-			case "distance":
-				return this.callDistance(args[0], args[1]);
 			case "angle":
 				return this.expectVector(args[0]).angleTo(this.expectVector(args[1]));
 			case "project":
 				return this.expectVector(args[0]).projectOnto(this.expectVector(args[1]));
+			case "distance":
+				return this.callDistance(args[0], args[1]);
 			case "det":
 				return this.expectMatrix(args[0]).determinant();
 			case "trace":
@@ -633,18 +742,21 @@ export class Evaluator {
 				return this.expectMatrix(args[0]).transpose();
 			case "inv":
 				return this.expectMatrix(args[0]).inverse();
-			case "rowSums":
-				return this.expectMatrix(args[0]).rowSums();
-			case "columnSums":
-				return this.expectMatrix(args[0]).columnSums();
 			case "matmul":
 				return this.expectMatrix(args[0]).matmul(this.expectMatrix(args[1]));
 			case "hadamard":
 				return this.callHadamard(args[0], args[1]);
 			case "solve":
 				return this.callSolve(args[0], args[1]);
+			case "rowS":
+			case "rowSums":
+				return this.expectMatrix(args[0]).rowSums();
+			case "colS":
+			case "columnSums":
+				return this.expectMatrix(args[0]).columnSums();
 			case "frobenius":
 				return this.expectMatrix(args[0]).frobeniusNorm();
+			// stats
 			case "sum":
 			case "product":
 			case "average":
@@ -655,17 +767,7 @@ export class Evaluator {
 			case "variance":
 			case "stddev":
 				return BigFloat[name](...args.map((arg) => this.expectScalar(arg)));
-			case "pow":
-				return this.pow(args[0], args[1]);
-			case "nthRoot":
-				return this.callMethod(args[0], "nthRoot", this.toInteger(args[1]));
-			case "log":
-				if (args.length >= 2) {
-					return this.callMethod(args[0], "log", args[1]);
-				}
-				return this.callMethod(args[0], "ln");
-			case "atan2":
-				return this.callMethod(args[0], "atan2", args[1]);
+
 			default:
 				if (UNARY_VALUE_FUNCTIONS.has(name)) {
 					return this.callMethod(args[0], name);
@@ -898,6 +1000,7 @@ export function serializeValue(value, precision) {
 			rows: value.toArray().map((row) => row.map((entry) => serializeValue(entry, digits))),
 		};
 	}
+	console.warn("Unsupported value for serialization:", value);
 	throw new TypeError("Unsupported value for serialization.");
 }
 
@@ -909,9 +1012,15 @@ export function deserializeValue(serialized, precision) {
 		case "complex":
 			return BigFloatComplex.of(serialized.re, serialized.im, digits);
 		case "vector":
-			return BigFloatVector.from(serialized.values.map((entry) => deserializeValue(entry, digits)), digits);
+			return BigFloatVector.from(
+				serialized.values.map((entry) => deserializeValue(entry, digits)),
+				digits,
+			);
 		case "matrix":
-			return BigFloatMatrix.fromRows(serialized.rows.map((row) => row.map((entry) => deserializeValue(entry, digits))), digits);
+			return BigFloatMatrix.fromRows(
+				serialized.rows.map((row) => row.map((entry) => deserializeValue(entry, digits))),
+				digits,
+			);
 		default:
 			throw new TypeError("Unknown serialized value.");
 	}
