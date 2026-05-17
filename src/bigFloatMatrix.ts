@@ -3,11 +3,8 @@ import { BigFloatComplex } from "./bigFloatComplex";
 import { BigFloatComplexMatrix } from "./bigFloatComplexMatrix";
 import { BigFloatStream } from "./bigFloatStream";
 import { BigFloatVector } from "./bigFloatVector";
-import type { BigFloatValue, PrecisionValue } from "./types";
+import type { BigFloatAnyMatrix, BigFloatAnyMatrixLike, BigFloatComplexMatrixLike, BigFloatInputValue, BigFloatLike, BigFloatMatrixLike, BigFloatValue, BigFloatVectorLike, PrecisionValue } from "./types";
 
-type BigFloatMatrixRowSource = Iterable<BigFloatValue | BigFloatComplex>;
-type BigFloatMatrixSource = Iterable<BigFloatMatrixRowSource>;
-type BigFloatMatrixOperand = BigFloatMatrix | BigFloatMatrixSource;
 type BigFloatMatrixRandomOptions = {
 	min?: BigFloatValue;
 	max?: BigFloatValue;
@@ -21,7 +18,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	/**
 	 * 内部要素 (行ごとの配列)
 	 */
-	protected _values: BigFloat[][];
+	public _values: BigFloat[][];
 
 	/**
 	 * BigFloatMatrix コンストラクタ
@@ -29,11 +26,11 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param precision - 変換時の精度
 	 * @throws {RangeError} 行列の行が同じ長さを持たない場合
 	 */
-	public constructor(rows: BigFloatMatrixSource = [], precision?: PrecisionValue) {
-		const rawRows = Array.from(rows, (row) => Array.from(row)) as (BigFloatValue | BigFloatComplex)[][];
+	public constructor(rows: BigFloatMatrixLike = [], precision?: PrecisionValue) {
+		const rawRows = Array.from(rows, (row) => Array.from(row)) as BigFloatValue[][];
 		BigFloatMatrix._assertRectangularRaw(rawRows);
 		const resolvedPrecision = BigFloatMatrix._resolvePrecision(rawRows.flat(), precision);
-		this._values = rawRows.map((row) => row.map((value) => BigFloatMatrix._toBigFloat(value as any, resolvedPrecision)));
+		this._values = rawRows.map((row) => row.map((value) => BigFloatMatrix._toBigFloat(value, resolvedPrecision)));
 	}
 
 	/**
@@ -41,9 +38,18 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param values - BigFloat の二次元配列
 	 * @returns BigFloatMatrix インスタンス
 	 */
-	protected static _fromBigFloatGrid(values: BigFloat[][]): BigFloatMatrix {
-		const matrix = Object.create(BigFloatMatrix.prototype) as BigFloatMatrix;
-		matrix._values = values;
+	protected static _fromBigFloatGrid(values: BigFloat[][]): BigFloatMatrix;
+	protected static _fromBigFloatGrid(values: BigFloatComplex[][]): BigFloatComplexMatrix;
+	protected static _fromBigFloatGrid(values: BigFloatLike[][]): BigFloatAnyMatrix;
+	protected static _fromBigFloatGrid(values: BigFloatLike[][]): BigFloatAnyMatrix {
+		let matrix: BigFloatAnyMatrix;
+		if (values.every((r) => r.every((c) => c instanceof BigFloat))) {
+			matrix = new this();
+			matrix._values = values;
+		} else {
+			matrix = new BigFloatComplexMatrix();
+			matrix._values = values.map((r) => r.map((c) => BigFloatComplex.from(c)));
+		}
 		return matrix;
 	}
 
@@ -54,10 +60,17 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns BigFloat インスタンス
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
-	protected static _toBigFloat(value: BigFloatValue, precision?: bigint): BigFloat {
+	protected static _toBigFloat(value: BigFloatValue, precision?: bigint): BigFloat;
+	protected static _toBigFloat(value: BigFloatComplex, precision?: bigint): BigFloatComplex;
+	protected static _toBigFloat(value: BigFloatInputValue, precision?: bigint): BigFloatLike {
 		if (value instanceof BigFloat) {
 			const cloned = value.clone();
 			if (precision === undefined || cloned._precision === precision) return cloned;
+			return cloned.changePrecision(precision);
+		}
+		if (value instanceof BigFloatComplex) {
+			const cloned = value.clone();
+			if (precision === undefined || cloned.precision === precision) return cloned;
 			return cloned.changePrecision(precision);
 		}
 		return new BigFloat(value, precision ?? BigFloat.DEFAULT_PRECISION);
@@ -69,7 +82,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param precision - 明示的に指定された精度
 	 * @returns 解決された精度
 	 */
-	protected static _resolvePrecision(values: (BigFloatValue | BigFloatComplex)[], precision?: PrecisionValue): bigint {
+	protected static _resolvePrecision(values: BigFloatVectorLike, precision?: PrecisionValue): bigint {
 		if (precision !== undefined) return BigInt(precision);
 		let resolved = BigFloat.DEFAULT_PRECISION;
 		for (const value of values) {
@@ -93,7 +106,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * 生配列が長方形か検証する
 	 * @throws {RangeError} 行列の行が同じ長さを持たない場合
 	 */
-	protected static _assertRectangularRaw(rows: (BigFloatValue | BigFloatComplex)[][]): void {
+	protected static _assertRectangularRaw(rows: BigFloatInputValue[][]): void {
 		if (rows.length === 0) return;
 		const columnCount = rows[0].length;
 		for (const row of rows) {
@@ -149,7 +162,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param referenceValues - 精度解決のための参照値リスト
 	 * @returns BigFloatMatrix インスタンス
 	 */
-	protected static _coerceMatrix(value: BigFloatMatrixOperand, referenceValues: (BigFloatValue | BigFloatComplex)[] = []): BigFloatMatrix {
+	protected static _coerceMatrix(value: BigFloatMatrixLike, referenceValues: BigFloatVectorLike = []): BigFloatMatrix {
 		if (value instanceof BigFloatMatrix) return value;
 		const rows = Array.from(value, (row) => Array.from(row));
 		const resolvedPrecision = BigFloatMatrix._resolvePrecision([...referenceValues, ...rows.flat()]);
@@ -162,7 +175,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param referenceValues - 精度解決のための参照値リスト
 	 * @returns BigFloatVector インスタンス
 	 */
-	protected static _coerceVector(value: BigFloatVector | Iterable<BigFloatValue | BigFloatComplex>, referenceValues: (BigFloatValue | BigFloatComplex)[] = []): BigFloatVector {
+	protected static _coerceVector(value: BigFloatVectorLike, referenceValues: BigFloatValue[] = []): BigFloatVector {
 		if (value instanceof BigFloatVector) return value;
 		const values = Array.from(value);
 		const resolvedPrecision = BigFloatMatrix._resolvePrecision([...referenceValues, ...values]);
@@ -182,15 +195,17 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param fn - 変換関数
 	 * @returns 変換後の新しい行列
 	 */
-	protected _mapValues(fn: (value: BigFloat, row: number, column: number) => BigFloatValue): this {
-		/** @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合 */
+	protected _mapValues(fn: (value: BigFloat, row: number, column: number) => BigFloatValue): this | BigFloatMatrix;
+	protected _mapValues(fn: (value: BigFloatLike, row: number, column: number) => BigFloatInputValue): BigFloatComplexMatrix;
+	protected _mapValues(fn: ((value: BigFloat, row: number, column: number) => BigFloatValue) | ((value: BigFloatLike, row: number, column: number) => BigFloatInputValue)): this | BigFloatAnyMatrix;
+	protected _mapValues(fn: ((value: BigFloat, row: number, column: number) => BigFloatValue) | ((value: BigFloatLike, row: number, column: number) => BigFloatInputValue)): this | BigFloatAnyMatrix {
 		const values = this._values.map((currentRow, rowIndex) =>
 			currentRow.map((value, columnIndex) => {
 				const mapped = fn(value.clone(), rowIndex, columnIndex);
-				return mapped instanceof BigFloat ? mapped.clone() : BigFloatMatrix._toBigFloat(mapped as any, value._precision);
+				return mapped instanceof BigFloat || mapped instanceof BigFloatComplex ? mapped.clone() : BigFloatMatrix._toBigFloat(mapped, value._precision);
 			}),
 		);
-		return BigFloatMatrix._fromBigFloatGrid(values) as this;
+		return BigFloatMatrix._fromBigFloatGrid(values);
 	}
 
 	/**
@@ -200,31 +215,31 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns 演算後の新しい行列
 	 * @throws {RangeError} 行列形状が一致しない場合
 	 */
-	protected _mapWithOperand(other: BigFloatMatrixOperand | BigFloatValue | BigFloatComplex | BigFloatComplexMatrix, fn: (left: BigFloat, right: BigFloat, row: number, column: number) => BigFloatValue): this {
+	protected _mapWithOperand(other: BigFloatMatrixLike | BigFloatValue, fn: (left: BigFloat, right: BigFloat, row: number, column: number) => BigFloatValue): this | BigFloatMatrix;
+	protected _mapWithOperand(other: BigFloatAnyMatrixLike | BigFloatComplex, fn: (left: BigFloat, right: BigFloatLike, row: number, column: number) => BigFloatInputValue): BigFloatComplexMatrix;
+	protected _mapWithOperand(other: BigFloatAnyMatrixLike | BigFloatInputValue, fn: ((left: BigFloat, right: BigFloat, row: number, column: number) => BigFloatValue) | ((left: BigFloat, right: BigFloatLike, row: number, column: number) => BigFloatInputValue)): this | BigFloatAnyMatrix {
 		if (other instanceof BigFloatComplexMatrix || BigFloat._isComplexValue(other)) {
 			if (this._values.length > 0 && this._values[0].length > 0) {
 				this._values[0][0]._assertComplexNumbersEnabled("operation");
 			} else if (!BigFloat.config.allowComplexNumbers) {
 				throw new TypeError("BigFloatMatrix operation does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.");
 			}
-			const op = other instanceof BigFloatComplexMatrix ? other : (other as any);
-			return BigFloatComplexMatrix.from(this.toArray()).zipMap(op, (l, r, row, col) => fn(l.real, r as any, row, col)) as any;
+			return BigFloatComplexMatrix.from(this.toArray()).zipMap(other as BigFloatComplexMatrix, (l, r, row, col) => (fn as (left: BigFloat, right: BigFloatLike, row: number, column: number) => BigFloatInputValue)(l.real, r, row, col));
 		}
 
 		if (other instanceof BigFloatMatrix || (typeof other === "object" && other !== null && Symbol.iterator in other && !(other instanceof BigFloat) && !(other instanceof BigFloatComplex))) {
-			const matrix = BigFloatMatrix._coerceMatrix(other as BigFloatMatrixOperand, this._flattenValues());
+			const matrix = BigFloatMatrix._coerceMatrix(other as BigFloatMatrixLike, this._flattenValues());
 			BigFloatMatrix._assertSameShape(this, matrix);
-			/** @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合 */
 			const values = this._values.map((currentRow, rowIndex) =>
 				currentRow.map((value, columnIndex) => {
 					const mapped = fn(value.clone(), matrix._values[rowIndex][columnIndex].clone(), rowIndex, columnIndex);
-					return mapped instanceof BigFloat ? mapped.clone() : BigFloatMatrix._toBigFloat(mapped as any, value._precision);
+					return mapped instanceof BigFloat ? mapped.clone() : BigFloatMatrix._toBigFloat(mapped as BigFloatValue, value._precision);
 				}),
 			);
 			return BigFloatMatrix._fromBigFloatGrid(values) as this;
 		}
 
-		return this._mapValues((value, row, column) => fn(value, BigFloatMatrix._toBigFloat(other as any, value._precision), row, column));
+		return this._mapValues((value, row, column) => fn(value, BigFloatMatrix._toBigFloat(other as BigFloatValue, value._precision), row, column) as BigFloat);
 	}
 
 	/**
@@ -298,15 +313,17 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param precision - 精度
 	 * @returns BigFloatMatrix インスタンス
 	 */
-	public static from(rows: BigFloatMatrixSource, precision?: PrecisionValue): BigFloatMatrix {
-		const rawRows = Array.from(rows, (row) => Array.from(row));
+	public static from(rows: BigFloatMatrixLike, precision?: PrecisionValue): BigFloatMatrix;
+	public static from(rows: BigFloatComplexMatrixLike, precision?: PrecisionValue): BigFloatComplexMatrix;
+	public static from(rows: BigFloatAnyMatrixLike, precision?: PrecisionValue): BigFloatAnyMatrix {
+		const rawRows = Array.from(rows as BigFloatMatrix, (row) => Array.from(row));
 		if (rawRows.flat().some((v) => BigFloat._isComplexValue(v))) {
 			if (!BigFloat.config.allowComplexNumbers) {
 				throw new TypeError("BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.");
 			}
-			return BigFloatComplexMatrix.from(rawRows as any, precision) as any;
+			return BigFloatComplexMatrix.from(rawRows, precision);
 		}
-		return new BigFloatMatrix(rawRows as any, precision);
+		return new BigFloatMatrix(rawRows, precision);
 	}
 
 	/**
@@ -315,7 +332,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param precision - 精度
 	 * @returns BigFloatMatrix インスタンス
 	 */
-	public static fromRows(rows: BigFloatMatrixSource, precision?: PrecisionValue): BigFloatMatrix {
+	public static fromRows(rows: BigFloatMatrixLike, precision?: PrecisionValue): BigFloatMatrix {
 		return this.from(rows, precision);
 	}
 
@@ -323,7 +340,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * 列ベクトル群から生成する
 	 * @throws {RangeError} 列ベクトルの長さが異なる場合
 	 */
-	public static fromColumns(columns: BigFloatMatrixSource, precision?: PrecisionValue): BigFloatMatrix {
+	public static fromColumns(columns: BigFloatMatrixLike, precision?: PrecisionValue): BigFloatMatrix {
 		const rawColumns = Array.from(columns, (column) => Array.from(column));
 		if (rawColumns.length === 0) return this.empty();
 		const rowCount = rawColumns[0].length;
@@ -339,7 +356,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param rows - 各行の要素配列
 	 * @returns BigFloatMatrix インスタンス
 	 */
-	public static of(...rows: BigFloatValue[][]): BigFloatMatrix {
+	public static of(...rows: BigFloatVectorLike[]): BigFloatMatrix {
 		return this.from(rows);
 	}
 
@@ -579,7 +596,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param fn - 変換関数
 	 * @returns 変換後の新しい行列
 	 */
-	public map(fn: (value: BigFloat, row: number, column: number) => BigFloatValue): this {
+	public map(fn: (value: BigFloat, row: number, column: number) => BigFloatValue): this | BigFloatMatrix {
 		return this._mapValues(fn);
 	}
 
@@ -590,7 +607,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns 変換後の新しい行列
 	 * @throws {RangeError} 行列形状が一致しない場合
 	 */
-	public zipMap(other: BigFloatMatrixOperand, fn: (left: BigFloat, right: BigFloat, row: number, column: number) => BigFloatValue): this {
+	public zipMap(other: BigFloatAnyMatrixLike, fn: (left: BigFloat, right: BigFloatLike, row: number, column: number) => BigFloatValue): this | BigFloatAnyMatrix {
 		return this._mapWithOperand(other, fn);
 	}
 
@@ -642,7 +659,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * 行方向に連結する
 	 * @throws {RangeError} 列数が一致しない場合
 	 */
-	public concatRows(...others: BigFloatMatrixOperand[]): this {
+	public concatRows(...others: BigFloatMatrixLike[]): this {
 		const values = this.toArray();
 		for (const other of others) {
 			const matrix = BigFloatMatrix._coerceMatrix(other, this._flattenValues());
@@ -656,7 +673,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * 列方向に連結する
 	 * @throws {RangeError} 行数が一致しない場合
 	 */
-	public concatColumns(...others: BigFloatMatrixOperand[]): this {
+	public concatColumns(...others: BigFloatMatrixLike[]): this {
 		let result = this.clone();
 		for (const other of others) {
 			const matrix = BigFloatMatrix._coerceMatrix(other, result._flattenValues());
@@ -703,7 +720,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
-	public equals(other: BigFloatMatrixOperand): boolean {
+	public equals(other: BigFloatMatrixLike): boolean {
 		const matrix = BigFloatMatrix._coerceMatrix(other, this._flattenValues());
 		if (this.rowCount !== matrix.rowCount || this.columnCount !== matrix.columnCount) return false;
 		for (let row = 0; row < this.rowCount; row++) {
@@ -720,7 +737,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns 精度が変更された新しい行列
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
-	public changePrecision(precision: PrecisionValue): this {
+	public changePrecision(precision: PrecisionValue): this | BigFloatMatrix {
 		const precisionBig = BigInt(precision);
 		return this._mapValues((value) => value.changePrecision(precisionBig));
 	}
@@ -735,8 +752,8 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public add(other: BigFloatValue | BigFloatMatrixOperand): this {
-		return this._mapWithOperand(other, (left, right) => left.add(right));
+	public add(other: BigFloatInputValue | BigFloatAnyMatrixLike): this | BigFloatAnyMatrix {
+		return this._mapWithOperand(other as BigFloatValue, (left, right) => left.add(right));
 	}
 
 	/**
@@ -749,8 +766,8 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public sub(other: BigFloatValue | BigFloatMatrixOperand): this {
-		return this._mapWithOperand(other, (left, right) => left.sub(right));
+	public sub(other: BigFloatInputValue | BigFloatAnyMatrixLike): this | BigFloatAnyMatrix {
+		return this._mapWithOperand(other as BigFloatValue, (left, right) => left.sub(right));
 	}
 
 	/**
@@ -763,7 +780,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public mul(scalar: BigFloatValue): this {
+	public mul(scalar: BigFloatValue): this | BigFloatAnyMatrix {
 		return this._mapValues((value) => value.mul(scalar));
 	}
 
@@ -778,7 +795,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public div(scalar: BigFloatValue): this {
+	public div(scalar: BigFloatValue): this | BigFloatMatrix {
 		return this._mapValues((value) => value.div(scalar));
 	}
 
@@ -790,9 +807,8 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {RangeError} 行列形状が一致しない場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 *      *
 	 */
-	public mod(other: BigFloatValue | BigFloatMatrixOperand): this {
+	public mod(other: BigFloatValue | BigFloatMatrixLike): this | BigFloatMatrix {
 		return this._mapWithOperand(other, (left, right) => left.mod(right));
 	}
 
@@ -806,7 +822,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public hadamard(other: BigFloatMatrixOperand): this {
+	public hadamard(other: BigFloatMatrixLike): this | BigFloatMatrix {
 		return this._mapWithOperand(other, (left, right) => left.mul(right));
 	}
 
@@ -815,7 +831,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns 符号反転後の新しい行列
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 */
-	public neg(): this {
+	public neg(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.neg());
 	}
 
@@ -824,7 +840,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns 絶対値適用後の新しい行列
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 */
-	public abs(): this {
+	public abs(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.abs());
 	}
 
@@ -833,7 +849,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns 符号行列
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
 	 */
-	public sign(): this {
+	public sign(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.sign());
 	}
 
@@ -847,7 +863,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public reciprocal(): this {
+	public reciprocal(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.reciprocal());
 	}
 
@@ -863,9 +879,8 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
-	 *      *      *      *      *
 	 */
-	public pow(exponent: BigFloatValue | BigFloatMatrixOperand): this {
+	public pow(exponent: BigFloatValue | BigFloatMatrixLike): this | BigFloatMatrix {
 		return this._mapWithOperand(exponent, (left, right) => left.pow(right));
 	}
 
@@ -878,7 +893,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public sqrt(): this {
+	public sqrt(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.sqrt());
 	}
 
@@ -888,7 +903,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {RangeError} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
 	 */
-	public cbrt(): this {
+	public cbrt(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.cbrt());
 	}
 
@@ -899,7 +914,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {RangeError} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 */
-	public nthRoot(n: number | bigint): this {
+	public nthRoot(n: number | bigint): this | BigFloatMatrix {
 		return this._mapValues((value) => value.nthRoot(n));
 	}
 
@@ -908,7 +923,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns 床関数適用後の新しい行列
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
 	 */
-	public floor(): this {
+	public floor(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.floor());
 	}
 
@@ -917,7 +932,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns 天井関数適用後の新しい行列
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
 	 */
-	public ceil(): this {
+	public ceil(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.ceil());
 	}
 
@@ -930,7 +945,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public round(): this {
+	public round(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.round());
 	}
 
@@ -939,7 +954,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns 切り捨て後の新しい行列
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
 	 */
-	public trunc(): this {
+	public trunc(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.trunc());
 	}
 
@@ -952,7 +967,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public fround(): this {
+	public fround(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.fround());
 	}
 
@@ -965,7 +980,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public clz32(): this {
+	public clz32(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.clz32());
 	}
 
@@ -979,9 +994,8 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {DivisionByZeroError} Division by zero
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 *      *      *
 	 */
-	public relativeDiff(other: BigFloatValue | BigFloatMatrixOperand): this {
+	public relativeDiff(other: BigFloatValue | BigFloatMatrixLike): this | BigFloatMatrix {
 		return this._mapWithOperand(other, (left, right) => left.relativeDiff(right));
 	}
 
@@ -995,7 +1009,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public absoluteDiff(other: BigFloatValue | BigFloatMatrixOperand): this {
+	public absoluteDiff(other: BigFloatValue | BigFloatMatrixLike): this | BigFloatMatrix {
 		return this._mapWithOperand(other, (left, right) => left.absoluteDiff(right));
 	}
 
@@ -1010,7 +1024,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {DivisionByZeroError} Division by zero
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public percentDiff(other: BigFloatValue | BigFloatMatrixOperand): this {
+	public percentDiff(other: BigFloatValue | BigFloatMatrixLike): this | BigFloatMatrix {
 		return this._mapWithOperand(other, (left, right) => left.percentDiff(right));
 	}
 
@@ -1024,7 +1038,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public sin(): this {
+	public sin(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.sin());
 	}
 
@@ -1037,7 +1051,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public cos(): this {
+	public cos(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.cos());
 	}
 
@@ -1052,7 +1066,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public tan(): this {
+	public tan(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.tan());
 	}
 
@@ -1067,7 +1081,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public asin(): this {
+	public asin(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.asin());
 	}
 
@@ -1082,7 +1096,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public acos(): this {
+	public acos(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.acos());
 	}
 
@@ -1098,7 +1112,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public atan(): this {
+	public atan(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.atan());
 	}
 
@@ -1115,7 +1129,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public atan2(x: BigFloatValue | BigFloatMatrixOperand): this {
+	public atan2(x: BigFloatValue | BigFloatMatrixLike): this | BigFloatMatrix {
 		return this._mapWithOperand(x, (left, right) => left.atan2(right));
 	}
 
@@ -1129,7 +1143,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public sinh(): this {
+	public sinh(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.sinh());
 	}
 
@@ -1143,7 +1157,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {DivisionByZeroError} Division by zero
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public cosh(): this {
+	public cosh(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.cosh());
 	}
 
@@ -1157,7 +1171,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public tanh(): this {
+	public tanh(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.tanh());
 	}
 
@@ -1171,7 +1185,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public asinh(): this {
+	public asinh(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.asinh());
 	}
 
@@ -1185,7 +1199,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public acosh(): this {
+	public acosh(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.acosh());
 	}
 
@@ -1200,7 +1214,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public atanh(): this {
+	public atanh(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.atanh());
 	}
 
@@ -1213,7 +1227,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public exp(): this {
+	public exp(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.exp());
 	}
 
@@ -1223,7 +1237,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
-	public exp2(): this {
+	public exp2(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.exp2());
 	}
 
@@ -1232,7 +1246,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns expm1 適用後の行列
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 */
-	public expm1(): this {
+	public expm1(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.expm1());
 	}
 
@@ -1246,7 +1260,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public ln(): this {
+	public ln(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.ln());
 	}
 
@@ -1259,7 +1273,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
-	public log(base: BigFloatValue | BigFloatMatrixOperand): this {
+	public log(base: BigFloatValue | BigFloatMatrixLike): this | BigFloatMatrix {
 		return this._mapWithOperand(base, (left, right) => left.log(right));
 	}
 
@@ -1270,7 +1284,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
-	public log2(): this {
+	public log2(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.log2());
 	}
 
@@ -1281,7 +1295,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
-	public log10(): this {
+	public log10(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.log10());
 	}
 
@@ -1293,7 +1307,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
-	public log1p(): this {
+	public log1p(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.log1p());
 	}
 
@@ -1305,7 +1319,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} division by zero
 	 */
-	public gamma(): this {
+	public gamma(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.gamma());
 	}
 
@@ -1317,7 +1331,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
-	public zeta(): this {
+	public zeta(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.zeta());
 	}
 
@@ -1329,7 +1343,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} division by zero
 	 */
-	public factorial(): this {
+	public factorial(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.factorial());
 	}
 
@@ -1478,7 +1492,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns 行列積の結果
 	 * @throws {RangeError} 内積次元が一致しない場合
 	 */
-	public matmul(other: BigFloatMatrixOperand): this {
+	public matmul(other: BigFloatMatrixLike): this {
 		const matrix = BigFloatMatrix._coerceMatrix(other, this._flattenValues());
 		BigFloatMatrix._assertMultipliable(this, matrix);
 		if (this.rowCount === 0 || this.columnCount === 0 || matrix.columnCount === 0) return BigFloatMatrix.empty() as this;
@@ -1510,7 +1524,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public mulVector(vector: BigFloatVector | Iterable<BigFloatValue>): BigFloatVector {
+	public mulVector(vector: BigFloatVectorLike): BigFloatVector {
 		const rhs = BigFloatMatrix._coerceVector(vector, this._flattenValues());
 		if (this.columnCount !== rhs.length) throw new RangeError("Inner matrix dimensions must agree");
 		return BigFloatVector.from(this._values.map((row) => BigFloatVector.from(row.map((value) => value.clone())).dot(rhs)));
@@ -1605,7 +1619,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {DivisionByZeroError} Division by zero
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public solveVector(rhs: BigFloatVector | Iterable<BigFloatValue>): BigFloatVector {
+	public solveVector(rhs: BigFloatVectorLike): BigFloatVector {
 		BigFloatMatrix._assertSquare(this);
 		const vector = BigFloatMatrix._coerceVector(rhs, this._flattenValues());
 		if (vector.length !== this.rowCount) throw new RangeError("Right-hand side vector length must match row count");
@@ -1624,7 +1638,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {DivisionByZeroError} Division by zero
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public solveMatrix(rhs: BigFloatMatrixOperand): this {
+	public solveMatrix(rhs: BigFloatMatrixLike): this {
 		BigFloatMatrix._assertSquare(this);
 		const right = BigFloatMatrix._coerceMatrix(rhs, this._flattenValues());
 		if (right.rowCount !== this.rowCount) throw new RangeError("Right-hand side row count must match");

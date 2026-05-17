@@ -1,15 +1,15 @@
 import { BigFloat } from "./bigFloat";
 import { BigFloatVector } from "./bigFloatVector";
-import type { BigFloatValue, PrecisionValue } from "./types";
+import type { BigFloatInputValue, BigFloatValue, PrecisionValue } from "./types";
 
 type BigFloatComplexObject = {
-	re?: BigFloatValue;
-	im?: BigFloatValue;
-	real?: BigFloatValue;
-	imag?: BigFloatValue;
+	re?: BigFloatInputValue;
+	im?: BigFloatInputValue;
+	real?: BigFloatInputValue;
+	imag?: BigFloatInputValue;
 };
-type BigFloatComplexTuple = readonly [BigFloatValue, BigFloatValue];
-type BigFloatComplexValue = BigFloatComplex | BigFloatValue | BigFloatComplexTuple | BigFloatComplexObject;
+type BigFloatComplexTuple = readonly [BigFloatInputValue, BigFloatInputValue];
+type BigFloatComplexValue = BigFloatInputValue | BigFloatComplexTuple | BigFloatComplexObject;
 type BigFloatComplexAggregateSource = Iterable<BigFloatComplexValue>;
 
 /**
@@ -42,9 +42,6 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @param precision - 精度
 	 */
 	public constructor(real: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue);
-	/** @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 */
 	public constructor(real: BigFloatComplexValue = 0, imagOrPrecision?: BigFloatValue | PrecisionValue, precision?: PrecisionValue) {
 		const { imagPartValue, precisionValue } = BigFloatComplex._normalizeArguments(real, imagOrPrecision, precision, arguments.length);
 		const { realPart, imagPart } = BigFloatComplex._normalizeParts(real, imagPartValue);
@@ -61,7 +58,7 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @returns 変換された BigFloat
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
-	protected static _toBigFloat(value: BigFloatValue, precision?: bigint): BigFloat {
+	protected static _toBigFloat(value: BigFloatInputValue, precision?: bigint): BigFloat {
 		if (value instanceof BigFloat) {
 			const cloned = value.clone();
 			if (precision === undefined || cloned._precision === precision) return cloned;
@@ -76,7 +73,7 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @param precision - 明示的に指定された精度
 	 * @returns 解決された精度
 	 */
-	protected static _resolvePrecision(values: BigFloatValue[], precision?: PrecisionValue): bigint {
+	protected static _resolvePrecision(values: BigFloatInputValue[], precision?: PrecisionValue): bigint {
 		if (precision !== undefined) return BigInt(precision);
 		let resolved = BigFloat.DEFAULT_PRECISION;
 		for (const value of values) {
@@ -108,7 +105,7 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @returns 実部と虚部のオブジェクト
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	protected static _normalizeParts(value: BigFloatComplexValue, imag?: BigFloatValue): { realPart: BigFloatValue; imagPart: BigFloatValue } {
+	protected static _normalizeParts(value: BigFloatComplexValue, imag?: BigFloatValue): { realPart: BigFloatInputValue; imagPart: BigFloatInputValue } {
 		if (value instanceof BigFloatComplex) return { realPart: value._real, imagPart: value._imag };
 		if (Array.isArray(value)) return { realPart: value[0] ?? 0, imagPart: value[1] ?? 0 };
 		if (typeof value === "string") {
@@ -138,7 +135,7 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @returns 解決された虚部と精度のオブジェクト
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	protected static _normalizeArguments(value: BigFloatComplexValue, imagOrPrecision: BigFloatValue | PrecisionValue | undefined, precision?: PrecisionValue, argCount = 0): { imagPartValue: BigFloatValue; precisionValue: PrecisionValue | undefined } {
+	protected static _normalizeArguments(value: BigFloatComplexValue, imagOrPrecision?: BigFloatValue | PrecisionValue, precision?: PrecisionValue, argCount = 0): { imagPartValue: BigFloatValue; precisionValue: PrecisionValue | undefined } {
 		if (argCount <= 1) return { imagPartValue: 0, precisionValue: precision };
 		if (precision !== undefined) return { imagPartValue: imagOrPrecision as BigFloatValue, precisionValue: precision };
 		if (argCount === 2 && this._shouldTreatSecondArgumentAsPrecision(value, imagOrPrecision)) {
@@ -154,7 +151,7 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @returns 精度として扱う場合は true
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	protected static _shouldTreatSecondArgumentAsPrecision(value: BigFloatComplexValue, imagOrPrecision: BigFloatValue | PrecisionValue | undefined): boolean {
+	protected static _shouldTreatSecondArgumentAsPrecision(value: BigFloatComplexValue, imagOrPrecision?: BigFloatValue | PrecisionValue): imagOrPrecision is PrecisionValue {
 		if (typeof imagOrPrecision !== "number" && typeof imagOrPrecision !== "bigint") return false;
 		if (value instanceof BigFloatComplex) return true;
 		if (Array.isArray(value)) return true;
@@ -278,7 +275,6 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @returns tau + 0i
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
-	 *      *      *
 	 */
 	public static tau(precision: PrecisionValue = 20): BigFloatComplex {
 		return new BigFloatComplex(BigFloat.tau(precision), 0, precision);
@@ -289,6 +285,7 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @param value - 実部、複素数表現、または複素数オブジェクト
 	 * @param precision - 精度
 	 * @returns BigFloatComplex インスタンス
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public static from(value: BigFloatComplexValue, precision?: PrecisionValue): BigFloatComplex;
 	/**
@@ -297,13 +294,13 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @param imag - 虚部
 	 * @param precision - 精度
 	 * @returns BigFloatComplex インスタンス
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public static from(value: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue): BigFloatComplex;
-	/** @throws {SyntaxError} 文字列が複素数表現として無効な場合 */
-	public static from(value: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue): BigFloatComplex {
+	public static from(value: BigFloatComplexValue, imag?: BigFloatValue | PrecisionValue, precision?: PrecisionValue): BigFloatComplex {
 		if (precision !== undefined) return new BigFloatComplex(value, imag, precision);
 		if (imag === undefined) return new BigFloatComplex(value);
-		if (this._shouldTreatSecondArgumentAsPrecision(value, imag)) return new BigFloatComplex(value, imag as PrecisionValue);
+		if (this._shouldTreatSecondArgumentAsPrecision(value, imag)) return new BigFloatComplex(value, imag);
 		return new BigFloatComplex(value, imag);
 	}
 
@@ -386,12 +383,13 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 */
 	public static average(values: BigFloatComplexAggregateSource, precision?: PrecisionValue): BigFloatComplex {
 		let count = 0;
-		let total = precision === undefined ? this.zero() : this.zero(precision);
+		const p = precision === undefined ? BigFloat.DEFAULT_PRECISION : BigInt(precision);
+		let total = this.zero(p);
 		for (const value of values) {
 			total = total.add(value);
 			count++;
 		}
-		if (count === 0) return precision === undefined ? this.zero() : this.zero(precision);
+		if (count === 0) return this.zero(p);
 		return total.div(count);
 	}
 
@@ -893,7 +891,6 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {DivisionByZeroError} Division by zero
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
-	 *      *      *
 	 */
 	public log(base: BigFloatComplexValue): BigFloatComplex {
 		return this.ln().div(BigFloatComplex._toComplex(base, this._precision).ln());
@@ -911,7 +908,6 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} Division by zero
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
-	 *      *      *
 	 */
 	public pow(exponent: BigFloatComplexValue): BigFloatComplex {
 		const rhs = BigFloatComplex._toComplex(exponent, this._precision);
@@ -1103,7 +1099,6 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
-	 *      *      *
 	 */
 	public asin(): BigFloatComplex {
 		const i = BigFloatComplex.i(this._precision);
@@ -1127,7 +1122,6 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {DivisionByZeroError} Division by zero
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
-	 *      *      *      *
 	 */
 	public acos(): BigFloatComplex {
 		const halfPi = BigFloatComplex.pi(this._precision).div(2);
@@ -1145,7 +1139,6 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
-	 *      *      *
 	 */
 	public atan(): BigFloatComplex {
 		const i = BigFloatComplex.i(this._precision);
@@ -1171,7 +1164,6 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
-	 *      *      *
 	 */
 	public asinh(): BigFloatComplex {
 		return this.mul(this).add(1).sqrt().add(this).ln();
@@ -1188,7 +1180,6 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
-	 *      *      *
 	 */
 	public acosh(): BigFloatComplex {
 		const one = BigFloatComplex.one(this._precision);
@@ -1206,7 +1197,6 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {DivisionByZeroError} Division by zero
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
-	 *      *      *
 	 */
 	public atanh(): BigFloatComplex {
 		const one = BigFloatComplex.one(this._precision);

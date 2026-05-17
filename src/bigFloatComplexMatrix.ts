@@ -3,14 +3,11 @@ import { BigFloatComplex } from "./bigFloatComplex";
 import { BigFloatComplexVector } from "./bigFloatComplexVector";
 import { BigFloatMatrix } from "./bigFloatMatrix";
 import { BigFloatStream } from "./bigFloatStream";
-import type { BigFloatValue, PrecisionValue } from "./types";
+import type { BigFloatAnyMatrix, BigFloatAnyMatrixLike, BigFloatAnyVectorLike, BigFloatComplexMatrixLike, BigFloatInputValue, PrecisionValue } from "./types";
 
-type BigFloatComplexMatrixRowSource = Iterable<BigFloatComplex | BigFloatValue>;
-type BigFloatComplexMatrixSource = Iterable<BigFloatComplexMatrixRowSource>;
-type BigFloatComplexMatrixOperand = BigFloatComplexMatrix | BigFloatMatrix | BigFloatComplexMatrixSource;
 type BigFloatComplexMatrixRandomOptions = {
-	min?: BigFloatComplex | BigFloatValue;
-	max?: BigFloatComplex | BigFloatValue;
+	min?: BigFloatInputValue;
+	max?: BigFloatInputValue;
 	precision?: PrecisionValue;
 };
 
@@ -21,15 +18,15 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	/**
 	 * 内部要素 (行ごとの配列)
 	 */
-	protected _values: BigFloatComplex[][];
+	public _values: BigFloatComplex[][];
 
 	/**
 	 * BigFloatComplexMatrix コンストラクタ
 	 * @param rows - 行列要素の反復可能オブジェクト
 	 * @param precision - 精度
 	 */
-	public constructor(rows: BigFloatComplexMatrixSource = [], precision?: PrecisionValue) {
-		const rawRows = Array.from(rows, (row) => Array.from(row));
+	public constructor(rows: BigFloatAnyMatrixLike = [], precision?: PrecisionValue) {
+		const rawRows = Array.from(rows as BigFloatComplexMatrixLike, (row) => Array.from(row));
 		BigFloatComplexMatrix._assertRectangularRaw(rawRows);
 		const resolvedPrecision = BigFloatComplexMatrix._resolvePrecision(rawRows.flat(), precision);
 		this._values = rawRows.map((row) => row.map((value) => BigFloatComplexMatrix._toComplex(value, resolvedPrecision)));
@@ -41,14 +38,14 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return matrix;
 	}
 
-	protected static _toComplex(value: BigFloatComplex | BigFloatValue, precision?: bigint): BigFloatComplex {
+	protected static _toComplex(value: BigFloatInputValue, precision?: bigint): BigFloatComplex {
 		if (value instanceof BigFloatComplex) {
 			return precision === undefined || value.precision === precision ? value.clone() : value.changePrecision(precision);
 		}
 		return new BigFloatComplex(value, 0, precision);
 	}
 
-	protected static _resolvePrecision(values: (BigFloatComplex | BigFloatValue)[], precision?: PrecisionValue): bigint {
+	protected static _resolvePrecision(values: BigFloatInputValue[], precision?: PrecisionValue): bigint {
 		if (precision !== undefined) return BigInt(precision);
 		let resolved = BigFloat.DEFAULT_PRECISION;
 		for (const value of values) {
@@ -58,7 +55,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return resolved;
 	}
 
-	protected static _assertRectangularRaw(rows: (BigFloatComplex | BigFloatValue)[][]): void {
+	protected static _assertRectangularRaw(rows: BigFloatInputValue[][]): void {
 		if (rows.length === 0) return;
 		const columnCount = rows[0].length;
 		for (const row of rows) {
@@ -66,18 +63,18 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		}
 	}
 
-	protected static _assertSameShape(left: BigFloatComplexMatrix | BigFloatMatrix, right: BigFloatComplexMatrix | BigFloatMatrix): void {
+	protected static _assertSameShape(left: BigFloatAnyMatrix, right: BigFloatAnyMatrix): void {
 		if (left.rowCount !== right.rowCount || left.columnCount !== right.columnCount) {
 			throw new RangeError("Matrix shapes must match");
 		}
 	}
 
-	protected static _coerceMatrix(value: BigFloatComplexMatrixOperand, referenceValues: (BigFloatComplex | BigFloatValue)[] = []): BigFloatComplexMatrix {
+	protected static _coerceMatrix(value: BigFloatAnyMatrixLike, referenceValues: BigFloatInputValue[] = []): BigFloatComplexMatrix {
 		if (value instanceof BigFloatComplexMatrix) return value;
 		if (value instanceof BigFloatMatrix) {
 			return BigFloatComplexMatrix._fromComplexGrid(value.toArray().map((row) => row.map((v) => new BigFloatComplex(v))));
 		}
-		const rows = Array.from(value, (row) => Array.from(row));
+		const rows = Array.from(value as BigFloatComplexMatrixLike, (row) => Array.from(row));
 		const resolvedPrecision = BigFloatComplexMatrix._resolvePrecision([...referenceValues, ...rows.flat()]);
 		return new BigFloatComplexMatrix(rows, resolvedPrecision);
 	}
@@ -86,7 +83,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return this._values.flat();
 	}
 
-	protected _mapValues(fn: (value: BigFloatComplex, row: number, column: number) => BigFloatComplex | BigFloatValue): this {
+	protected _mapValues(fn: (value: BigFloatComplex, row: number, column: number) => BigFloatInputValue): this {
 		const values = this._values.map((currentRow, rowIndex) =>
 			currentRow.map((value, columnIndex) => {
 				const mapped = fn(value.clone(), rowIndex, columnIndex);
@@ -96,9 +93,9 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return BigFloatComplexMatrix._fromComplexGrid(values) as this;
 	}
 
-	protected _mapWithOperand(other: BigFloatComplexMatrixOperand | BigFloatComplex | BigFloatValue, fn: (left: BigFloatComplex, right: BigFloatComplex, row: number, column: number) => BigFloatComplex | BigFloatValue): this {
+	protected _mapWithOperand(other: BigFloatAnyMatrixLike | BigFloatInputValue, fn: (left: BigFloatComplex, right: BigFloatComplex, row: number, column: number) => BigFloatInputValue): this {
 		if (other instanceof BigFloatComplexMatrix || other instanceof BigFloatMatrix || (typeof other === "object" && other !== null && Symbol.iterator in other && !(other instanceof BigFloat) && !(other instanceof BigFloatComplex))) {
-			const matrix = BigFloatComplexMatrix._coerceMatrix(other as BigFloatComplexMatrixOperand, this._flattenValues());
+			const matrix = BigFloatComplexMatrix._coerceMatrix(other as BigFloatAnyMatrixLike, this._flattenValues());
 			BigFloatComplexMatrix._assertSameShape(this, matrix);
 			const values = this._values.map((currentRow, rowIndex) =>
 				currentRow.map((value, columnIndex) => {
@@ -109,7 +106,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 			return BigFloatComplexMatrix._fromComplexGrid(values) as this;
 		}
 
-		const right = BigFloatComplexMatrix._toComplex(other as BigFloatComplex | BigFloatValue, this._values[0]?.[0]?.precision);
+		const right = BigFloatComplexMatrix._toComplex(other as BigFloatInputValue, this._values[0]?.[0]?.precision);
 		return this._mapValues((value, row, column) => fn(value, right, row, column));
 	}
 
@@ -117,27 +114,27 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return this._fromComplexGrid([]);
 	}
 
-	public static from(rows: BigFloatComplexMatrixSource, precision?: PrecisionValue): BigFloatComplexMatrix {
+	public static from(rows: BigFloatAnyMatrixLike, precision?: PrecisionValue): BigFloatComplexMatrix {
 		return new BigFloatComplexMatrix(rows, precision);
 	}
 
-	public static fromRows(rows: BigFloatComplexMatrixSource, precision?: PrecisionValue): BigFloatComplexMatrix {
+	public static fromRows(rows: BigFloatAnyMatrixLike, precision?: PrecisionValue): BigFloatComplexMatrix {
 		return this.from(rows, precision);
 	}
 
-	public static fromColumns(columns: BigFloatComplexMatrixSource, precision?: PrecisionValue): BigFloatComplexMatrix {
-		const rawColumns = Array.from(columns, (col) => Array.from(col));
+	public static fromColumns(columns: BigFloatAnyMatrixLike, precision?: PrecisionValue): BigFloatComplexMatrix {
+		const rawColumns = Array.from(columns as BigFloatComplexMatrixLike, (col) => Array.from(col));
 		if (rawColumns.length === 0) return this.empty();
 		const rowCount = rawColumns[0].length;
 		const rows = Array.from({ length: rowCount }, (_, r) => rawColumns.map((col) => col[r]));
 		return this.from(rows, precision);
 	}
 
-	public static of(...rows: (BigFloatComplex | BigFloatValue)[][]): BigFloatComplexMatrix {
-		return this.from(rows);
+	public static of(...rows: BigFloatAnyVectorLike[]): BigFloatComplexMatrix {
+		return this.from(rows as BigFloatAnyMatrixLike);
 	}
 
-	public static fill(rowCount: number, columnCount: number, value: BigFloatComplex | BigFloatValue, precision?: PrecisionValue): BigFloatComplexMatrix {
+	public static fill(rowCount: number, columnCount: number, value: BigFloatInputValue, precision?: PrecisionValue): BigFloatComplexMatrix {
 		if (rowCount <= 0 || columnCount <= 0) return this.empty();
 		const resolvedPrecision = BigFloatComplexMatrix._resolvePrecision([value], precision);
 		const base = this._toComplex(value, resolvedPrecision);
@@ -152,7 +149,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return this.fill(rowCount, columnCount, 1, precision);
 	}
 
-	public static diagonal(values: Iterable<BigFloatComplex | BigFloatValue>, precision?: PrecisionValue): BigFloatComplexMatrix {
+	public static diagonal(values: BigFloatAnyVectorLike, precision?: PrecisionValue): BigFloatComplexMatrix {
 		const entries = Array.from(values);
 		const resolvedPrecision = this._resolvePrecision(entries, precision);
 		return this._fromComplexGrid(entries.map((v, r) => entries.map((_, c) => (r === c ? this._toComplex(v, resolvedPrecision) : new BigFloatComplex(0, 0, resolvedPrecision)))));
@@ -240,7 +237,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		}
 	}
 
-	public map(fn: (value: BigFloatComplex, row: number, column: number) => BigFloatComplex | BigFloatValue): this {
+	public map(fn: (value: BigFloatComplex, row: number, column: number) => BigFloatInputValue): this {
 		return this._mapValues(fn);
 	}
 
@@ -251,29 +248,29 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return BigFloatStream.from(this._flattenValues());
 	}
 
-	public add(other: BigFloatComplex | BigFloatValue | BigFloatComplexMatrixOperand): this {
+	public add(other: BigFloatInputValue | BigFloatAnyMatrixLike): this {
 		return this._mapWithOperand(other, (l, r) => l.add(r));
 	}
 
-	public sub(other: BigFloatComplex | BigFloatValue | BigFloatComplexMatrixOperand): this {
+	public sub(other: BigFloatInputValue | BigFloatAnyMatrixLike): this {
 		return this._mapWithOperand(other, (l, r) => l.sub(r));
 	}
 
-	public hadamard(other: BigFloatComplexMatrixOperand): this {
+	public hadamard(other: BigFloatAnyMatrixLike): this {
 		return this._mapWithOperand(other, (l, r) => l.mul(r));
 	}
 
-	public mul(scalar: BigFloatComplex | BigFloatValue): this {
+	public mul(scalar: BigFloatInputValue): this {
 		const s = BigFloatComplexMatrix._toComplex(scalar, this._values[0]?.[0]?.precision);
 		return this._mapValues((v) => v.mul(s));
 	}
 
-	public div(scalar: BigFloatComplex | BigFloatValue): this {
+	public div(scalar: BigFloatInputValue): this {
 		const s = BigFloatComplexMatrix._toComplex(scalar, this._values[0]?.[0]?.precision);
 		return this._mapValues((v) => v.div(s));
 	}
 
-	public matmul(other: BigFloatComplexMatrixOperand): this {
+	public matmul(other: BigFloatAnyMatrixLike): this {
 		const matrix = BigFloatComplexMatrix._coerceMatrix(other, this._flattenValues());
 		if (this.columnCount !== matrix.rowCount) throw new RangeError("Inner matrix dimensions must agree");
 		if (this.rowCount === 0 || this.columnCount === 0 || matrix.columnCount === 0) return BigFloatComplexMatrix.empty() as this;
@@ -399,15 +396,15 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return BigFloatComplexMatrix._fromComplexGrid(augmented.map((row) => row.slice(size))) as this;
 	}
 
-	public solveVector(rhs: BigFloatComplexVector | Iterable<BigFloatComplex | BigFloatValue>): BigFloatComplexVector {
+	public solveVector(rhs: BigFloatAnyVectorLike): BigFloatComplexVector {
 		if (!this.isSquare()) throw new RangeError("Matrix must be square");
-		const vector = BigFloatComplexVector.from(rhs as any);
+		const vector = BigFloatComplexVector.from(rhs);
 		if (vector.length !== this.rowCount) throw new RangeError("Dimension mismatch");
 		const solution = this.solveMatrix(BigFloatComplexMatrix.from(vector.toArray().map((v) => [v])));
 		return solution.column(0) ?? BigFloatComplexVector.empty();
 	}
 
-	public solveMatrix(rhs: BigFloatComplexMatrixOperand): this {
+	public solveMatrix(rhs: BigFloatAnyMatrixLike): this {
 		if (!this.isSquare()) throw new RangeError("Matrix must be square");
 		const right = BigFloatComplexMatrix._coerceMatrix(rhs, this._flattenValues());
 		if (right.rowCount !== this.rowCount) throw new RangeError("Dimension mismatch");
@@ -485,7 +482,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return BigFloatComplexMatrix._fromComplexGrid(Array.from({ length: s }, (_, r) => Array.from({ length: s }, (_, c) => new BigFloatComplex(r === c ? 1 : 0, 0, p))));
 	}
 
-	public equals(other: BigFloatComplexMatrixOperand): boolean {
+	public equals(other: BigFloatAnyMatrixLike): boolean {
 		const matrix = BigFloatComplexMatrix._coerceMatrix(other, this._flattenValues());
 		if (this.rowCount !== matrix.rowCount || this.columnCount !== matrix.columnCount) return false;
 		for (let r = 0; r < this.rowCount; r++) {
@@ -519,8 +516,8 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 			.sqrt();
 	}
 
-	public mulVector(vector: BigFloatComplexVector | Iterable<BigFloatComplex | BigFloatValue>): BigFloatComplexVector {
-		const rhs = BigFloatComplexVector.from(vector as any);
+	public mulVector(vector: BigFloatAnyVectorLike): BigFloatComplexVector {
+		const rhs = BigFloatComplexVector.from(vector);
 		if (this.columnCount !== rhs.length) throw new RangeError("Inner matrix dimensions must agree");
 		return BigFloatComplexVector.from(this._values.map((row) => BigFloatComplexVector.from(row).dot(rhs)));
 	}
@@ -534,7 +531,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return BigFloatComplexVector.from(this._flattenValues().map((v) => v.clone()));
 	}
 
-	public zipMap(other: BigFloatComplexMatrixOperand, fn: (left: BigFloatComplex, right: BigFloatComplex, row: number, column: number) => BigFloatComplex | BigFloatValue): this {
+	public zipMap(other: BigFloatAnyMatrixLike, fn: (left: BigFloatComplex, right: BigFloatComplex, row: number, column: number) => BigFloatInputValue): this {
 		return this._mapWithOperand(other, fn);
 	}
 
@@ -566,7 +563,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return true;
 	}
 
-	public concatRows(...others: BigFloatComplexMatrixOperand[]): this {
+	public concatRows(...others: BigFloatAnyMatrixLike[]): this {
 		const values = this.toArray();
 		for (const other of others) {
 			const matrix = BigFloatComplexMatrix._coerceMatrix(other, this._flattenValues());
@@ -576,7 +573,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return BigFloatComplexMatrix._fromComplexGrid(values) as this;
 	}
 
-	public concatColumns(...others: BigFloatComplexMatrixOperand[]): this {
+	public concatColumns(...others: BigFloatAnyMatrixLike[]): this {
 		let result = this.clone();
 		for (const other of others) {
 			const matrix = BigFloatComplexMatrix._coerceMatrix(other, result._flattenValues());
@@ -599,7 +596,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return this._mapValues((v) => v.changePrecision(p));
 	}
 
-	public mod(other: BigFloatComplex | BigFloatValue | BigFloatComplexMatrixOperand): this {
+	public mod(other: BigFloatInputValue | BigFloatAnyMatrixLike): this {
 		return this._mapWithOperand(other, (l, r) => l.mod(r));
 	}
 
@@ -619,7 +616,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return this._mapValues((v) => v.reciprocal());
 	}
 
-	public pow(exponent: BigFloatComplex | BigFloatValue | BigFloatComplexMatrixOperand): this {
+	public pow(exponent: BigFloatInputValue | BigFloatAnyMatrixLike): this {
 		return this._mapWithOperand(exponent, (l, r) => l.pow(r));
 	}
 
@@ -659,15 +656,15 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return this._mapValues((v) => v.clz32());
 	}
 
-	public relativeDiff(other: BigFloatComplex | BigFloatValue | BigFloatComplexMatrixOperand): this {
+	public relativeDiff(other: BigFloatInputValue | BigFloatAnyMatrixLike): this {
 		return this._mapWithOperand(other, (l, r) => l.relativeDiff(r));
 	}
 
-	public absoluteDiff(other: BigFloatComplex | BigFloatValue | BigFloatComplexMatrixOperand): this {
+	public absoluteDiff(other: BigFloatInputValue | BigFloatAnyMatrixLike): this {
 		return this._mapWithOperand(other, (l, r) => l.absoluteDiff(r));
 	}
 
-	public percentDiff(other: BigFloatComplex | BigFloatValue | BigFloatComplexMatrixOperand): this {
+	public percentDiff(other: BigFloatInputValue | BigFloatAnyMatrixLike): this {
 		return this._mapWithOperand(other, (l, r) => l.percentDiff(r));
 	}
 
@@ -695,11 +692,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return this._mapValues((v) => v.atan());
 	}
 
-	public atan2(x: BigFloatComplex | BigFloatValue | BigFloatComplexMatrixOperand): this {
-		// atan2 is tricky for complex, but BigFloat.atan2 exists.
-		// BigFloatComplex doesn't have atan2.
-		// If I follow BigFloatVector logic, I'd need BigFloatComplex.atan2.
-		// Since it doesn't exist, I'll only support it if they are real-like or throw.
+	public atan2(x: BigFloatInputValue | BigFloatAnyMatrixLike): this {
 		return this._mapWithOperand(x, (l, r) => {
 			if (!l.isReal() || !r.isReal()) throw new TypeError("atan2 is not supported for non-real complex numbers");
 			return new BigFloatComplex(l.real.atan2(r.real), 0, l.precision);
@@ -746,7 +739,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return this._mapValues((v) => v.ln());
 	}
 
-	public log(base: BigFloatComplex | BigFloatValue | BigFloatComplexMatrixOperand): this {
+	public log(base: BigFloatInputValue | BigFloatAnyMatrixLike): this {
 		return this._mapWithOperand(base, (l, r) => l.log(r));
 	}
 

@@ -41,3 +41,13 @@ export class NumericalComputationError extends BigFloatError {}
  * 必須キャッシュが初期化されていない場合のエラー
  */
 export class CacheNotInitializedError extends BigFloatError {}
+
+/**
+ * 行列やベクトルの次元が不一致の場合のエラー
+ */
+export class DimensionMismatchError extends BigFloatError {}
+
+/**
+ * 行列が特異（逆行列が存在しない）場合のエラー
+ */
+export class SingularMatrixError extends BigFloatError {}

@@ -1,5 +1,9 @@
 import type { BigFloat } from "./bigFloat";
 import type { BigFloatComplex } from "./bigFloatComplex";
+import type { BigFloatComplexMatrix } from "./bigFloatComplexMatrix";
+import type { BigFloatComplexVector } from "./bigFloatComplexVector";
+import type { BigFloatMatrix } from "./bigFloatMatrix";
+import type { BigFloatVector } from "./bigFloatVector";
 
 /**
  * 丸めモード
@@ -89,6 +93,33 @@ export type BigFloatValue = BigFloat | number | string | bigint;
 export type BigFloatAggregateArgs = BigFloatValue[] | [readonly BigFloatValue[]];
 
 /**
- * BigFloatStreamで扱う値
+ * BigFloat または BigFloatComplex のインスタンス
  */
-export type BigFloatStreamValue = BigFloatValue | BigFloatComplex;
+export type BigFloatLike = BigFloat | BigFloatComplex;
+
+/**
+ * BigFloatとBigFloatComplexで共通利用可能で変換可能な値
+ */
+export type BigFloatInputValue = BigFloatValue | BigFloatComplex;
+
+export type BigFloatVectorLike = BigFloatVector | Iterable<BigFloatValue>;
+
+export type BigFloatComplexVectorLike = BigFloatComplexVector | Iterable<BigFloatComplex>;
+
+/**
+ * BigFloatVector または BigFloatComplexVector のインスタンス
+ */
+export type BigFloatAnyVector = BigFloatVector | BigFloatComplexVector;
+
+export type BigFloatAnyVectorLike = BigFloatVectorLike | BigFloatComplexVectorLike | Iterable<BigFloatInputValue>;
+
+export type BigFloatMatrixLike = BigFloatMatrix | Iterable<BigFloatVectorLike>;
+
+export type BigFloatComplexMatrixLike = BigFloatComplexMatrix | Iterable<BigFloatComplexVectorLike>;
+
+/**
+ * BigFloatMatrix または BigFloatComplexMatrix のインスタンス
+ */
+export type BigFloatAnyMatrix = BigFloatMatrix | BigFloatComplexMatrix;
+
+export type BigFloatAnyMatrixLike = BigFloatMatrixLike | BigFloatComplexMatrixLike;

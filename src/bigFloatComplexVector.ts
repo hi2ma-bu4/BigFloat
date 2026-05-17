@@ -2,13 +2,11 @@ import { BigFloat } from "./bigFloat";
 import { BigFloatComplex } from "./bigFloatComplex";
 import { BigFloatStream } from "./bigFloatStream";
 import { BigFloatVector } from "./bigFloatVector";
-import type { BigFloatValue, PrecisionValue } from "./types";
+import type { BigFloatAnyVector, BigFloatAnyVectorLike, BigFloatInputValue, PrecisionValue } from "./types";
 
-type BigFloatComplexVectorSource = Iterable<BigFloatComplex | BigFloatValue>;
-type BigFloatComplexVectorOperand = BigFloatComplexVector | BigFloatVector | BigFloatComplexVectorSource;
 type BigFloatComplexVectorRandomOptions = {
-	min?: BigFloatComplex | BigFloatValue;
-	max?: BigFloatComplex | BigFloatValue;
+	min?: BigFloatInputValue;
+	max?: BigFloatInputValue;
 	precision?: PrecisionValue;
 };
 
@@ -19,14 +17,14 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	/**
 	 * 内部要素 (BigFloatComplex の配列)
 	 */
-	protected _values: BigFloatComplex[];
+	public _values: BigFloatComplex[];
 
 	/**
 	 * BigFloatComplexVector コンストラクタ
 	 * @param values - 要素のソース
 	 * @param precision - 精度
 	 */
-	public constructor(values: BigFloatComplexVectorSource = [], precision?: PrecisionValue) {
+	public constructor(values: BigFloatAnyVectorLike = [], precision?: PrecisionValue) {
 		const array = Array.from(values);
 		const resolvedPrecision = BigFloatComplexVector._resolvePrecision(array, precision);
 		this._values = array.map((value) => BigFloatComplexVector._toComplex(value, resolvedPrecision));
@@ -49,7 +47,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	 * @param precision - 精度
 	 * @returns 変換された BigFloatComplex
 	 */
-	protected static _toComplex(value: BigFloatComplex | BigFloatValue, precision?: bigint): BigFloatComplex {
+	protected static _toComplex(value: BigFloatInputValue, precision?: bigint): BigFloatComplex {
 		if (value instanceof BigFloatComplex) {
 			return precision === undefined || value.precision === precision ? value.clone() : value.changePrecision(precision);
 		}
@@ -62,7 +60,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	 * @param precision - 明示精度
 	 * @returns 解決された精度
 	 */
-	protected static _resolvePrecision(values: (BigFloatComplex | BigFloatValue)[], precision?: PrecisionValue): bigint {
+	protected static _resolvePrecision(values: BigFloatInputValue[], precision?: PrecisionValue): bigint {
 		if (precision !== undefined) return BigInt(precision);
 		let resolved = BigFloat.DEFAULT_PRECISION;
 		for (const value of values) {
@@ -76,7 +74,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	 * 次元一致を検証する
 	 * @throws {RangeError} 次元が一致しない場合
 	 */
-	protected static _assertSameLength(left: BigFloatComplexVector | BigFloatVector, right: BigFloatComplexVector | BigFloatVector): void {
+	protected static _assertSameLength(left: BigFloatAnyVector, right: BigFloatAnyVector): void {
 		if (left.length !== right.length) throw new RangeError("Vector dimensions must match");
 	}
 
@@ -86,7 +84,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	 * @param referenceValues - 精度解決のための参照値リスト
 	 * @returns 変換された BigFloatComplexVector
 	 */
-	protected static _coerceVector(value: BigFloatComplexVectorOperand, referenceValues: (BigFloatComplex | BigFloatValue)[] = []): BigFloatComplexVector {
+	protected static _coerceVector(value: BigFloatAnyVectorLike, referenceValues: BigFloatInputValue[] = []): BigFloatComplexVector {
 		if (value instanceof BigFloatComplexVector) return value;
 		if (value instanceof BigFloatVector) {
 			return BigFloatComplexVector._fromComplexArray(value.toArray().map((v) => new BigFloatComplex(v)));
@@ -101,7 +99,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	 * @param fn - 変換関数
 	 * @returns 変換後の新しいベクトル
 	 */
-	protected _mapValues(fn: (value: BigFloatComplex, index: number) => BigFloatComplex | BigFloatValue): this {
+	protected _mapValues(fn: (value: BigFloatComplex, index: number) => BigFloatInputValue): this {
 		const values = this._values.map((value, index) => {
 			const mapped = fn(value.clone(), index);
 			return BigFloatComplexVector._toComplex(mapped, value.precision);
@@ -115,9 +113,9 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	 * @param fn - 二項演算関数
 	 * @returns 演算後の新しいベクトル
 	 */
-	protected _mapWithOperand(other: BigFloatComplexVectorOperand | BigFloatComplex | BigFloatValue, fn: (left: BigFloatComplex, right: BigFloatComplex, index: number) => BigFloatComplex | BigFloatValue): this {
+	protected _mapWithOperand(other: BigFloatAnyVectorLike | BigFloatInputValue, fn: (left: BigFloatComplex, right: BigFloatComplex, index: number) => BigFloatInputValue): this {
 		if (other instanceof BigFloatComplexVector || other instanceof BigFloatVector || (typeof other === "object" && other !== null && Symbol.iterator in other && !(other instanceof BigFloat) && !(other instanceof BigFloatComplex))) {
-			const vector = BigFloatComplexVector._coerceVector(other as BigFloatComplexVectorOperand, this._values);
+			const vector = BigFloatComplexVector._coerceVector(other, this._values);
 			BigFloatComplexVector._assertSameLength(this, vector);
 			const values = this._values.map((value, index) => {
 				const mapped = fn(value.clone(), vector._values[index].clone(), index);
@@ -126,7 +124,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 			return BigFloatComplexVector._fromComplexArray(values) as this;
 		}
 
-		const right = BigFloatComplexVector._toComplex(other as BigFloatComplex | BigFloatValue, this._values[0]?.precision);
+		const right = BigFloatComplexVector._toComplex(other, this._values[0]?.precision);
 		return this._mapValues((value, index) => fn(value, right, index));
 	}
 
@@ -140,7 +138,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	/**
 	 * 要素の反復可能オブジェクトから BigFloatComplexVector を生成する
 	 */
-	public static from(values: BigFloatComplexVectorSource, precision?: PrecisionValue): BigFloatComplexVector {
+	public static from(values: BigFloatAnyVectorLike, precision?: PrecisionValue): BigFloatComplexVector {
 		return new BigFloatComplexVector(values, precision);
 	}
 
@@ -154,14 +152,14 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	/**
 	 * 引数リストからベクトルを生成する
 	 */
-	public static of(...values: (BigFloatComplex | BigFloatValue)[]): BigFloatComplexVector {
+	public static of(...values: BigFloatInputValue[]): BigFloatComplexVector {
 		return this.from(values);
 	}
 
 	/**
 	 * 指定された値で埋められたベクトルを生成する
 	 */
-	public static fill(length: number, value: BigFloatComplex | BigFloatValue, precision?: PrecisionValue): BigFloatComplexVector {
+	public static fill(length: number, value: BigFloatInputValue, precision?: PrecisionValue): BigFloatComplexVector {
 		if (length <= 0) return this.empty();
 		const resolvedPrecision = BigFloatComplexVector._resolvePrecision([value], precision);
 		const base = BigFloatComplexVector._toComplex(value, resolvedPrecision);
@@ -194,7 +192,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	/**
 	 * 指定した範囲を等分割する数値ベクトルを生成する
 	 */
-	public static linspace(start: BigFloatComplex | BigFloatValue, end: BigFloatComplex | BigFloatValue, count: number, precision?: PrecisionValue): BigFloatComplexVector {
+	public static linspace(start: BigFloatInputValue, end: BigFloatInputValue, count: number, precision?: PrecisionValue): BigFloatComplexVector {
 		if (count <= 0) return this.empty();
 		const resolvedPrecision = this._resolvePrecision([start, end], precision);
 		const s = this._toComplex(start, resolvedPrecision);
@@ -277,11 +275,11 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		this._values.forEach((v, i) => fn(v.clone(), i));
 	}
 
-	public map(fn: (value: BigFloatComplex, index: number) => BigFloatComplex | BigFloatValue): this {
+	public map(fn: (value: BigFloatComplex, index: number) => BigFloatInputValue): this {
 		return this._mapValues(fn);
 	}
 
-	public zipMap(other: BigFloatComplexVectorOperand, fn: (left: BigFloatComplex, right: BigFloatComplex, index: number) => BigFloatComplex | BigFloatValue): this {
+	public zipMap(other: BigFloatAnyVectorLike, fn: (left: BigFloatComplex, right: BigFloatComplex, index: number) => BigFloatInputValue): this {
 		return this._mapWithOperand(other, fn);
 	}
 
@@ -297,7 +295,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this._values.every((v, i) => fn(v.clone(), i));
 	}
 
-	public concat(...others: BigFloatComplexVectorOperand[]): this {
+	public concat(...others: BigFloatAnyVectorLike[]): this {
 		const values = this.toArray();
 		for (const other of others) {
 			values.push(...BigFloatComplexVector._coerceVector(other, this._values).toArray());
@@ -318,35 +316,35 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this._mapValues((v) => v.changePrecision(p));
 	}
 
-	public equals(other: BigFloatComplexVectorOperand): boolean {
+	public equals(other: BigFloatAnyVectorLike): boolean {
 		const vector = BigFloatComplexVector._coerceVector(other, this._values);
 		if (this.length !== vector.length) return false;
 		return this._values.every((v, i) => v.equals(vector._values[i]));
 	}
 
-	public add(other: BigFloatComplex | BigFloatValue | BigFloatComplexVectorOperand): this {
+	public add(other: BigFloatInputValue | BigFloatAnyVectorLike): this {
 		return this._mapWithOperand(other, (l, r) => l.add(r));
 	}
 
-	public sub(other: BigFloatComplex | BigFloatValue | BigFloatComplexVectorOperand): this {
+	public sub(other: BigFloatInputValue | BigFloatAnyVectorLike): this {
 		return this._mapWithOperand(other, (l, r) => l.sub(r));
 	}
 
-	public mul(scalar: BigFloatComplex | BigFloatValue): this {
+	public mul(scalar: BigFloatInputValue): this {
 		const s = BigFloatComplexVector._toComplex(scalar, this._values[0]?.precision);
 		return this._mapValues((v) => v.mul(s));
 	}
 
-	public div(scalar: BigFloatComplex | BigFloatValue): this {
+	public div(scalar: BigFloatInputValue): this {
 		const s = BigFloatComplexVector._toComplex(scalar, this._values[0]?.precision);
 		return this._mapValues((v) => v.div(s));
 	}
 
-	public mod(other: BigFloatComplex | BigFloatValue | BigFloatComplexVectorOperand): this {
+	public mod(other: BigFloatInputValue | BigFloatAnyVectorLike): this {
 		return this._mapWithOperand(other, (l, r) => l.mod(r));
 	}
 
-	public hadamard(other: BigFloatComplexVectorOperand): this {
+	public hadamard(other: BigFloatAnyVectorLike): this {
 		return this._mapWithOperand(other, (l, r) => l.mul(r));
 	}
 
@@ -366,7 +364,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this._mapValues((v) => v.reciprocal());
 	}
 
-	public pow(exponent: BigFloatComplex | BigFloatValue | BigFloatComplexVectorOperand): this {
+	public pow(exponent: BigFloatInputValue | BigFloatAnyVectorLike): this {
 		return this._mapWithOperand(exponent, (l, r) => l.pow(r));
 	}
 
@@ -406,15 +404,15 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this._mapValues((v) => v.clz32());
 	}
 
-	public relativeDiff(other: BigFloatComplex | BigFloatValue | BigFloatComplexVectorOperand): this {
+	public relativeDiff(other: BigFloatInputValue | BigFloatAnyVectorLike): this {
 		return this._mapWithOperand(other, (l, r) => l.relativeDiff(r));
 	}
 
-	public absoluteDiff(other: BigFloatComplex | BigFloatValue | BigFloatComplexVectorOperand): this {
+	public absoluteDiff(other: BigFloatInputValue | BigFloatAnyVectorLike): this {
 		return this._mapWithOperand(other, (l, r) => l.absoluteDiff(r));
 	}
 
-	public percentDiff(other: BigFloatComplex | BigFloatValue | BigFloatComplexVectorOperand): this {
+	public percentDiff(other: BigFloatInputValue | BigFloatAnyVectorLike): this {
 		return this._mapWithOperand(other, (l, r) => l.percentDiff(r));
 	}
 
@@ -478,7 +476,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this._mapValues((v) => v.ln());
 	}
 
-	public log(base: BigFloatComplex | BigFloatValue | BigFloatComplexVectorOperand): this {
+	public log(base: BigFloatInputValue | BigFloatAnyVectorLike): this {
 		return this._mapWithOperand(base, (l, r) => l.log(r));
 	}
 
@@ -517,7 +515,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this.sum().div(this.length);
 	}
 
-	public dot(other: BigFloatComplexVectorOperand): BigFloatComplex {
+	public dot(other: BigFloatAnyVectorLike): BigFloatComplex {
 		const vector = BigFloatComplexVector._coerceVector(other, this._values);
 		BigFloatComplexVector._assertSameLength(this, vector);
 		let total = new BigFloatComplex(0, BigFloatComplexVector._resolvePrecision([...this._values, ...vector._values]));
@@ -542,11 +540,11 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this.div(length);
 	}
 
-	public distanceTo(other: BigFloatComplexVectorOperand): BigFloat {
+	public distanceTo(other: BigFloatAnyVectorLike): BigFloat {
 		return this.sub(other).norm();
 	}
 
-	public cross(other: BigFloatComplexVectorOperand): this {
+	public cross(other: BigFloatAnyVectorLike): this {
 		const vector = BigFloatComplexVector._coerceVector(other, this._values);
 		BigFloatComplexVector._assertSameLength(this, vector);
 		if (this.length !== 3) throw new RangeError("Cross product is only defined for 3-dimensional vectors");
@@ -555,14 +553,14 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return BigFloatComplexVector._fromComplexArray([ay.mul(bz).sub(az.mul(by)), az.mul(bx).sub(ax.mul(bz)), ax.mul(by).sub(ay.mul(bx))]) as this;
 	}
 
-	public squaredDistanceTo(other: BigFloatComplexVectorOperand): BigFloat {
+	public squaredDistanceTo(other: BigFloatAnyVectorLike): BigFloat {
 		return this.sub(other).squaredNorm();
 	}
 
 	/**
 	 * 別のベクトルへの正射影ベクトルを計算する
 	 */
-	public projectOnto(other: BigFloatComplexVectorOperand): this {
+	public projectOnto(other: BigFloatAnyVectorLike): this {
 		const vector = BigFloatComplexVector._coerceVector(other, this._values);
 		const denominator = vector.squaredNorm();
 		if (denominator.isZero()) throw new RangeError("Cannot project onto zero vector");
