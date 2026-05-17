@@ -444,7 +444,7 @@ export class AstTeXPrinter {
 			case "angle":
 				return `\\angle\\left(${firstTex}, ${secondTex}\\right)`;
 			case "project":
-				return `\\operatorname{proj}_{${secondTex}}\\left(${firstTex}\right)`;
+				return `\\operatorname{proj}_{${secondTex}}\\left(${firstTex}\\right)`;
 			case "distance":
 				return `d\\left(${firstTex}, ${secondTex}\\right)`;
 			case "det":
