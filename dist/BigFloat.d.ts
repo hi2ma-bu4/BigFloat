@@ -1161,32 +1161,54 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
  * 丸めモード
  */
 export declare enum RoundingMode {
-	/** 0に近い方向に切り捨て */
+	/**
+	 * 0に近い方向に切り捨て
+	 */
 	TRUNCATE = 0,
-	/** 絶対値が小さい方向に切り捨て（TRUNCATEと同じ） */
+	/**
+	 * 絶対値が小さい方向に切り捨て（TRUNCATEと同じ）
+	 */
 	DOWN = 0,
-	/** 絶対値が大きい方向に切り上げ */
+	/**
+	 * 絶対値が大きい方向に切り上げ
+	 */
 	UP = 1,
-	/** 正の無限大方向に切り上げ */
+	/**
+	 * 正の無限大方向に切り上げ
+	 */
 	CEIL = 2,
-	/** 負の無限大方向に切り捨て */
+	/**
+	 * 負の無限大方向に切り捨て
+	 */
 	FLOOR = 3,
-	/** 四捨五入 */
+	/**
+	 * 四捨五入
+	 */
 	HALF_UP = 4,
-	/** 五捨六入（5未満切り捨て） */
+	/**
+	 * 五捨六入（5未満切り捨て）
+	 */
 	HALF_DOWN = 5
 }
 /**
  * BigFloat の特別な値の状態
  */
 export declare enum SpecialValueState {
-	/** 有限の値 */
+	/**
+	 * 有限の値
+	 */
 	FINITE = 0,
-	/** 正の無限大 */
+	/**
+	 * 正の無限大
+	 */
 	POSITIVE_INFINITY = 1,
-	/** 負の無限大 */
+	/**
+	 * 負の無限大
+	 */
 	NEGATIVE_INFINITY = 2,
-	/** 非数 (NaN) */
+	/**
+	 * 非数 (NaN)
+	 */
 	NAN = 3
 }
 /**
@@ -3375,6 +3397,8 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * BigFloatComplex コンストラクタ
 	 * @param value - 実部、複素数表現 (文字列 "1+2i" など)、または複素数オブジェクト
 	 * @param precision - 精度
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	constructor(value?: BigFloatComplexValue, precision?: PrecisionValue);
 	/**
@@ -3382,6 +3406,9 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * @param real - 実部または複素数表現
 	 * @param imag - 虚部
 	 * @param precision - 精度
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @overload
 	 */
 	constructor(real: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue);
 	/**
@@ -3505,9 +3532,10 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	static tau(precision?: PrecisionValue): BigFloatComplex;
 	/**
 	 * 与えられた値から BigFloatComplex を生成する
-	 * @param value - 実部、複素数表現、または複素数オブジェクト
+	 * @param value - 複素数表現または実部
 	 * @param precision - 精度
 	 * @returns BigFloatComplex インスタンス
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	static from(value: BigFloatComplexValue, precision?: PrecisionValue): BigFloatComplex;
@@ -3517,7 +3545,9 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * @param imag - 虚部
 	 * @param precision - 精度
 	 * @returns BigFloatComplex インスタンス
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @overload
 	 */
 	static from(value: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue): BigFloatComplex;
 	/**
@@ -4163,6 +4193,7 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * @returns 丸められた結果
 	 * @throws {TypeError} 虚部が 0 でない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	floor(): BigFloatComplex;
 	/**
@@ -4170,6 +4201,7 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * @returns 丸められた結果
 	 * @throws {TypeError} 虚部が 0 でない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	ceil(): BigFloatComplex;
 	/**
@@ -4177,6 +4209,7 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * @returns 切り捨てられた結果
 	 * @throws {TypeError} 虚部が 0 でない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	trunc(): BigFloatComplex;
 	/**

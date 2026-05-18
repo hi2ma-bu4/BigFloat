@@ -4255,6 +4255,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @returns 丸められた結果
    * @throws {TypeError} 虚部が 0 でない場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   floor() {
     if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part cannot be floored");
@@ -4265,6 +4266,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @returns 丸められた結果
    * @throws {TypeError} 虚部が 0 でない場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   ceil() {
     if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part cannot be ceiled");
@@ -4275,6 +4277,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @returns 切り捨てられた結果
    * @throws {TypeError} 虚部が 0 でない場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   trunc() {
     if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part cannot be truncated");
