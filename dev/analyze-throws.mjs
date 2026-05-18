@@ -66,6 +66,49 @@ export function analyzeThrows(config) {
 					});
 				}
 			}
+
+			// タグの個別チェック
+			const tags = jsDoc.getTags();
+			for (const tag of tags) {
+				const tagName = tag.getTagName();
+				const tagLine = tag.getStartLineNumber();
+
+				// @return -> @returns 強制
+				if (tagName === "return") {
+					result.push({
+						file: relPath,
+						line: tagLine,
+						message: "@return ではなく @returns を使用してください",
+					});
+				}
+
+				// 説明の必須チェック (param, returns, throws)
+				if (["param", "returns", "throws"].includes(tagName)) {
+					const comment = tag.getComment()?.trim() || "";
+					if (!comment) {
+						result.push({
+							file: relPath,
+							line: tagLine,
+							message: `@${tagName} に説明がありません`,
+						});
+					}
+
+					// @param のフォーマットチェック: "* @param name - description"
+					if (tagName === "param") {
+						const tagText = tag.getText();
+						// ts-morph の tag.getText() は "@param name - description" のような形式
+						// 期待値: @param <name> - <description>
+						// ハイフンの前後に少なくとも1つの空白が必要
+						if (!/@param\s+\S+\s+-\s+/.test(tagText)) {
+							result.push({
+								file: relPath,
+								line: tagLine,
+								message: "@param のフォーマットが不正です。`@param 変数名 - 説明` の形式(ハイフンとその前後の空白)で記述してください",
+							});
+						}
+					}
+				}
+			}
 		}
 	}
 
@@ -168,12 +211,15 @@ export function analyzeThrows(config) {
 			const func = findDocumentableEnclosingFunction(throwStmt);
 			if (!func) continue;
 			if (isAllowedThrowContext(func, sourceFile.getFilePath(), config.allowedDynamicDirs)) continue;
-			if (hasThrowsJSDoc(func)) continue;
+
+			const throwType = getThrowType(throwStmt);
+			const tags = funcToTags.get(func) || [];
+			if (tags.some((t) => t.type === throwType)) continue;
 
 			result.push({
 				file: getRelPath(config.rootDir, sourceFile),
 				line: throwStmt.getStartLineNumber(),
-				message: "未補足のthrowです。@throwsを付与してください",
+				message: `未補足のthrowです。@throws {${throwType}} を付与してください`,
 			});
 		}
 	}
@@ -227,12 +273,14 @@ function parseSingleTag(tag) {
 	const type = typeMatch ? typeMatch[1] : "Error";
 
 	// @throws と {Type} を除去して残りを説明とする
-	const description = text
+	let description = text
 		.replace(/^\/\*\*|\*\/$/g, "") // ブロックコメントの囲みを除去
 		.replace(/^\s*\*\s*/gm, "") // 行頭の * を除去
 		.replace(/@throws\s*/, "")
-		.replace(/\{[^}]*\}\s*/, "")
-		.trim();
+		.replace(/\{[^}]*\}\s*/, "");
+
+	// ハイフンから始まる場合はハイフンを除去 (フォーマット統一のため)
+	description = description.replace(/^\s*-\s+/, "").trim();
 
 	return {
 		type,
@@ -246,14 +294,14 @@ function parseThrowsTags(tags) {
 }
 
 /**
- * プロパティアクセス（Class.method）を考慮して CallExpression を取得
+ * プロパティアクセス（Class.method）を考慮して CallExpression / NewExpression を取得
  */
 function getCallExpressionFromRef(refNode) {
 	let parent = refNode.getParent();
 	while (parent && (Node.isPropertyAccessExpression(parent) || Node.isElementAccessExpression(parent))) {
 		parent = parent.getParent();
 	}
-	return Node.isCallExpression(parent) ? parent : null;
+	return Node.isCallExpression(parent) || Node.isNewExpression(parent) ? parent : null;
 }
 
 function getRelPath(rootDir, sourceFile) {
@@ -357,8 +405,9 @@ function collectActualThrows(func, funcToTags, project) {
 		types.add(getThrowType(throwStmt));
 	});
 
-	// 関数呼び出し
-	body.getDescendantsOfKind(SyntaxKind.CallExpression).forEach((callExpr) => {
+	// 関数呼び出し / インスタンス化
+	const callNodes = [...body.getDescendantsOfKind(SyntaxKind.CallExpression), ...body.getDescendantsOfKind(SyntaxKind.NewExpression)];
+	callNodes.forEach((callExpr) => {
 		if (isCallHandledByTryCatch(callExpr) || isCallHandledByPromise(callExpr)) return;
 		let enclosing = callExpr.getFirstAncestor((a) => Node.isFunctionDeclaration(a) || Node.isMethodDeclaration(a) || Node.isConstructorDeclaration(a) || Node.isArrowFunction(a) || Node.isFunctionExpression(a));
 		while (enclosing && !isDocumentable(enclosing)) {
