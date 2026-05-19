@@ -3538,7 +3538,6 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * @param imag - 虚部
 	 * @param precision - 精度
 	 * @returns BigFloatComplex インスタンス
-	 * @overload
 	 */
 	static from(value: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue): BigFloatComplex;
 	/**
@@ -4274,41 +4273,33 @@ export type BigFloatCacheEntry = {
  * BigFloat settings
  */
 export declare class BigFloatConfig {
-	/**
-	 * 精度の不一致を許容するかどうか
-	 */
+	/** 精度の不一致を許容するかどうか */
 	allowPrecisionMismatch: boolean;
-	/**
-	 * BigFloatComplex との相互運用を許容するかどうか
-	 */
+	/** BigFloatComplex との相互運用を許容するかどうか */
 	allowComplexNumbers: boolean;
-	/**
-	 * 破壊的な計算(自身の上書き)をするかどうか
-	 */
+	/** 破壊的な計算(自身の上書き)をするかどうか */
 	mutateResult: boolean;
-	/**
-	 * Infinity/NaN の特殊値を許容するかどうか
-	 */
+	/** Infinity/NaN の特殊値を許容するかどうか */
 	allowSpecialValues: boolean;
-	/**
-	 * 丸めモード
-	 */
+	/** 丸めモード */
 	roundingMode: RoundingMode;
-	/**
-	 * 計算時に追加する精度
-	 */
+	/** 計算時に追加する精度 */
 	extraPrecision: bigint;
-	/**
-	 * 三角関数の最大ステップ数
-	 */
+	/** 三角関数の最大ステップ数 */
 	trigFuncsMaxSteps: bigint;
-	/**
-	 * 対数計算の最大ステップ数
-	 */
+	/** 対数計算の最大ステップ数 */
 	lnMaxSteps: bigint;
 	/**
 	 * BigFloatConfig コンストラクタ
 	 * @param options - 設定オプション
+	 * @param options.allowPrecisionMismatch - 精度の不一致を許容するかどうか
+	 * @param options.allowComplexNumbers - BigFloatComplex との相互運用を許容するかどうか
+	 * @param options.mutateResult - 破壊的な計算(自身の上書き)をするかどうか
+	 * @param options.allowSpecialValues - Infinity/NaN の特殊値を許容するかどうか
+	 * @param options.roundingMode - 丸めモード
+	 * @param options.extraPrecision - 計算時に追加する精度
+	 * @param options.trigFuncsMaxSteps - 三角関数の最大ステップ数
+	 * @param options.lnMaxSteps - 対数計算の最大ステップ数
 	 */
 	constructor({ allowPrecisionMismatch, allowComplexNumbers, mutateResult, allowSpecialValues, roundingMode, extraPrecision, trigFuncsMaxSteps, lnMaxSteps }?: BigFloatOptions);
 	/**
@@ -4374,15 +4365,29 @@ export declare class BigFloat {
 	 */
 	private static _bernoulliCache;
 	/**
+	 * 内部的な値 (mantissa × 2^exp2 × 5^exp5)
+	 */
+	mantissa: bigint;
+	/**
+	 * 2の指数
+	 * */
+	_exp2: bigint;
+	/**
+	 * 5の指数
+	 */
+	_exp5: bigint;
+	/**
+	 * 精度 (小数点以下の最大桁数)
+	 */
+	_precision: bigint;
+	/**
+	 * 特殊値の状態
+	 */
+	_specialState: SpecialValueState;
+	/**
 	 * キャッシュをクリアする
 	 */
 	static clearCache(): void;
-	/** 内部的な値 (mantissa × 2^exp2 × 5^exp5) */
-	mantissa: bigint;
-	/** 2の指数 */
-	_exp2: bigint;
-	/** 5の指数 */
-	_exp5: bigint;
 	/**
 	 * 2の指数を取得する
 	 * @returns 2の指数 (2^exp2)
@@ -4393,10 +4398,6 @@ export declare class BigFloat {
 	 * @returns 5の指数 (5^exp5)
 	 */
 	exponent5(): bigint;
-	/** 精度 (小数点以下の最大桁数) */
-	_precision: bigint;
-	/** 特殊値の状態 */
-	_specialState: SpecialValueState;
 	/**
 	 * 特殊値状態を表示用の文字列に変換する
 	 * @param state - 特殊値状態
@@ -4516,6 +4517,7 @@ export declare class BigFloat {
 	 * @param precision - 精度 (小数点以下の最大桁数)
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を渡した場合
+	 * @throws {TypeError} 虚部が 0 でない複素数を渡した場合
 	 */
 	constructor(value?: BigFloatInputValue, precision?: PrecisionValue);
 	/**
@@ -4751,6 +4753,7 @@ export declare class BigFloat {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {TypeError} 複素数と比較しようとした場合
 	 */
 	compare(other: BigFloatInputValue): number;
 	/**
@@ -4930,6 +4933,7 @@ export declare class BigFloat {
 	 * 複素数を加算する (+)
 	 * @param other - 加算する複素数
 	 * @returns 加算結果
+	 * @overload
 	 */
 	add(other: BigFloatComplex): BigFloatComplex;
 	/**
@@ -4941,6 +4945,7 @@ export declare class BigFloat {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @overload
 	 */
 	add(other: BigFloatInputValue): BigFloatLike;
 	/**
@@ -4953,6 +4958,7 @@ export declare class BigFloat {
 	 * 複素数を減算する (-)
 	 * @param other - 減算する複素数
 	 * @returns 減算結果
+	 * @overload
 	 */
 	sub(other: BigFloatComplex): BigFloatComplex;
 	/**
@@ -4964,6 +4970,7 @@ export declare class BigFloat {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @overload
 	 */
 	sub(other: BigFloatInputValue): BigFloatLike;
 	/**
@@ -4976,6 +4983,7 @@ export declare class BigFloat {
 	 * 複素数を乗算する (*)
 	 * @param other - 乗算する複素数
 	 * @returns 乗算結果
+	 * @overload
 	 */
 	mul(other: BigFloatComplex): BigFloatComplex;
 	/**
@@ -4987,6 +4995,7 @@ export declare class BigFloat {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @overload
 	 */
 	mul(other: BigFloatInputValue): BigFloatLike;
 	/**
@@ -4999,6 +5008,7 @@ export declare class BigFloat {
 	 * 複素数で除算する (/)
 	 * @param other - 除算する複素数
 	 * @returns 除算結果
+	 * @overload
 	 */
 	div(other: BigFloatComplex): BigFloatComplex;
 	/**
@@ -5011,6 +5021,7 @@ export declare class BigFloat {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @overload
 	 */
 	div(other: BigFloatInputValue): BigFloatLike;
 	/**
@@ -5042,6 +5053,7 @@ export declare class BigFloat {
 	 * 複素数の剰余（未サポート）
 	 * @param other - 法
 	 * @throws {TypeError} 常にスローされる
+	 * @overload
 	 */
 	mod(other: BigFloatComplex): never;
 	/**
@@ -5052,6 +5064,7 @@ export declare class BigFloat {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @overload
 	 */
 	mod(other: BigFloatInputValue): BigFloat;
 	/**
@@ -5146,12 +5159,14 @@ export declare class BigFloat {
 	 * 冪乗を計算する
 	 * @param exponent - 指数
 	 * @returns 冪乗の結果
+	 * @overload
 	 */
 	pow(exponent: BigFloatValue): BigFloat;
 	/**
 	 * 複素数の冪乗を計算する
 	 * @param exponent - 指数
 	 * @returns 冪乗の結果
+	 * @overload
 	 */
 	pow(exponent: BigFloatComplex): BigFloatComplex;
 	/**

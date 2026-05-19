@@ -4382,41 +4382,33 @@ var SpecialValueState = /* @__PURE__ */ ((SpecialValueState2) => {
 
 // src/bigFloat.ts
 var BigFloatConfig = class _BigFloatConfig {
-  /**
-   * 精度の不一致を許容するかどうか
-   */
+  /** 精度の不一致を許容するかどうか */
   allowPrecisionMismatch;
-  /**
-   * BigFloatComplex との相互運用を許容するかどうか
-   */
+  /** BigFloatComplex との相互運用を許容するかどうか */
   allowComplexNumbers;
-  /**
-   * 破壊的な計算(自身の上書き)をするかどうか
-   */
+  /** 破壊的な計算(自身の上書き)をするかどうか */
   mutateResult;
-  /**
-   * Infinity/NaN の特殊値を許容するかどうか
-   */
+  /** Infinity/NaN の特殊値を許容するかどうか */
   allowSpecialValues;
-  /**
-   * 丸めモード
-   */
+  /** 丸めモード */
   roundingMode;
-  /**
-   * 計算時に追加する精度
-   */
+  /** 計算時に追加する精度 */
   extraPrecision;
-  /**
-   * 三角関数の最大ステップ数
-   */
+  /** 三角関数の最大ステップ数 */
   trigFuncsMaxSteps;
-  /**
-   * 対数計算の最大ステップ数
-   */
+  /** 対数計算の最大ステップ数 */
   lnMaxSteps;
   /**
    * BigFloatConfig コンストラクタ
    * @param options - 設定オプション
+   * @param options.allowPrecisionMismatch - 精度の不一致を許容するかどうか
+   * @param options.allowComplexNumbers - BigFloatComplex との相互運用を許容するかどうか
+   * @param options.mutateResult - 破壊的な計算(自身の上書き)をするかどうか
+   * @param options.allowSpecialValues - Infinity/NaN の特殊値を許容するかどうか
+   * @param options.roundingMode - 丸めモード
+   * @param options.extraPrecision - 計算時に追加する精度
+   * @param options.trigFuncsMaxSteps - 三角関数の最大ステップ数
+   * @param options.lnMaxSteps - 対数計算の最大ステップ数
    */
   constructor({ allowPrecisionMismatch = false, allowComplexNumbers = false, mutateResult = false, allowSpecialValues = true, roundingMode = 0 /* TRUNCATE */, extraPrecision = 6n, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n } = {}) {
     this.allowPrecisionMismatch = allowPrecisionMismatch;
@@ -4505,6 +4497,26 @@ var BigFloat = class _BigFloat {
    */
   static _bernoulliCache = /* @__PURE__ */ Object.create(null);
   /**
+   * 内部的な値 (mantissa × 2^exp2 × 5^exp5)
+   */
+  mantissa = 0n;
+  /**
+   * 2の指数
+   * */
+  _exp2 = 0n;
+  /**
+   * 5の指数
+   */
+  _exp5 = 0n;
+  /**
+   * 精度 (小数点以下の最大桁数)
+   */
+  _precision = this.constructor.DEFAULT_PRECISION;
+  /**
+   * 特殊値の状態
+   */
+  _specialState = 0 /* FINITE */;
+  /**
    * キャッシュをクリアする
    */
   static clearCache() {
@@ -4515,12 +4527,6 @@ var BigFloat = class _BigFloat {
     this._pow2Cache = [1n];
     this._bernoulliCache = /* @__PURE__ */ Object.create(null);
   }
-  /** 内部的な値 (mantissa × 2^exp2 × 5^exp5) */
-  mantissa = 0n;
-  /** 2の指数 */
-  _exp2 = 0n;
-  /** 5の指数 */
-  _exp5 = 0n;
   /**
    * 2の指数を取得する
    * @returns 2の指数 (2^exp2)
@@ -4535,10 +4541,6 @@ var BigFloat = class _BigFloat {
   exponent5() {
     return this._exp5;
   }
-  /** 精度 (小数点以下の最大桁数) */
-  _precision = this.constructor.DEFAULT_PRECISION;
-  /** 特殊値の状態 */
-  _specialState = 0 /* FINITE */;
   /**
    * 特殊値状態を表示用の文字列に変換する
    * @param state - 特殊値状態
@@ -4773,6 +4775,7 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度 (小数点以下の最大桁数)
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を渡した場合
+   * @throws {TypeError} 虚部が 0 でない複素数を渡した場合
    */
   constructor(value, precision = this.constructor.DEFAULT_PRECISION) {
     const construct = this.constructor;
@@ -5548,6 +5551,7 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {TypeError} 複素数と比較しようとした場合
    */
   compare(other) {
     const construct = this.constructor;
@@ -6320,6 +6324,7 @@ var BigFloat = class _BigFloat {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @overload
    */
   pow(exponent) {
     const complex = this._complexOperand(exponent, "pow");

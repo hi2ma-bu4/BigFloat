@@ -302,7 +302,6 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @param imag - 虚部
 	 * @param precision - 精度
 	 * @returns BigFloatComplex インスタンス
-	 * @overload
 	 */
 	public static from(value: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue): BigFloatComplex;
 	/**
