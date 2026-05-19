@@ -13,34 +13,42 @@ type BigFloatCacheEntry = {
  * BigFloat settings
  */
 export class BigFloatConfig {
-	/** 精度の不一致を許容するかどうか */
+	/**
+	 * 精度の不一致を許容するかどうか
+	 */
 	public allowPrecisionMismatch: boolean;
-	/** BigFloatComplex との相互運用を許容するかどうか */
+	/**
+	 * BigFloatComplex との相互運用を許容するかどうか
+	 */
 	public allowComplexNumbers: boolean;
-	/** 破壊的な計算(自身の上書き)をするかどうか */
+	/**
+	 * 破壊的な計算(自身の上書き)をするかどうか
+	 */
 	public mutateResult: boolean;
-	/** Infinity/NaN の特殊値を許容するかどうか */
+	/**
+	 * Infinity/NaN の特殊値を許容するかどうか
+	 */
 	public allowSpecialValues: boolean;
-	/** 丸めモード */
+	/**
+	 * 丸めモード
+	 */
 	public roundingMode: RoundingMode;
-	/** 計算時に追加する精度 */
+	/**
+	 * 計算時に追加する精度
+	 */
 	public extraPrecision: bigint;
-	/** 三角関数の最大ステップ数 */
+	/**
+	 * 三角関数の最大ステップ数
+	 */
 	public trigFuncsMaxSteps: bigint;
-	/** 対数計算の最大ステップ数 */
+	/**
+	 * 対数計算の最大ステップ数
+	 */
 	public lnMaxSteps: bigint;
 
 	/**
 	 * BigFloatConfig コンストラクタ
 	 * @param options - 設定オプション
-	 * @param options.allowPrecisionMismatch - 精度の不一致を許容するかどうか
-	 * @param options.allowComplexNumbers - BigFloatComplex との相互運用を許容するかどうか
-	 * @param options.mutateResult - 破壊的な計算(自身の上書き)をするかどうか
-	 * @param options.allowSpecialValues - Infinity/NaN の特殊値を許容するかどうか
-	 * @param options.roundingMode - 丸めモード
-	 * @param options.extraPrecision - 計算時に追加する精度
-	 * @param options.trigFuncsMaxSteps - 三角関数の最大ステップ数
-	 * @param options.lnMaxSteps - 対数計算の最大ステップ数
 	 */
 	public constructor({ allowPrecisionMismatch = false, allowComplexNumbers = false, mutateResult = false, allowSpecialValues = true, roundingMode = RoundingMode.TRUNCATE, extraPrecision = 6n, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n }: BigFloatOptions = {}) {
 		this.allowPrecisionMismatch = allowPrecisionMismatch;
@@ -96,29 +104,49 @@ export class BigFloatConfig {
  * 大きな浮動小数点数を扱えるクラス
  */
 export class BigFloat {
-	/** 最大精度 (Stringの限界) */
+	/**
+	 * 最大精度 (Stringの限界)
+	 */
 	public static MAX_PRECISION = 200000000n;
 
-	/** レイジー正規化の閾値 */
+	/**
+	 * レイジー正規化の閾値
+	 */
 	public static LAZY_NORMALIZE_SMALL_THRESHOLD = 32n;
 
-	/** デフォルトの精度 */
+	/**
+	 * デフォルトの精度
+	 */
 	public static DEFAULT_PRECISION = 20n;
 
-	/** 設定 */
+	/**
+	 * 設定
+	 */
 	public static config = new BigFloatConfig();
 
-	/** 円周率キャッシュ */
+	/**
+	 * 円周率キャッシュ
+	 */
 	private static _piCache: BigFloatCacheEntry | null = null;
-	/** eキャッシュ */
+	/**
+	 * eキャッシュ
+	 */
 	private static _eCache: BigFloatCacheEntry | null = null;
-	/** 対数キャッシュ */
+	/**
+	 * 対数キャッシュ
+	 */
 	private static _lnCache: Record<string, BigFloatCacheEntry> = Object.create(null);
-	/** 5の累乗キャッシュ */
+	/**
+	 * 5の累乗キャッシュ
+	 */
 	private static _pow5Cache: bigint[] = [1n];
-	/** 2の累乗キャッシュ */
+	/**
+	 * 2の累乗キャッシュ
+	 */
 	private static _pow2Cache: bigint[] = [1n];
-	/** Bernoulli numbers cache */
+	/**
+	 * Bernoulli numbers cache
+	 */
 	private static _bernoulliCache: Record<string, bigint[]> = Object.create(null);
 
 	/**

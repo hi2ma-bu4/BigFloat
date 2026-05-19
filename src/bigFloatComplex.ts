@@ -33,8 +33,6 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * BigFloatComplex コンストラクタ
 	 * @param value - 実部、複素数表現 (文字列 "1+2i" など)、または複素数オブジェクト
 	 * @param precision - 精度
-	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public constructor(value?: BigFloatComplexValue, precision?: PrecisionValue);
 	/**
@@ -42,11 +40,17 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @param real - 実部または複素数表現
 	 * @param imag - 虚部
 	 * @param precision - 精度
+	 */
+	public constructor(real: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue);
+	/**
+	 * BigFloatComplex コンストラクタ
+	 * @param real - 実部または複素数表現
+	 * @param imagOrPrecision - 虚部または精度
+	 * @param precision - 精度
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @overload
 	 */
-	public constructor(real: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue);
 	public constructor(real: BigFloatComplexValue = 0, imagOrPrecision?: BigFloatValue | PrecisionValue, precision?: PrecisionValue) {
 		const { imagPartValue, precisionValue } = BigFloatComplex._normalizeArguments(real, imagOrPrecision, precision, arguments.length);
 		const { realPart, imagPart } = BigFloatComplex._normalizeParts(real, imagPartValue);
@@ -287,11 +291,9 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 
 	/**
 	 * 与えられた値から BigFloatComplex を生成する
-	 * @param value - 複素数表現または実部
+	 * @param value - 実部、複素数表現、または複素数オブジェクト
 	 * @param precision - 精度
 	 * @returns BigFloatComplex インスタンス
-	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public static from(value: BigFloatComplexValue, precision?: PrecisionValue): BigFloatComplex;
 	/**
@@ -300,16 +302,24 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @param imag - 虚部
 	 * @param precision - 精度
 	 * @returns BigFloatComplex インスタンス
+	 * @overload
+	 */
+	public static from(value: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue): BigFloatComplex;
+	/**
+	 * 与えられた値から BigFloatComplex を生成する
+	 * @param value - 複素数表現または実部
+	 * @param imagOrPrecision - 虚部または精度
+	 * @param precision - 精度
+	 * @returns BigFloatComplex インスタンス
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @overload
 	 */
-	public static from(value: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue): BigFloatComplex;
 	public static from(value: BigFloatComplexValue, imag?: BigFloatValue | PrecisionValue, precision?: PrecisionValue): BigFloatComplex {
-		if (precision !== undefined) return new BigFloatComplex(value, imag as BigFloatValue, precision);
+		if (precision !== undefined) return new BigFloatComplex(value, imag, precision);
 		if (imag === undefined) return new BigFloatComplex(value);
-		if (this._shouldTreatSecondArgumentAsPrecision(value, imag)) return new BigFloatComplex(value, imag as PrecisionValue);
-		return new BigFloatComplex(value, imag as BigFloatValue);
+		if (this._shouldTreatSecondArgumentAsPrecision(value, imag)) return new BigFloatComplex(value, imag);
+		return new BigFloatComplex(value, imag);
 	}
 
 	/**

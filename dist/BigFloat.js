@@ -3195,6 +3195,15 @@ var BigFloatComplex = class _BigFloatComplex {
    * 精度 (小数点以下の最大桁数)
    */
   _precision;
+  /**
+   * BigFloatComplex コンストラクタ
+   * @param real - 実部または複素数表現
+   * @param imagOrPrecision - 虚部または精度
+   * @param precision - 精度
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @overload
+   */
   constructor(real = 0, imagOrPrecision, precision) {
     const { imagPartValue, precisionValue } = _BigFloatComplex._normalizeArguments(real, imagOrPrecision, precision, arguments.length);
     const { realPart, imagPart } = _BigFloatComplex._normalizeParts(real, imagPartValue);
@@ -3414,6 +3423,16 @@ var BigFloatComplex = class _BigFloatComplex {
   static tau(precision = 20) {
     return new _BigFloatComplex(BigFloat.tau(precision), 0, precision);
   }
+  /**
+   * 与えられた値から BigFloatComplex を生成する
+   * @param value - 複素数表現または実部
+   * @param imagOrPrecision - 虚部または精度
+   * @param precision - 精度
+   * @returns BigFloatComplex インスタンス
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @overload
+   */
   static from(value, imag, precision) {
     if (precision !== void 0) return new _BigFloatComplex(value, imag, precision);
     if (imag === void 0) return new _BigFloatComplex(value);
@@ -4363,33 +4382,41 @@ var SpecialValueState = /* @__PURE__ */ ((SpecialValueState2) => {
 
 // src/bigFloat.ts
 var BigFloatConfig = class _BigFloatConfig {
-  /** 精度の不一致を許容するかどうか */
+  /**
+   * 精度の不一致を許容するかどうか
+   */
   allowPrecisionMismatch;
-  /** BigFloatComplex との相互運用を許容するかどうか */
+  /**
+   * BigFloatComplex との相互運用を許容するかどうか
+   */
   allowComplexNumbers;
-  /** 破壊的な計算(自身の上書き)をするかどうか */
+  /**
+   * 破壊的な計算(自身の上書き)をするかどうか
+   */
   mutateResult;
-  /** Infinity/NaN の特殊値を許容するかどうか */
+  /**
+   * Infinity/NaN の特殊値を許容するかどうか
+   */
   allowSpecialValues;
-  /** 丸めモード */
+  /**
+   * 丸めモード
+   */
   roundingMode;
-  /** 計算時に追加する精度 */
+  /**
+   * 計算時に追加する精度
+   */
   extraPrecision;
-  /** 三角関数の最大ステップ数 */
+  /**
+   * 三角関数の最大ステップ数
+   */
   trigFuncsMaxSteps;
-  /** 対数計算の最大ステップ数 */
+  /**
+   * 対数計算の最大ステップ数
+   */
   lnMaxSteps;
   /**
    * BigFloatConfig コンストラクタ
    * @param options - 設定オプション
-   * @param options.allowPrecisionMismatch - 精度の不一致を許容するかどうか
-   * @param options.allowComplexNumbers - BigFloatComplex との相互運用を許容するかどうか
-   * @param options.mutateResult - 破壊的な計算(自身の上書き)をするかどうか
-   * @param options.allowSpecialValues - Infinity/NaN の特殊値を許容するかどうか
-   * @param options.roundingMode - 丸めモード
-   * @param options.extraPrecision - 計算時に追加する精度
-   * @param options.trigFuncsMaxSteps - 三角関数の最大ステップ数
-   * @param options.lnMaxSteps - 対数計算の最大ステップ数
    */
   constructor({ allowPrecisionMismatch = false, allowComplexNumbers = false, mutateResult = false, allowSpecialValues = true, roundingMode = 0 /* TRUNCATE */, extraPrecision = 6n, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n } = {}) {
     this.allowPrecisionMismatch = allowPrecisionMismatch;
@@ -4437,25 +4464,45 @@ var BigFloatConfig = class _BigFloatConfig {
   }
 };
 var BigFloat = class _BigFloat {
-  /** 最大精度 (Stringの限界) */
+  /**
+   * 最大精度 (Stringの限界)
+   */
   static MAX_PRECISION = 200000000n;
-  /** レイジー正規化の閾値 */
+  /**
+   * レイジー正規化の閾値
+   */
   static LAZY_NORMALIZE_SMALL_THRESHOLD = 32n;
-  /** デフォルトの精度 */
+  /**
+   * デフォルトの精度
+   */
   static DEFAULT_PRECISION = 20n;
-  /** 設定 */
+  /**
+   * 設定
+   */
   static config = new BigFloatConfig();
-  /** 円周率キャッシュ */
+  /**
+   * 円周率キャッシュ
+   */
   static _piCache = null;
-  /** eキャッシュ */
+  /**
+   * eキャッシュ
+   */
   static _eCache = null;
-  /** 対数キャッシュ */
+  /**
+   * 対数キャッシュ
+   */
   static _lnCache = /* @__PURE__ */ Object.create(null);
-  /** 5の累乗キャッシュ */
+  /**
+   * 5の累乗キャッシュ
+   */
   static _pow5Cache = [1n];
-  /** 2の累乗キャッシュ */
+  /**
+   * 2の累乗キャッシュ
+   */
   static _pow2Cache = [1n];
-  /** Bernoulli numbers cache */
+  /**
+   * Bernoulli numbers cache
+   */
   static _bernoulliCache = /* @__PURE__ */ Object.create(null);
   /**
    * キャッシュをクリアする

@@ -3397,8 +3397,6 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * BigFloatComplex コンストラクタ
 	 * @param value - 実部、複素数表現 (文字列 "1+2i" など)、または複素数オブジェクト
 	 * @param precision - 精度
-	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	constructor(value?: BigFloatComplexValue, precision?: PrecisionValue);
 	/**
@@ -3406,9 +3404,6 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * @param real - 実部または複素数表現
 	 * @param imag - 虚部
 	 * @param precision - 精度
-	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @overload
 	 */
 	constructor(real: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue);
 	/**
@@ -3532,11 +3527,9 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	static tau(precision?: PrecisionValue): BigFloatComplex;
 	/**
 	 * 与えられた値から BigFloatComplex を生成する
-	 * @param value - 複素数表現または実部
+	 * @param value - 実部、複素数表現、または複素数オブジェクト
 	 * @param precision - 精度
 	 * @returns BigFloatComplex インスタンス
-	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	static from(value: BigFloatComplexValue, precision?: PrecisionValue): BigFloatComplex;
 	/**
@@ -3545,8 +3538,6 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * @param imag - 虚部
 	 * @param precision - 精度
 	 * @returns BigFloatComplex インスタンス
-	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @overload
 	 */
 	static from(value: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue): BigFloatComplex;
@@ -4283,33 +4274,41 @@ export type BigFloatCacheEntry = {
  * BigFloat settings
  */
 export declare class BigFloatConfig {
-	/** 精度の不一致を許容するかどうか */
+	/**
+	 * 精度の不一致を許容するかどうか
+	 */
 	allowPrecisionMismatch: boolean;
-	/** BigFloatComplex との相互運用を許容するかどうか */
+	/**
+	 * BigFloatComplex との相互運用を許容するかどうか
+	 */
 	allowComplexNumbers: boolean;
-	/** 破壊的な計算(自身の上書き)をするかどうか */
+	/**
+	 * 破壊的な計算(自身の上書き)をするかどうか
+	 */
 	mutateResult: boolean;
-	/** Infinity/NaN の特殊値を許容するかどうか */
+	/**
+	 * Infinity/NaN の特殊値を許容するかどうか
+	 */
 	allowSpecialValues: boolean;
-	/** 丸めモード */
+	/**
+	 * 丸めモード
+	 */
 	roundingMode: RoundingMode;
-	/** 計算時に追加する精度 */
+	/**
+	 * 計算時に追加する精度
+	 */
 	extraPrecision: bigint;
-	/** 三角関数の最大ステップ数 */
+	/**
+	 * 三角関数の最大ステップ数
+	 */
 	trigFuncsMaxSteps: bigint;
-	/** 対数計算の最大ステップ数 */
+	/**
+	 * 対数計算の最大ステップ数
+	 */
 	lnMaxSteps: bigint;
 	/**
 	 * BigFloatConfig コンストラクタ
 	 * @param options - 設定オプション
-	 * @param options.allowPrecisionMismatch - 精度の不一致を許容するかどうか
-	 * @param options.allowComplexNumbers - BigFloatComplex との相互運用を許容するかどうか
-	 * @param options.mutateResult - 破壊的な計算(自身の上書き)をするかどうか
-	 * @param options.allowSpecialValues - Infinity/NaN の特殊値を許容するかどうか
-	 * @param options.roundingMode - 丸めモード
-	 * @param options.extraPrecision - 計算時に追加する精度
-	 * @param options.trigFuncsMaxSteps - 三角関数の最大ステップ数
-	 * @param options.lnMaxSteps - 対数計算の最大ステップ数
 	 */
 	constructor({ allowPrecisionMismatch, allowComplexNumbers, mutateResult, allowSpecialValues, roundingMode, extraPrecision, trigFuncsMaxSteps, lnMaxSteps }?: BigFloatOptions);
 	/**
@@ -4334,25 +4333,45 @@ export declare class BigFloatConfig {
  * 大きな浮動小数点数を扱えるクラス
  */
 export declare class BigFloat {
-	/** 最大精度 (Stringの限界) */
+	/**
+	 * 最大精度 (Stringの限界)
+	 */
 	static MAX_PRECISION: bigint;
-	/** レイジー正規化の閾値 */
+	/**
+	 * レイジー正規化の閾値
+	 */
 	static LAZY_NORMALIZE_SMALL_THRESHOLD: bigint;
-	/** デフォルトの精度 */
+	/**
+	 * デフォルトの精度
+	 */
 	static DEFAULT_PRECISION: bigint;
-	/** 設定 */
+	/**
+	 * 設定
+	 */
 	static config: BigFloatConfig;
-	/** 円周率キャッシュ */
+	/**
+	 * 円周率キャッシュ
+	 */
 	private static _piCache;
-	/** eキャッシュ */
+	/**
+	 * eキャッシュ
+	 */
 	private static _eCache;
-	/** 対数キャッシュ */
+	/**
+	 * 対数キャッシュ
+	 */
 	private static _lnCache;
-	/** 5の累乗キャッシュ */
+	/**
+	 * 5の累乗キャッシュ
+	 */
 	private static _pow5Cache;
-	/** 2の累乗キャッシュ */
+	/**
+	 * 2の累乗キャッシュ
+	 */
 	private static _pow2Cache;
-	/** Bernoulli numbers cache */
+	/**
+	 * Bernoulli numbers cache
+	 */
 	private static _bernoulliCache;
 	/**
 	 * キャッシュをクリアする
