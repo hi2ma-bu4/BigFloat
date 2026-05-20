@@ -13,6 +13,7 @@ type BigFloatVectorRandomOptions = {
 
 /**
  * BigFloat を固定長ベクトルとして扱うクラス
+ * @throws {RangeError} 例外が発生した場合
  */
 export class BigFloatVector implements Iterable<BigFloat> {
 	/**
@@ -44,6 +45,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * 内部配列からベクトルを生成する (内部用)
 	 * @param values - 内部所有済みの要素列
 	 * @returns 生成された BigFloatVector
+	 * @throws {TypeError} BigFloatVector.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _fromBigFloatArray(values: BigFloat[]): BigFloatVector;
 	protected static _fromBigFloatArray(values: BigFloatLike[]): BigFloatComplexVector;
@@ -65,6 +67,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @param precision - 明示精度
 	 * @returns 変換された BigFloat
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {TypeError} BigFloatVector.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _toBigFloat(value: BigFloatValue, precision?: bigint): BigFloat {
 		if (value instanceof BigFloat) {
@@ -80,6 +83,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @param values - 値列
 	 * @param precision - 明示精度
 	 * @returns 解決された精度
+	 * @throws {TypeError} BigFloatVector.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _resolvePrecision(values: BigFloatInputValue[], precision?: PrecisionValue): bigint {
 		if (precision !== undefined) return BigInt(precision);
@@ -97,6 +101,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @param length - ベクトル長
 	 * @returns 正規化されたベクトル長
 	 * @throws {RangeError} ベクトル長が有限でない場合、または負の場合
+	 * @throws {TypeError} BigFloatVector.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _normalizeLength(length: number): number {
 		if (!Number.isFinite(length)) throw new RangeError("Vector length must be finite");
@@ -109,7 +114,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * 次元一致を検証する
 	 * @param left - 左辺
 	 * @param right - 右辺
-	 * @throws {RangeError} 次元が一致しない場合
+	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
 	 */
 	protected static _assertSameLength(left: BigFloatAnyVector, right: BigFloatAnyVector): void {
 		if (left.length !== right.length) throw new DimensionMismatchError("Vector dimensions must match");
@@ -120,6 +125,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @param value - ベクトルまたは要素列
 	 * @param referenceValues - 精度解決のための参照値リスト
 	 * @returns 変換された BigFloatVector
+	 * @throws {TypeError} BigFloatVector.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _coerceVector(value: BigFloatVectorLike, referenceValues: BigFloatValue[]): BigFloatVector;
 	protected static _coerceVector(value: BigFloatComplexVectorLike, referenceValues: BigFloatInputValue[]): BigFloatComplexVector;
@@ -135,6 +141,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * 各要素に対して変換関数を適用した新しいベクトルを返す (内部用)
 	 * @param fn - 変換関数
 	 * @returns 変換後の新しいベクトル
+	 * @throws {TypeError} BigFloatVector.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected _mapValues(fn: (value: BigFloat, index: number) => BigFloatInputValue): this {
 		const values = this._values.map((value, index) => {
@@ -150,6 +157,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @param fn - 二項演算関数
 	 * @returns 演算後の新しいベクトル
 	 * @throws {RangeError} ベクトルの次元が一致しない場合
+	 * @throws {TypeError} 例外が発生した場合
 	 */
 	protected _mapWithOperand(other: BigFloatAnyVectorLike | BigFloatInputValue, fn: (left: BigFloatLike, right: BigFloatLike, index: number) => BigFloatInputValue): this | BigFloatAnyVector {
 		if (other instanceof BigFloatComplexVector || BigFloat._isComplexValue(other)) {
@@ -189,6 +197,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @param values - 要素列
 	 * @param precision - 精度
 	 * @returns BigFloatVector インスタンス
+	 * @throws {TypeError} 例外が発生した場合
 	 */
 	public static from(values: BigFloatVectorLike, precision?: PrecisionValue): BigFloatVector;
 	public static from(values: BigFloatAnyVectorLike, precision?: PrecisionValue): BigFloatAnyVector;

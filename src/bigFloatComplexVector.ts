@@ -182,6 +182,11 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 
 	/**
 	 * 標準基底ベクトルを取得する
+	 * @param length - ベクトルの長さ
+	 * @param index - 基底のインデックス
+	 * @param precision - 精度
+	 * @returns 標準基底ベクトル
+	 * @throws {RangeError} インデックスが範囲外の場合
 	 */
 	public static basis(length: number, index: number, precision?: PrecisionValue): BigFloatComplexVector {
 		if (index < 0 || index >= length) throw new RangeError("Index out of range");
@@ -262,6 +267,8 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 
 	/**
 	 * 要素を流すストリームへ変換する
+	 * @throws {TypeError} 例外が発生した場合
+	 * @throws {RangeError} 例外が発生した場合
 	 */
 	public toStream(): BigFloatStream {
 		return BigFloatStream.from(this.toArray());
@@ -488,6 +495,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this._mapValues((v) => v.log(10));
 	}
 
+	/**
+	 * max
+	 * @throws {TypeError} max() is not supported for complex vectors
+	 */
 	public max(): BigFloatComplex {
 		if (this.isEmpty()) throw new TypeError("No elements");
 		// Complex numbers don't have a natural ordering, but we follow BigFloatVector logic if possible
@@ -495,6 +506,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		throw new TypeError("max() is not supported for complex vectors");
 	}
 
+	/**
+	 * min
+	 * @throws {TypeError} min() is not supported for complex vectors
+	 */
 	public min(): BigFloatComplex {
 		if (this.isEmpty()) throw new TypeError("No elements");
 		throw new TypeError("min() is not supported for complex vectors");
@@ -534,6 +549,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this.squaredNorm().sqrt();
 	}
 
+	/**
+	 * normalize
+	 * @throws {RangeError} Cannot normalize zero vector
+	 */
 	public normalize(): this {
 		const length = this.norm();
 		if (length.isZero()) throw new RangeError("Cannot normalize zero vector");
@@ -544,6 +563,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this.sub(other).norm();
 	}
 
+	/**
+	 * cross
+	 * @throws {RangeError} Cross product is only defined for 3-dimensional vectors
+	 */
 	public cross(other: BigFloatAnyVectorLike): this {
 		const vector = BigFloatComplexVector._coerceVector(other, this._values);
 		BigFloatComplexVector._assertSameLength(this, vector);
@@ -559,6 +582,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 
 	/**
 	 * 別のベクトルへの正射影ベクトルを計算する
+	 * @throws {RangeError} 例外が発生した場合
 	 */
 	public projectOnto(other: BigFloatAnyVectorLike): this {
 		const vector = BigFloatComplexVector._coerceVector(other, this._values);

@@ -304,16 +304,6 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @returns BigFloatComplex インスタンス
 	 */
 	public static from(value: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue): BigFloatComplex;
-	/**
-	 * 与えられた値から BigFloatComplex を生成する
-	 * @param value - 複素数表現または実部
-	 * @param imagOrPrecision - 虚部または精度
-	 * @param precision - 精度
-	 * @returns BigFloatComplex インスタンス
-	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @overload
-	 */
 	public static from(value: BigFloatComplexValue, imag?: BigFloatValue | PrecisionValue, precision?: PrecisionValue): BigFloatComplex {
 		if (precision !== undefined) return new BigFloatComplex(value, imag, precision);
 		if (imag === undefined) return new BigFloatComplex(value);

@@ -13,21 +13,37 @@ type BigFloatCacheEntry = {
  * BigFloat settings
  */
 export class BigFloatConfig {
-	/** 精度の不一致を許容するかどうか */
+	/**
+	 * 精度の不一致を許容するかどうか
+	 */
 	public allowPrecisionMismatch: boolean;
-	/** BigFloatComplex との相互運用を許容するかどうか */
+	/**
+	 * BigFloatComplex との相互運用を許容するかどうか
+	 */
 	public allowComplexNumbers: boolean;
-	/** 破壊的な計算(自身の上書き)をするかどうか */
+	/**
+	 * 破壊的な計算(自身の上書き)をするかどうか
+	 */
 	public mutateResult: boolean;
-	/** Infinity/NaN の特殊値を許容するかどうか */
+	/**
+	 * Infinity/NaN の特殊値を許容するかどうか
+	 */
 	public allowSpecialValues: boolean;
-	/** 丸めモード */
+	/**
+	 * 丸めモード
+	 */
 	public roundingMode: RoundingMode;
-	/** 計算時に追加する精度 */
+	/**
+	 * 計算時に追加する精度
+	 */
 	public extraPrecision: bigint;
-	/** 三角関数の最大ステップ数 */
+	/**
+	 * 三角関数の最大ステップ数
+	 */
 	public trigFuncsMaxSteps: bigint;
-	/** 対数計算の最大ステップ数 */
+	/**
+	 * 対数計算の最大ステップ数
+	 */
 	public lnMaxSteps: bigint;
 
 	/**
@@ -147,7 +163,7 @@ export class BigFloat {
 	public mantissa: bigint = 0n;
 	/**
 	 * 2の指数
-	 * */
+	 */
 	public _exp2: bigint = 0n;
 	/**
 	 * 5の指数
@@ -587,6 +603,7 @@ export class BigFloat {
 	/**
 	 * 厳密な整数値を取得する
 	 * @returns 整数値、整数でない場合はnull
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected _getExactInteger(): bigint | null {
 		if (this.mantissa === 0n) return 0n;
@@ -605,6 +622,7 @@ export class BigFloat {
 	/**
 	 * 厳密な2の冪指数を取得する
 	 * @returns 2の冪指数、該当しない場合はnull
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected _getExactPowerOf2Exponent(): bigint | null {
 		if (this.mantissa <= 0n) return null;
@@ -621,6 +639,7 @@ export class BigFloat {
 	/**
 	 * 厳密な10の冪指数を取得する
 	 * @returns 10の冪指数、該当しない場合はnull
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected _getExactPowerOf10Exponent(): bigint | null {
 		if (this.mantissa <= 0n) return null;
@@ -636,6 +655,7 @@ export class BigFloat {
 
 	/**
 	 * ソフト正規化 (2の累乗を外に出す)
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	public softNormalize(): void {
 		if (!this._isFiniteState()) return;
@@ -662,6 +682,7 @@ export class BigFloat {
 
 	/**
 	 * レイジー正規化 (5の累乗を外に出す)
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	public lazyNormalize(): void {
 		if (!this._isFiniteState()) return;
@@ -714,6 +735,7 @@ export class BigFloat {
 	/**
 	 * 指定された精度に丸める
 	 * @param precision - 精度 (省略時は自身の _precision)
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected _applyPrecision(precision = this._precision): void {
 		if (!this._isFiniteState()) return;
@@ -770,6 +792,7 @@ export class BigFloat {
 	 * @param mantissa - 値
 	 * @param divisor - 除数
 	 * @returns 丸められた値
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected static _roundManual(mantissa: bigint, divisor: bigint): bigint {
 		const mode = this.config.roundingMode;
@@ -833,6 +856,8 @@ export class BigFloat {
 		 * @param ch - 変換する文字
 		 * @returns 対応する数値
 		 * @throws {SyntaxError} 不正な文字が含まれている場合
+		 * @throws {DivisionByZeroError} Division by zero
+		 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 		 */
 		const toDigit = (ch: string) => {
 			const d = digits.indexOf(ch);
@@ -922,6 +947,7 @@ export class BigFloat {
 	 * 集計関数の単一配列引数かどうかを判定する
 	 * @param args - 引数リスト
 	 * @returns 単一配列引数の場合はtrue
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected static _hasAggregateArrayArg(args: BigFloatAggregateArgs): args is [readonly BigFloatValue[]] {
 		return args.length === 1 && Array.isArray(args[0]);
@@ -931,6 +957,7 @@ export class BigFloat {
 	 * 引数を正規化する
 	 * @param args - 引数リスト
 	 * @returns 正規化された引数リスト
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected static _normalizeArgs(args: BigFloatAggregateArgs): BigFloatValue[] {
 		if (this._hasAggregateArrayArg(args)) {
@@ -945,6 +972,7 @@ export class BigFloat {
 	 * @param fallback - デフォルト精度
 	 * @returns 解決済み精度
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected static _resolvePrecisionFromValues(values: readonly BigFloatValue[], fallback: PrecisionValue = this.DEFAULT_PRECISION): bigint {
 		let resolved = BigInt(fallback);
@@ -976,6 +1004,7 @@ export class BigFloat {
 	 * @param value - 10^precision倍された整数値
 	 * @param precision - 精度
 	 * @returns 生の内部表現
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected static _fromInternalValue(value: bigint, precision: bigint): BigFloatRawValue {
 		const result = { mantissa: value, exp2: -precision, exp5: -precision };
@@ -987,6 +1016,7 @@ export class BigFloat {
 	 * @param value - 生の内部表現
 	 * @param precision - 精度
 	 * @returns 10^precision倍された整数値
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected static _toInternalValue(value: BigFloatRawValue, precision: bigint): bigint {
 		let mantissa = value.mantissa;
@@ -1004,6 +1034,7 @@ export class BigFloat {
 	 * 生の内部表現をソフト正規化する
 	 * @param value - 対象
 	 * @returns 正規化後の内部表現
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected static _softNormalizeRaw(value: BigFloatRawValue): BigFloatRawValue {
 		if (value.mantissa === 0n) {
@@ -1033,6 +1064,7 @@ export class BigFloat {
 	 * @param value - 対象
 	 * @param precision - 精度
 	 * @returns 丸め後の内部表現
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected static _applyRawPrecision(value: BigFloatRawValue, precision: bigint): BigFloatRawValue {
 		if (value.mantissa === 0n) {
@@ -1072,6 +1104,7 @@ export class BigFloat {
 	 * 生の内部表現をレイジー正規化する
 	 * @param value - 対象
 	 * @returns 正規化後の内部表現
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected static _lazyNormalizeRaw(value: BigFloatRawValue): BigFloatRawValue {
 		this._softNormalizeRaw(value);
@@ -1150,6 +1183,7 @@ export class BigFloat {
 	 * @param a - 値A
 	 * @param b - 値B
 	 * @returns 最大公約数
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected static _gcd(a: bigint, b: bigint): bigint {
 		let x = a < 0n ? -a : a;
@@ -1169,6 +1203,7 @@ export class BigFloat {
 	 * @returns [BigFloatA, BigFloatB] (アラインメント済みのインスタンス)
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected _align(other: BigFloatValue, mutateA = false): [BigFloat, BigFloat] {
 		const construct = this.constructor as BigFloatConstructor;
@@ -1220,6 +1255,7 @@ export class BigFloat {
 	 * @param precision - 保持する精度 (小数点以下の最大桁数)
 	 * @param valPrecision - 入力値の現在の精度 (省略時は precision)
 	 * @returns 作成されたBigFloatインスタンス
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected static _makeResult(val: bigint, precision: bigint, valPrecision: bigint = precision): BigFloat {
 		const result = new this();
@@ -1239,6 +1275,7 @@ export class BigFloat {
 	 * @param valPrecision - 入力値の現在の精度 (省略時は precision)
 	 * @param okMutate - 破壊的な変更を許可するかどうか
 	 * @returns 作成または更新されたBigFloatインスタンス
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected _makeResult(val: bigint, precision: bigint, valPrecision: bigint = precision, okMutate = true): BigFloat {
 		const res = (this.constructor as BigFloatConstructor)._makeResult(val, precision, valPrecision);
@@ -1252,6 +1289,7 @@ export class BigFloat {
 	 * @param decimalShift - 値に追加で掛かっている 10 の指数
 	 * @returns ニュートン法用の初期値
 	 * @throws {RangeError} degree が正の整数でない場合
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected static _estimatePositiveRoot(value: bigint, degree: bigint, decimalShift = 0n): bigint {
 		if (degree <= 0n) throw new RangeError("degree must be a positive integer");
@@ -1295,6 +1333,7 @@ export class BigFloat {
 	 * @param precision - 新しい精度
 	 * @returns 精度が変更されたインスタンス
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	public changePrecision(precision: PrecisionValue): this {
 		const precisionBig = BigInt(precision);
@@ -1743,6 +1782,7 @@ export class BigFloat {
 	 * @param other - 加算する複素数
 	 * @returns 加算結果
 	 * @overload
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	public add(other: BigFloatComplex): BigFloatComplex;
 	/**
@@ -1785,6 +1825,7 @@ export class BigFloat {
 	 * 減算する (-)
 	 * @param other - 減算する値
 	 * @returns 減算結果
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	public sub(other: BigFloatValue): BigFloat;
 	/**
@@ -1792,6 +1833,7 @@ export class BigFloat {
 	 * @param other - 減算する複素数
 	 * @returns 減算結果
 	 * @overload
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	public sub(other: BigFloatComplex): BigFloatComplex;
 	/**
@@ -1842,6 +1884,7 @@ export class BigFloat {
 	 * @param other - 乗算する複素数
 	 * @returns 乗算結果
 	 * @overload
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	public mul(other: BigFloatComplex): BigFloatComplex;
 	/**
@@ -1894,6 +1937,7 @@ export class BigFloat {
 	 * 除算する (/)
 	 * @param other - 除算する値
 	 * @returns 除算結果
+	 * @throws {DivisionByZeroError} Division by zero
 	 */
 	public div(other: BigFloatValue): BigFloat;
 	/**
@@ -1901,6 +1945,8 @@ export class BigFloat {
 	 * @param other - 除算する複素数
 	 * @returns 除算結果
 	 * @overload
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
+	 * @throws {DivisionByZeroError} Division by zero
 	 */
 	public div(other: BigFloatComplex): BigFloatComplex;
 	/**
@@ -2043,6 +2089,7 @@ export class BigFloat {
 	 * @param x - 被除数
 	 * @param m - 法
 	 * @returns 剰余
+	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 */
 	protected static _mod(x: bigint, m: bigint): bigint {
 		const r = x % m;
@@ -2067,6 +2114,7 @@ export class BigFloat {
 	 * @param other - 法
 	 * @returns 剰余
 	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
+	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合

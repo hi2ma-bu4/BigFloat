@@ -37,6 +37,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * 内部配列から行列を生成する (内部用)
 	 * @param values - BigFloat の二次元配列
 	 * @returns BigFloatMatrix インスタンス
+	 * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _fromBigFloatGrid(values: BigFloat[][]): BigFloatMatrix;
 	protected static _fromBigFloatGrid(values: BigFloatComplex[][]): BigFloatComplexMatrix;
@@ -59,6 +60,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param precision - 精度
 	 * @returns BigFloat インスタンス
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _toBigFloat(value: BigFloatValue, precision?: bigint): BigFloat;
 	protected static _toBigFloat(value: BigFloatComplex, precision?: bigint): BigFloatComplex;
@@ -81,6 +83,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param values - 値のリスト
 	 * @param precision - 明示的に指定された精度
 	 * @returns 解決された精度
+	 * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _resolvePrecision(values: BigFloatVectorLike, precision?: PrecisionValue): bigint {
 		if (precision !== undefined) return BigInt(precision);
@@ -94,6 +97,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	/**
 	 * 次元を正規化する
 	 * @throws {RangeError} size が負または非有限の場合
+	 * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _normalizeSize(size: number, name: string): number {
 		if (!Number.isFinite(size)) throw new RangeError(`${name} must be finite`);
@@ -105,6 +109,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	/**
 	 * 生配列が長方形か検証する
 	 * @throws {RangeError} 行列の行が同じ長さを持たない場合
+	 * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _assertRectangularRaw(rows: BigFloatInputValue[][]): void {
 		if (rows.length === 0) return;
@@ -117,6 +122,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	/**
 	 * 同形状か検証する
 	 * @throws {RangeError} 行列の形状が異なる場合
+	 * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _assertSameShape(left: BigFloatMatrix, right: BigFloatMatrix): void {
 		if (left.rowCount !== right.rowCount || left.columnCount !== right.columnCount) {
@@ -127,6 +133,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	/**
 	 * 正方行列か検証する
 	 * @throws {RangeError} 行列が正方行列でない場合
+	 * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _assertSquare(matrix: BigFloatMatrix): void {
 		if (!matrix.isSquare()) throw new RangeError("Matrix must be square");
@@ -135,6 +142,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	/**
 	 * 行列積可能か検証する
 	 * @throws {RangeError} 行列の内積次元が一致しない場合
+	 * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _assertMultipliable(left: BigFloatMatrix, right: BigFloatMatrix): void {
 		if (left.columnCount !== right.rowCount) throw new RangeError("Inner matrix dimensions must agree");
@@ -161,6 +169,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param value - 変換対象
 	 * @param referenceValues - 精度解決のための参照値リスト
 	 * @returns BigFloatMatrix インスタンス
+	 * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _coerceMatrix(value: BigFloatMatrixLike, referenceValues: BigFloatVectorLike = []): BigFloatMatrix {
 		if (value instanceof BigFloatMatrix) return value;
@@ -194,6 +203,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * 全要素に対して変換関数を適用した新しい行列を返す (内部用)
 	 * @param fn - 変換関数
 	 * @returns 変換後の新しい行列
+	 * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected _mapValues(fn: (value: BigFloat, row: number, column: number) => BigFloatValue): this | BigFloatMatrix;
 	protected _mapValues(fn: (value: BigFloatLike, row: number, column: number) => BigFloatInputValue): BigFloatComplexMatrix;
@@ -214,6 +224,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param fn - 二項演算関数
 	 * @returns 演算後の新しい行列
 	 * @throws {RangeError} 行列形状が一致しない場合
+	 * @throws {TypeError} BigFloatMatrix operation does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected _mapWithOperand(other: BigFloatMatrixLike | BigFloatValue, fn: (left: BigFloat, right: BigFloat, row: number, column: number) => BigFloatValue): this | BigFloatMatrix;
 	protected _mapWithOperand(other: BigFloatAnyMatrixLike | BigFloatComplex, fn: (left: BigFloat, right: BigFloatLike, row: number, column: number) => BigFloatInputValue): BigFloatComplexMatrix;
@@ -312,6 +323,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param rows - 要素
 	 * @param precision - 精度
 	 * @returns BigFloatMatrix インスタンス
+	 * @throws {TypeError} 例外が発生した場合
 	 */
 	public static from(rows: BigFloatMatrixLike, precision?: PrecisionValue): BigFloatMatrix;
 	public static from(rows: BigFloatComplexMatrixLike, precision?: PrecisionValue): BigFloatComplexMatrix;

@@ -13,6 +13,7 @@ type BigFloatComplexMatrixRandomOptions = {
 
 /**
  * BigFloatComplex を要素とする固定長行列クラス
+ * @throws {RangeError} 例外が発生した場合
  */
 export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	/**
@@ -24,6 +25,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	 * BigFloatComplexMatrix コンストラクタ
 	 * @param rows - 行列要素の反復可能オブジェクト
 	 * @param precision - 精度
+	 * @throws {RangeError} Matrix rows must have the same length
 	 */
 	public constructor(rows: BigFloatAnyMatrixLike = [], precision?: PrecisionValue) {
 		const rawRows = Array.from(rows as BigFloatComplexMatrixLike, (row) => Array.from(row));
@@ -55,15 +57,28 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return resolved;
 	}
 
+	/**
+	 * _assertRectangularRaw
+	 * @throws {RangeError} 例外が発生した場合
+	 */
 	protected static _assertRectangularRaw(rows: BigFloatInputValue[][]): void {
 		if (rows.length === 0) return;
 		const columnCount = rows[0].length;
+		/**
+		 * for
+		 * @throws {RangeError} Matrix rows must have the same length
+		 */
 		for (const row of rows) {
 			if (row.length !== columnCount) throw new RangeError("Matrix rows must have the same length");
 		}
 	}
 
 	protected static _assertSameShape(left: BigFloatAnyMatrix, right: BigFloatAnyMatrix): void {
+		/**
+		 * if
+		 * @throws {RangeError} Matrix shapes must match
+		 * @throws {TypeError} factorial is not supported for non-real complex numbers
+		 */
 		if (left.rowCount !== right.rowCount || left.columnCount !== right.columnCount) {
 			throw new RangeError("Matrix shapes must match");
 		}
@@ -243,6 +258,8 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 
 	/**
 	 * 要素を流すストリームへ変換する
+	 * @throws {RangeError} 例外が発生した場合
+	 * @throws {TypeError} 例外が発生した場合
 	 */
 	public toStream(): BigFloatStream {
 		return BigFloatStream.from(this._flattenValues());
@@ -270,6 +287,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return this._mapValues((v) => v.div(s));
 	}
 
+	/**
+	 * matmul
+	 * @throws {RangeError} Inner matrix dimensions must agree
+	 */
 	public matmul(other: BigFloatAnyMatrixLike): this {
 		const matrix = BigFloatComplexMatrix._coerceMatrix(other, this._flattenValues());
 		if (this.columnCount !== matrix.rowCount) throw new RangeError("Inner matrix dimensions must agree");
@@ -303,6 +324,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return BigFloatComplexVector.from(Array.from({ length: this.columnCount }, (_, col) => this._values.reduce((acc, row) => acc.add(row[col]), new BigFloatComplex(0, 0, resolvedPrecision))));
 	}
 
+	/**
+	 * trace
+	 * @throws {RangeError} Matrix must be square
+	 */
 	public trace(): BigFloatComplex {
 		if (!this.isSquare()) throw new RangeError("Matrix must be square");
 		const resolvedPrecision = BigFloatComplexMatrix._resolvePrecision(this._flattenValues());
@@ -313,6 +338,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return total;
 	}
 
+	/**
+	 * determinant
+	 * @throws {RangeError} Matrix must be square
+	 */
 	public determinant(): BigFloatComplex {
 		if (!this.isSquare()) throw new RangeError("Matrix must be square");
 		const size = this.rowCount;
@@ -351,6 +380,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return sign < 0 ? det.neg() : det;
 	}
 
+	/**
+	 * inverse
+	 * @throws {RangeError} Matrix must be square
+	 */
 	public inverse(): this {
 		if (!this.isSquare()) throw new RangeError("Matrix must be square");
 		const size = this.rowCount;
@@ -361,6 +394,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		const totalColumns = 2 * size;
 		let pivotRow = 0;
 
+		/**
+		 * for
+		 * @throws {RangeError} Matrix is singular
+		 */
 		for (let column = 0; column < size && pivotRow < rowCount; column++) {
 			let bestRow = -1;
 			let bestValue: BigFloat | null = null;
@@ -396,6 +433,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return BigFloatComplexMatrix._fromComplexGrid(augmented.map((row) => row.slice(size))) as this;
 	}
 
+	/**
+	 * solveVector
+	 * @throws {RangeError} Dimension mismatch
+	 */
 	public solveVector(rhs: BigFloatAnyVectorLike): BigFloatComplexVector {
 		if (!this.isSquare()) throw new RangeError("Matrix must be square");
 		const vector = BigFloatComplexVector.from(rhs);
@@ -404,6 +445,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return solution.column(0) ?? BigFloatComplexVector.empty();
 	}
 
+	/**
+	 * solveMatrix
+	 * @throws {RangeError} Matrix is singular
+	 */
 	public solveMatrix(rhs: BigFloatAnyMatrixLike): this {
 		if (!this.isSquare()) throw new RangeError("Matrix must be square");
 		const right = BigFloatComplexMatrix._coerceMatrix(rhs, this._flattenValues());
@@ -460,6 +505,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return { values: rows, pivotColumns };
 	}
 
+	/**
+	 * matrixPow
+	 * @throws {RangeError} Exponent must be integer
+	 */
 	public matrixPow(exponent: number): this {
 		if (!this.isSquare()) throw new RangeError("Matrix must be square");
 		if (!Number.isInteger(exponent)) throw new RangeError("Exponent must be integer");
@@ -476,12 +525,20 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return result as this;
 	}
 
+	/**
+	 * identity
+	 * @throws {RangeError} 例外が発生した場合
+	 */
 	public static identity(size: number, precision?: PrecisionValue): BigFloatComplexMatrix {
 		const s = Math.trunc(size);
 		const p = precision === undefined ? BigFloat.DEFAULT_PRECISION : BigInt(precision);
 		return BigFloatComplexMatrix._fromComplexGrid(Array.from({ length: s }, (_, r) => Array.from({ length: s }, (_, c) => new BigFloatComplex(r === c ? 1 : 0, 0, p))));
 	}
 
+	/**
+	 * equals
+	 * @throws {RangeError} 例外が発生した場合
+	 */
 	public equals(other: BigFloatAnyMatrixLike): boolean {
 		const matrix = BigFloatComplexMatrix._coerceMatrix(other, this._flattenValues());
 		if (this.rowCount !== matrix.rowCount || this.columnCount !== matrix.columnCount) return false;
@@ -516,12 +573,20 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 			.sqrt();
 	}
 
+	/**
+	 * mulVector
+	 * @throws {RangeError} Inner matrix dimensions must agree
+	 */
 	public mulVector(vector: BigFloatAnyVectorLike): BigFloatComplexVector {
 		const rhs = BigFloatComplexVector.from(vector);
 		if (this.columnCount !== rhs.length) throw new RangeError("Inner matrix dimensions must agree");
 		return BigFloatComplexVector.from(this._values.map((row) => BigFloatComplexVector.from(row).dot(rhs)));
 	}
 
+	/**
+	 * diagonalVector
+	 * @throws {RangeError} Matrix must be square
+	 */
 	public diagonalVector(): BigFloatComplexVector {
 		if (!this.isSquare()) throw new RangeError("Matrix must be square");
 		return BigFloatComplexVector.from(this._values.map((row, index) => row[index].clone()));
@@ -554,6 +619,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return false;
 	}
 
+	/**
+	 * every
+	 * @throws {RangeError} 例外が発生した場合
+	 */
 	public every(fn: (value: BigFloatComplex, row: number, column: number) => boolean): boolean {
 		for (let r = 0; r < this.rowCount; r++) {
 			for (let c = 0; c < this.columnCount; c++) {
@@ -563,8 +632,16 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return true;
 	}
 
+	/**
+	 * concatRows
+	 * @throws {RangeError} 例外が発生した場合
+	 */
 	public concatRows(...others: BigFloatAnyMatrixLike[]): this {
 		const values = this.toArray();
+		/**
+		 * for
+		 * @throws {RangeError} Column counts must match
+		 */
 		for (const other of others) {
 			const matrix = BigFloatComplexMatrix._coerceMatrix(other, this._flattenValues());
 			if (this.columnCount !== 0 && matrix.columnCount !== this.columnCount) throw new RangeError("Column counts must match");
@@ -575,6 +652,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 
 	public concatColumns(...others: BigFloatAnyMatrixLike[]): this {
 		let result = this.clone();
+		/**
+		 * for
+		 * @throws {RangeError} Row counts must match
+		 */
 		for (const other of others) {
 			const matrix = BigFloatComplexMatrix._coerceMatrix(other, result._flattenValues());
 			if (result.rowCount !== matrix.rowCount) throw new RangeError("Row counts must match");
@@ -693,6 +774,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	}
 
 	public atan2(x: BigFloatInputValue | BigFloatAnyMatrixLike): this {
+		/**
+		 * _mapWithOperand
+		 * @throws {TypeError} atan2 is not supported for non-real complex numbers
+		 */
 		return this._mapWithOperand(x, (l, r) => {
 			if (!l.isReal() || !r.isReal()) throw new TypeError("atan2 is not supported for non-real complex numbers");
 			return new BigFloatComplex(l.real.atan2(r.real), 0, l.precision);
@@ -711,6 +796,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return this._mapValues((v) => v.tanh());
 	}
 
+	/**
+	 * asinh
+	 * @throws {TypeError} 例外が発生した場合
+	 */
 	public asinh(): this {
 		return this._mapValues((v) => v.asinh());
 	}
@@ -755,8 +844,16 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		return this._mapValues((v) => v.add(1).ln());
 	}
 
+	/**
+	 * gamma
+	 * @throws {TypeError} 例外が発生した場合
+	 */
 	public gamma(): this {
 		// Not implemented in BigFloatComplex
+		/**
+		 * _mapValues
+		 * @throws {TypeError} gamma is not supported for non-real complex numbers
+		 */
 		return this._mapValues((v) => {
 			if (!v.isReal()) throw new TypeError("gamma is not supported for non-real complex numbers");
 			return new BigFloatComplex(v.real.gamma(), 0, v.precision);
@@ -764,6 +861,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	}
 
 	public zeta(): this {
+		/**
+		 * _mapValues
+		 * @throws {TypeError} zeta is not supported for non-real complex numbers
+		 */
 		return this._mapValues((v) => {
 			if (!v.isReal()) throw new TypeError("zeta is not supported for non-real complex numbers");
 			return new BigFloatComplex(v.real.zeta(), 0, v.precision);
@@ -771,6 +872,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	}
 
 	public factorial(): this {
+		/**
+		 * _mapValues
+		 * @throws {TypeError} factorial is not supported for non-real complex numbers
+		 */
 		return this._mapValues((v) => {
 			if (!v.isReal()) throw new TypeError("factorial is not supported for non-real complex numbers");
 			return new BigFloatComplex(v.real.factorial(), 0, v.precision);

@@ -626,6 +626,7 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 	 * 各要素を変換関数で写像する
 	 * @param fn - 変換関数
 	 * @returns 写像後のストリーム
+	 * @throws {TypeError} exp2 is not supported for complex numbers
 	 */
 	public map(fn: (item: BigFloatLike) => BigFloatLike): this {
 		return this._use({ definition: BigFloatStream._mapStageDefinition, data: fn });

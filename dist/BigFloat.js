@@ -561,6 +561,7 @@ var BigFloatStream = class _BigFloatStream {
    * 各要素を変換関数で写像する
    * @param fn - 変換関数
    * @returns 写像後のストリーム
+   * @throws {TypeError} exp2 is not supported for complex numbers
    */
   map(fn) {
     return this._use({ definition: _BigFloatStream._mapStageDefinition, data: fn });
@@ -1754,6 +1755,11 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
   }
   /**
    * 標準基底ベクトルを取得する
+   * @param length - ベクトルの長さ
+   * @param index - 基底のインデックス
+   * @param precision - 精度
+   * @returns 標準基底ベクトル
+   * @throws {RangeError} インデックスが範囲外の場合
    */
   static basis(length, index, precision) {
     if (index < 0 || index >= length) throw new RangeError("Index out of range");
@@ -1824,6 +1830,8 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
   }
   /**
    * 要素を流すストリームへ変換する
+   * @throws {TypeError} 例外が発生した場合
+   * @throws {RangeError} 例外が発生した場合
    */
   toStream() {
     return BigFloatStream.from(this.toArray());
@@ -1996,10 +2004,18 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
   log10() {
     return this._mapValues((v) => v.log(10));
   }
+  /**
+   * max
+   * @throws {TypeError} max() is not supported for complex vectors
+   */
   max() {
     if (this.isEmpty()) throw new TypeError("No elements");
     throw new TypeError("max() is not supported for complex vectors");
   }
+  /**
+   * min
+   * @throws {TypeError} min() is not supported for complex vectors
+   */
   min() {
     if (this.isEmpty()) throw new TypeError("No elements");
     throw new TypeError("min() is not supported for complex vectors");
@@ -2031,6 +2047,10 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
   norm() {
     return this.squaredNorm().sqrt();
   }
+  /**
+   * normalize
+   * @throws {RangeError} Cannot normalize zero vector
+   */
   normalize() {
     const length = this.norm();
     if (length.isZero()) throw new RangeError("Cannot normalize zero vector");
@@ -2039,6 +2059,10 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
   distanceTo(other) {
     return this.sub(other).norm();
   }
+  /**
+   * cross
+   * @throws {RangeError} Cross product is only defined for 3-dimensional vectors
+   */
   cross(other) {
     const vector = _BigFloatComplexVector._coerceVector(other, this._values);
     _BigFloatComplexVector._assertSameLength(this, vector);
@@ -2052,6 +2076,7 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
   }
   /**
    * 別のベクトルへの正射影ベクトルを計算する
+   * @throws {RangeError} 例外が発生した場合
    */
   projectOnto(other) {
     const vector = _BigFloatComplexVector._coerceVector(other, this._values);
@@ -2132,6 +2157,7 @@ var BigFloatVector = class _BigFloatVector {
    * @param precision - 明示精度
    * @returns 変換された BigFloat
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {TypeError} BigFloatVector.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
    */
   static _toBigFloat(value, precision) {
     if (value instanceof BigFloat) {
@@ -2146,6 +2172,7 @@ var BigFloatVector = class _BigFloatVector {
    * @param values - 値列
    * @param precision - 明示精度
    * @returns 解決された精度
+   * @throws {TypeError} BigFloatVector.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
    */
   static _resolvePrecision(values, precision) {
     if (precision !== void 0) return BigInt(precision);
@@ -2162,6 +2189,7 @@ var BigFloatVector = class _BigFloatVector {
    * @param length - ベクトル長
    * @returns 正規化されたベクトル長
    * @throws {RangeError} ベクトル長が有限でない場合、または負の場合
+   * @throws {TypeError} BigFloatVector.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
    */
   static _normalizeLength(length) {
     if (!Number.isFinite(length)) throw new RangeError("Vector length must be finite");
@@ -2173,7 +2201,7 @@ var BigFloatVector = class _BigFloatVector {
    * 次元一致を検証する
    * @param left - 左辺
    * @param right - 右辺
-   * @throws {RangeError} 次元が一致しない場合
+   * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
    */
   static _assertSameLength(left, right) {
     if (left.length !== right.length) throw new DimensionMismatchError("Vector dimensions must match");
@@ -2188,6 +2216,7 @@ var BigFloatVector = class _BigFloatVector {
    * 各要素に対して変換関数を適用した新しいベクトルを返す (内部用)
    * @param fn - 変換関数
    * @returns 変換後の新しいベクトル
+   * @throws {TypeError} BigFloatVector.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
    */
   _mapValues(fn) {
     const values = this._values.map((value, index) => {
@@ -2202,6 +2231,7 @@ var BigFloatVector = class _BigFloatVector {
    * @param fn - 二項演算関数
    * @returns 演算後の新しいベクトル
    * @throws {RangeError} ベクトルの次元が一致しない場合
+   * @throws {TypeError} 例外が発生した場合
    */
   _mapWithOperand(other, fn) {
     if (other instanceof BigFloatComplexVector || BigFloat._isComplexValue(other)) {
@@ -3423,16 +3453,6 @@ var BigFloatComplex = class _BigFloatComplex {
   static tau(precision = 20) {
     return new _BigFloatComplex(BigFloat.tau(precision), 0, precision);
   }
-  /**
-   * 与えられた値から BigFloatComplex を生成する
-   * @param value - 複素数表現または実部
-   * @param imagOrPrecision - 虚部または精度
-   * @param precision - 精度
-   * @returns BigFloatComplex インスタンス
-   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-   * @overload
-   */
   static from(value, imag, precision) {
     if (precision !== void 0) return new _BigFloatComplex(value, imag, precision);
     if (imag === void 0) return new _BigFloatComplex(value);
@@ -4382,21 +4402,37 @@ var SpecialValueState = /* @__PURE__ */ ((SpecialValueState2) => {
 
 // src/bigFloat.ts
 var BigFloatConfig = class _BigFloatConfig {
-  /** 精度の不一致を許容するかどうか */
+  /**
+   * 精度の不一致を許容するかどうか
+   */
   allowPrecisionMismatch;
-  /** BigFloatComplex との相互運用を許容するかどうか */
+  /**
+   * BigFloatComplex との相互運用を許容するかどうか
+   */
   allowComplexNumbers;
-  /** 破壊的な計算(自身の上書き)をするかどうか */
+  /**
+   * 破壊的な計算(自身の上書き)をするかどうか
+   */
   mutateResult;
-  /** Infinity/NaN の特殊値を許容するかどうか */
+  /**
+   * Infinity/NaN の特殊値を許容するかどうか
+   */
   allowSpecialValues;
-  /** 丸めモード */
+  /**
+   * 丸めモード
+   */
   roundingMode;
-  /** 計算時に追加する精度 */
+  /**
+   * 計算時に追加する精度
+   */
   extraPrecision;
-  /** 三角関数の最大ステップ数 */
+  /**
+   * 三角関数の最大ステップ数
+   */
   trigFuncsMaxSteps;
-  /** 対数計算の最大ステップ数 */
+  /**
+   * 対数計算の最大ステップ数
+   */
   lnMaxSteps;
   /**
    * BigFloatConfig コンストラクタ
@@ -4502,7 +4538,7 @@ var BigFloat = class _BigFloat {
   mantissa = 0n;
   /**
    * 2の指数
-   * */
+   */
   _exp2 = 0n;
   /**
    * 5の指数
@@ -4907,6 +4943,7 @@ var BigFloat = class _BigFloat {
   /**
    * 厳密な整数値を取得する
    * @returns 整数値、整数でない場合はnull
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   _getExactInteger() {
     if (this.mantissa === 0n) return 0n;
@@ -4923,6 +4960,7 @@ var BigFloat = class _BigFloat {
   /**
    * 厳密な2の冪指数を取得する
    * @returns 2の冪指数、該当しない場合はnull
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   _getExactPowerOf2Exponent() {
     if (this.mantissa <= 0n) return null;
@@ -4938,6 +4976,7 @@ var BigFloat = class _BigFloat {
   /**
    * 厳密な10の冪指数を取得する
    * @returns 10の冪指数、該当しない場合はnull
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   _getExactPowerOf10Exponent() {
     if (this.mantissa <= 0n) return null;
@@ -4952,6 +4991,7 @@ var BigFloat = class _BigFloat {
   }
   /**
    * ソフト正規化 (2の累乗を外に出す)
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   softNormalize() {
     if (!this._isFiniteState()) return;
@@ -4974,6 +5014,7 @@ var BigFloat = class _BigFloat {
   }
   /**
    * レイジー正規化 (5の累乗を外に出す)
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   lazyNormalize() {
     if (!this._isFiniteState()) return;
@@ -5012,6 +5053,7 @@ var BigFloat = class _BigFloat {
   /**
    * 指定された精度に丸める
    * @param precision - 精度 (省略時は自身の _precision)
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   _applyPrecision(precision = this._precision) {
     if (!this._isFiniteState()) return;
@@ -5054,6 +5096,7 @@ var BigFloat = class _BigFloat {
    * @param mantissa - 値
    * @param divisor - 除数
    * @returns 丸められた値
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _roundManual(mantissa, divisor) {
     const mode = this.config.roundingMode;
@@ -5176,6 +5219,7 @@ var BigFloat = class _BigFloat {
    * 集計関数の単一配列引数かどうかを判定する
    * @param args - 引数リスト
    * @returns 単一配列引数の場合はtrue
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _hasAggregateArrayArg(args) {
     return args.length === 1 && Array.isArray(args[0]);
@@ -5184,6 +5228,7 @@ var BigFloat = class _BigFloat {
    * 引数を正規化する
    * @param args - 引数リスト
    * @returns 正規化された引数リスト
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _normalizeArgs(args) {
     if (this._hasAggregateArrayArg(args)) {
@@ -5197,6 +5242,7 @@ var BigFloat = class _BigFloat {
    * @param fallback - デフォルト精度
    * @returns 解決済み精度
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _resolvePrecisionFromValues(values, fallback = this.DEFAULT_PRECISION) {
     let resolved = BigInt(fallback);
@@ -5226,6 +5272,7 @@ var BigFloat = class _BigFloat {
    * @param value - 10^precision倍された整数値
    * @param precision - 精度
    * @returns 生の内部表現
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _fromInternalValue(value, precision) {
     const result = { mantissa: value, exp2: -precision, exp5: -precision };
@@ -5236,6 +5283,7 @@ var BigFloat = class _BigFloat {
    * @param value - 生の内部表現
    * @param precision - 精度
    * @returns 10^precision倍された整数値
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _toInternalValue(value, precision) {
     let mantissa = value.mantissa;
@@ -5251,6 +5299,7 @@ var BigFloat = class _BigFloat {
    * 生の内部表現をソフト正規化する
    * @param value - 対象
    * @returns 正規化後の内部表現
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _softNormalizeRaw(value) {
     if (value.mantissa === 0n) {
@@ -5276,6 +5325,7 @@ var BigFloat = class _BigFloat {
    * @param value - 対象
    * @param precision - 精度
    * @returns 丸め後の内部表現
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _applyRawPrecision(value, precision) {
     if (value.mantissa === 0n) {
@@ -5309,6 +5359,7 @@ var BigFloat = class _BigFloat {
    * 生の内部表現をレイジー正規化する
    * @param value - 対象
    * @returns 正規化後の内部表現
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _lazyNormalizeRaw(value) {
     this._softNormalizeRaw(value);
@@ -5375,6 +5426,7 @@ var BigFloat = class _BigFloat {
    * @param a - 値A
    * @param b - 値B
    * @returns 最大公約数
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _gcd(a, b) {
     let x = a < 0n ? -a : a;
@@ -5393,6 +5445,7 @@ var BigFloat = class _BigFloat {
    * @returns [BigFloatA, BigFloatB] (アラインメント済みのインスタンス)
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   _align(other, mutateA = false) {
     const construct = this.constructor;
@@ -5435,6 +5488,7 @@ var BigFloat = class _BigFloat {
    * @param precision - 保持する精度 (小数点以下の最大桁数)
    * @param valPrecision - 入力値の現在の精度 (省略時は precision)
    * @returns 作成されたBigFloatインスタンス
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _makeResult(val, precision, valPrecision = precision) {
     const result = new this();
@@ -5453,6 +5507,7 @@ var BigFloat = class _BigFloat {
    * @param valPrecision - 入力値の現在の精度 (省略時は precision)
    * @param okMutate - 破壊的な変更を許可するかどうか
    * @returns 作成または更新されたBigFloatインスタンス
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   _makeResult(val, precision, valPrecision = precision, okMutate = true) {
     const res = this.constructor._makeResult(val, precision, valPrecision);
@@ -5465,6 +5520,7 @@ var BigFloat = class _BigFloat {
    * @param decimalShift - 値に追加で掛かっている 10 の指数
    * @returns ニュートン法用の初期値
    * @throws {RangeError} degree が正の整数でない場合
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _estimatePositiveRoot(value, degree, decimalShift = 0n) {
     if (degree <= 0n) throw new RangeError("degree must be a positive integer");
@@ -5504,6 +5560,7 @@ var BigFloat = class _BigFloat {
    * @param precision - 新しい精度
    * @returns 精度が変更されたインスタンス
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   changePrecision(precision) {
     const precisionBig = BigInt(precision);
@@ -6075,6 +6132,7 @@ var BigFloat = class _BigFloat {
    * @param x - 被除数
    * @param m - 法
    * @returns 剰余
+   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _mod(x, m) {
     const r = x % m;
@@ -9542,6 +9600,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @param values - 値のリスト
    * @param precision - 明示的に指定された精度
    * @returns 解決された精度
+   * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
    */
   static _resolvePrecision(values, precision) {
     if (precision !== void 0) return BigInt(precision);
@@ -9554,6 +9613,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 次元を正規化する
    * @throws {RangeError} size が負または非有限の場合
+   * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
    */
   static _normalizeSize(size, name) {
     if (!Number.isFinite(size)) throw new RangeError(`${name} must be finite`);
@@ -9564,6 +9624,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 生配列が長方形か検証する
    * @throws {RangeError} 行列の行が同じ長さを持たない場合
+   * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
    */
   static _assertRectangularRaw(rows) {
     if (rows.length === 0) return;
@@ -9575,6 +9636,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 同形状か検証する
    * @throws {RangeError} 行列の形状が異なる場合
+   * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
    */
   static _assertSameShape(left, right) {
     if (left.rowCount !== right.rowCount || left.columnCount !== right.columnCount) {
@@ -9584,6 +9646,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 正方行列か検証する
    * @throws {RangeError} 行列が正方行列でない場合
+   * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
    */
   static _assertSquare(matrix) {
     if (!matrix.isSquare()) throw new RangeError("Matrix must be square");
@@ -9591,6 +9654,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
   /**
    * 行列積可能か検証する
    * @throws {RangeError} 行列の内積次元が一致しない場合
+   * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
    */
   static _assertMultipliable(left, right) {
     if (left.columnCount !== right.rowCount) throw new RangeError("Inner matrix dimensions must agree");
@@ -9615,6 +9679,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @param value - 変換対象
    * @param referenceValues - 精度解決のための参照値リスト
    * @returns BigFloatMatrix インスタンス
+   * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
    */
   static _coerceMatrix(value, referenceValues = []) {
     if (value instanceof _BigFloatMatrix) return value;
@@ -11000,6 +11065,7 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
    * BigFloatComplexMatrix コンストラクタ
    * @param rows - 行列要素の反復可能オブジェクト
    * @param precision - 精度
+   * @throws {RangeError} Matrix rows must have the same length
    */
   constructor(rows = [], precision) {
     const rawRows = Array.from(rows, (row) => Array.from(row));
@@ -11027,6 +11093,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     }
     return resolved;
   }
+  /**
+   * _assertRectangularRaw
+   * @throws {RangeError} 例外が発生した場合
+   */
   static _assertRectangularRaw(rows) {
     if (rows.length === 0) return;
     const columnCount = rows[0].length;
@@ -11184,6 +11254,8 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
   }
   /**
    * 要素を流すストリームへ変換する
+   * @throws {RangeError} 例外が発生した場合
+   * @throws {TypeError} 例外が発生した場合
    */
   toStream() {
     return BigFloatStream.from(this._flattenValues());
@@ -11205,6 +11277,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     const s = _BigFloatComplexMatrix._toComplex(scalar, this._values[0]?.[0]?.precision);
     return this._mapValues((v) => v.div(s));
   }
+  /**
+   * matmul
+   * @throws {RangeError} Inner matrix dimensions must agree
+   */
   matmul(other) {
     const matrix = _BigFloatComplexMatrix._coerceMatrix(other, this._flattenValues());
     if (this.columnCount !== matrix.rowCount) throw new RangeError("Inner matrix dimensions must agree");
@@ -11234,6 +11310,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     const resolvedPrecision = _BigFloatComplexMatrix._resolvePrecision(this._flattenValues());
     return BigFloatComplexVector.from(Array.from({ length: this.columnCount }, (_, col) => this._values.reduce((acc, row) => acc.add(row[col]), new BigFloatComplex(0, 0, resolvedPrecision))));
   }
+  /**
+   * trace
+   * @throws {RangeError} Matrix must be square
+   */
   trace() {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
     const resolvedPrecision = _BigFloatComplexMatrix._resolvePrecision(this._flattenValues());
@@ -11243,6 +11323,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     }
     return total;
   }
+  /**
+   * determinant
+   * @throws {RangeError} Matrix must be square
+   */
   determinant() {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
     const size = this.rowCount;
@@ -11278,6 +11362,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     }
     return sign < 0 ? det.neg() : det;
   }
+  /**
+   * inverse
+   * @throws {RangeError} Matrix must be square
+   */
   inverse() {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
     const size = this.rowCount;
@@ -11317,6 +11405,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     }
     return _BigFloatComplexMatrix._fromComplexGrid(augmented.map((row) => row.slice(size)));
   }
+  /**
+   * solveVector
+   * @throws {RangeError} Dimension mismatch
+   */
   solveVector(rhs) {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
     const vector = BigFloatComplexVector.from(rhs);
@@ -11324,6 +11416,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     const solution = this.solveMatrix(_BigFloatComplexMatrix.from(vector.toArray().map((v) => [v])));
     return solution.column(0) ?? BigFloatComplexVector.empty();
   }
+  /**
+   * solveMatrix
+   * @throws {RangeError} Matrix is singular
+   */
   solveMatrix(rhs) {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
     const right = _BigFloatComplexMatrix._coerceMatrix(rhs, this._flattenValues());
@@ -11373,6 +11469,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     }
     return { values: rows, pivotColumns };
   }
+  /**
+   * matrixPow
+   * @throws {RangeError} Exponent must be integer
+   */
   matrixPow(exponent) {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
     if (!Number.isInteger(exponent)) throw new RangeError("Exponent must be integer");
@@ -11388,11 +11488,19 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     }
     return result;
   }
+  /**
+   * identity
+   * @throws {RangeError} 例外が発生した場合
+   */
   static identity(size, precision) {
     const s = Math.trunc(size);
     const p = precision === void 0 ? BigFloat.DEFAULT_PRECISION : BigInt(precision);
     return _BigFloatComplexMatrix._fromComplexGrid(Array.from({ length: s }, (_, r) => Array.from({ length: s }, (_2, c) => new BigFloatComplex(r === c ? 1 : 0, 0, p))));
   }
+  /**
+   * equals
+   * @throws {RangeError} 例外が発生した場合
+   */
   equals(other) {
     const matrix = _BigFloatComplexMatrix._coerceMatrix(other, this._flattenValues());
     if (this.rowCount !== matrix.rowCount || this.columnCount !== matrix.columnCount) return false;
@@ -11420,11 +11528,19 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
   frobeniusNorm() {
     return this._flattenValues().reduce((acc, v) => acc.add(v.absSquared()), new BigFloat(0, this._values[0]?.[0]?.precision)).sqrt();
   }
+  /**
+   * mulVector
+   * @throws {RangeError} Inner matrix dimensions must agree
+   */
   mulVector(vector) {
     const rhs = BigFloatComplexVector.from(vector);
     if (this.columnCount !== rhs.length) throw new RangeError("Inner matrix dimensions must agree");
     return BigFloatComplexVector.from(this._values.map((row) => BigFloatComplexVector.from(row).dot(rhs)));
   }
+  /**
+   * diagonalVector
+   * @throws {RangeError} Matrix must be square
+   */
   diagonalVector() {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
     return BigFloatComplexVector.from(this._values.map((row, index) => row[index].clone()));
@@ -11452,6 +11568,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     }
     return false;
   }
+  /**
+   * every
+   * @throws {RangeError} 例外が発生した場合
+   */
   every(fn) {
     for (let r = 0; r < this.rowCount; r++) {
       for (let c = 0; c < this.columnCount; c++) {
@@ -11460,6 +11580,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     }
     return true;
   }
+  /**
+   * concatRows
+   * @throws {RangeError} 例外が発生した場合
+   */
   concatRows(...others) {
     const values = this.toArray();
     for (const other of others) {
@@ -11575,6 +11699,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
   tanh() {
     return this._mapValues((v) => v.tanh());
   }
+  /**
+   * asinh
+   * @throws {TypeError} 例外が発生した場合
+   */
   asinh() {
     return this._mapValues((v) => v.asinh());
   }
@@ -11608,6 +11736,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
   log1p() {
     return this._mapValues((v) => v.add(1).ln());
   }
+  /**
+   * gamma
+   * @throws {TypeError} 例外が発生した場合
+   */
   gamma() {
     return this._mapValues((v) => {
       if (!v.isReal()) throw new TypeError("gamma is not supported for non-real complex numbers");
