@@ -21,48 +21,137 @@ export function analyzeThrows(config) {
 		skipAddingFilesFromTsConfig: false,
 	});
 
-	const sourceFiles = project.getSourceFiles().filter((sf) => !sf.getFilePath().includes("/test/"));
+	const sourceFiles = project.getSourceFiles().filter((sf) => !sf.getFilePath().includes("/node_modules/"));
 
-	// 0. JSDoc フォーマットチェック
+	// 0. JSDoc フォーマット・存在チェック
 	for (const sourceFile of sourceFiles) {
+		const relPath = getRelPath(config.rootDir, sourceFile);
+
+		// Export されているものへの JSDoc 強制
+		sourceFile.forEachChild((node) => {
+			if (isExported(node)) {
+				// export from は除く
+				if (Node.isExportDeclaration(node)) return;
+
+				const jsDocs = node.getJsDocs ? node.getJsDocs() : [];
+				if (jsDocs.length === 0) {
+					// 変数宣言の場合は VariableStatement を見る
+					if (Node.isVariableDeclaration(node)) {
+						const stmt = node.getFirstAncestorByKind(SyntaxKind.VariableStatement);
+						if (stmt && stmt.getJsDocs().length > 0) return;
+					}
+
+					// 関数実装でオーバーロードがある場合は、実態にはJSDoc必須ではない（ただし@throwsのみ許可される）
+					if (Node.isFunctionDeclaration(node) || Node.isMethodDeclaration(node)) {
+						if (node.getOverloads().length > 0) return;
+					}
+
+					result.push({
+						file: relPath,
+						line: node.getStartLineNumber(),
+						message: "Exportされている要素にはJSDocが必須です",
+					});
+				}
+			}
+		});
+
 		const jsDocs = sourceFile.getDescendantsOfKind(SyntaxKind.JSDoc);
 		for (const jsDoc of jsDocs) {
 			const text = jsDoc.getText();
 			const startLine = jsDoc.getStartLineNumber();
-			const relPath = getRelPath(config.rootDir, sourceFile);
+			const parent = jsDoc.getParent();
 
 			const lines = text.split(/\r?\n/);
-			// 複数行形式のチェック
-			if (lines.length < 3) {
-				result.push({
-					file: relPath,
-					line: startLine,
-					message: "JSDocは複数行形式で記述してください",
-				});
-			} else {
-				if (lines[0].trim() !== "/**") {
-					result.push({
-						file: relPath,
-						line: startLine,
-						message: "JSDocの開始タグは独立した行にする必要があります",
-					});
-				}
-				if (lines[lines.length - 1].trim() !== "*/") {
-					result.push({
-						file: relPath,
-						line: startLine + lines.length - 1,
-						message: "JSDocの終了タグは独立した行にする必要があります",
-					});
+			const isSingleLine = lines.length === 1;
+
+			// アスタリスクの位置が揃っているか検証
+			const firstLineMatch = lines[0].match(/^(\s*)\/\*\*/);
+			const indent = firstLineMatch ? firstLineMatch[1] : "";
+
+			for (let i = 1; i < lines.length; i++) {
+				const line = lines[i];
+				if (i === lines.length - 1) {
+					// 最終行 ( */ )
+					if (line.trim() === "*/") {
+						if (!line.startsWith(indent + " */")) {
+							result.push({
+								file: relPath,
+								line: startLine + i,
+								message: "JSDocの終了タグの位置が揃っていません",
+							});
+						}
+					}
+				} else {
+					// ' *' (スペース1つ + *) で始まっているか
+					const expectedPrefix = indent + " *";
+					if (!line.startsWith(expectedPrefix) || (line.length > expectedPrefix.length && line[expectedPrefix.length] !== " " && line[expectedPrefix.length] !== "\n" && line[expectedPrefix.length] !== "\r")) {
+						// 例外: ' *' だけの行は許容
+						if (line.trim() !== "*") {
+							result.push({
+								file: relPath,
+								line: startLine + i,
+								message: "JSDocのアスタリスクの位置が揃っていません。行頭は ' *' (半角スペース1つ + アスタリスク) で開始してください",
+							});
+						}
+					}
+
+					// 余計なスペースや二重アスタリスクのチェック
+					if (line.startsWith(indent + "  *")) {
+						result.push({
+							file: relPath,
+							line: startLine + i,
+							message: "JSDocのアスタリスクの前に余計なスペースがあります",
+						});
+					}
+					if (line.startsWith(indent + " **")) {
+						result.push({
+							file: relPath,
+							line: startLine + i,
+							message: "JSDocの行頭に二重のアスタリスクがあります",
+						});
+					}
 				}
 			}
 
-			// 二重アスタリスクのチェック
-			for (let i = 0; i < lines.length; i++) {
-				if (/^\s*\*\s+\*/.test(lines[i])) {
+			// 関数・メソッドの JSDoc は必ず複数行
+			const isFunctionLike = Node.isFunctionLikeDeclaration(parent) || Node.isMethodDeclaration(parent) || Node.isConstructorDeclaration(parent);
+			if (isFunctionLike && isSingleLine) {
+				result.push({
+					file: relPath,
+					line: startLine,
+					message: "関数・メソッドのJSDocは必ず複数行形式にしてください",
+				});
+			}
+
+			// 変数・フィールドの JSDoc
+			const isVariableLike = Node.isVariableStatement(parent) || Node.isPropertyDeclaration(parent) || Node.isPropertySignature(parent) || Node.isEnumMember(parent) || Node.isVariableDeclaration(parent);
+			if (isVariableLike) {
+				const commentContent = jsDoc.getComment()?.trim() || "";
+				const hasTags = jsDoc.getTags().length > 0;
+				const isContentMultiLine = commentContent.includes("\n");
+
+				if (!isContentMultiLine && !hasTags) {
+					if (!isSingleLine) {
+						result.push({
+							file: relPath,
+							line: startLine,
+							message: "内容が1行しかない変数のJSDocは必ず1行形式 `/** content */` にしてください",
+						});
+					}
+				}
+			}
+
+			// JSDoc タイトルと名称の一致チェック
+			const nameNode = getFunctionNameNode(parent) || (parent.getNameNode ? parent.getNameNode() : null);
+			if (nameNode) {
+				const name = nameNode.getText();
+				const fullComment = jsDoc.getComment()?.trim() || "";
+				const firstLineComment = fullComment.split("\n")[0].trim();
+				if (firstLineComment === name) {
 					result.push({
 						file: relPath,
-						line: startLine + i,
-						message: "JSDocの行頭に二重のアスタリスクがあります",
+						line: startLine,
+						message: `JSDocタイトルが名称 \`${name}\` と完全一致しています`,
 					});
 				}
 			}
@@ -73,7 +162,6 @@ export function analyzeThrows(config) {
 				const tagName = tag.getTagName();
 				const tagLine = tag.getStartLineNumber();
 
-				// @return -> @returns 強制
 				if (tagName === "return") {
 					result.push({
 						file: relPath,
@@ -82,7 +170,6 @@ export function analyzeThrows(config) {
 					});
 				}
 
-				// 説明の必須チェック (param, returns, throws)
 				if (["param", "returns", "throws"].includes(tagName)) {
 					const comment = tag.getComment()?.trim() || "";
 					if (!comment) {
@@ -93,12 +180,8 @@ export function analyzeThrows(config) {
 						});
 					}
 
-					// @param のフォーマットチェック: "* @param name - description"
 					if (tagName === "param") {
 						const tagText = tag.getText();
-						// ts-morph の tag.getText() は "@param name - description" のような形式
-						// 期待値: @param <name> - <description>
-						// ハイフンの前後に少なくとも1つの空白が必要
 						if (!/@param\s+\S+\s+-\s+/.test(tagText)) {
 							result.push({
 								file: relPath,
@@ -109,41 +192,48 @@ export function analyzeThrows(config) {
 					}
 				}
 			}
-		}
-	}
 
-	// 1. プロジェクト内の全関数・メソッド定義と @throws タグを収集
-	const allDefinedFunctions = [];
-	const funcToTags = new Map();
-	for (const sourceFile of sourceFiles) {
-		const funcs = [...sourceFile.getFunctions(), ...sourceFile.getClasses().flatMap((c) => [...c.getMethods(), ...c.getConstructors()]), ...sourceFile.getDescendantsOfKind(SyntaxKind.FunctionDeclaration), ...sourceFile.getDescendantsOfKind(SyntaxKind.MethodDeclaration)];
-		const uniqueFuncs = Array.from(new Set(funcs));
+			// returns 強制チェック (void, Promise<void>, never 以外)
+			if (isFunctionLike) {
+				const hasOverloads = parent.getOverloads?.().length > 0;
+				const isImplementation = parent.getBody && parent.getBody();
 
-		for (const func of uniqueFuncs) {
-			const tags = getThrowsTags(func);
-			const parsedTags = parseThrowsTags(tags);
-			funcToTags.set(func, parsedTags);
+				if (!(hasOverloads && isImplementation)) {
+					const returnType = parent.getReturnType().getText();
+					const skipReturns = returnType === "void" || returnType === "Promise<void>" || returnType === "never" || returnType === "void | Promise<void>";
 
-			if (parsedTags.length > 0) {
-				allDefinedFunctions.push({ node: func, tags: parsedTags });
-
-				// [チェック1] @throws の説明コメント必須チェック
-				for (const tagInfo of parsedTags) {
-					if (!tagInfo.description) {
-						result.push({
-							file: getRelPath(config.rootDir, sourceFile),
-							line: tagInfo.line,
-							message: `@throws {${tagInfo.type}} に説明がありません`,
-						});
+					const hasReturnsTag = tags.some((t) => t.getTagName() === "returns" || t.getTagName() === "return");
+					if (!skipReturns && !hasReturnsTag) {
+						if (isDocumentable(parent)) {
+							result.push({
+								file: relPath,
+								line: startLine,
+								message: `@returns が不足しています (戻り値の型: ${returnType})`,
+							});
+						}
 					}
 				}
 			}
 		}
 	}
 
+	// 1. プロジェクト内の全関数・メソッド定義を収集
+	const allFuncsInProject = [];
+	for (const sourceFile of sourceFiles) {
+		const funcs = sourceFile.getDescendants().filter((n) => Node.isFunctionDeclaration(n) || Node.isMethodDeclaration(n) || Node.isConstructorDeclaration(n) || Node.isArrowFunction(n) || Node.isFunctionExpression(n));
+		allFuncsInProject.push(...funcs);
+	}
+
+	const funcToTags = new Map();
+	for (const func of allFuncsInProject) {
+		const tags = getThrowsTags(func);
+		funcToTags.set(func, parseThrowsTags(tags));
+	}
+
 	// [新チェック] オーバーロードと冗長な @throws のチェック
 	const groupedDecls = new Map();
-	for (const [func, tags] of funcToTags.entries()) {
+	for (const func of allFuncsInProject) {
+		if (!isDocumentable(func)) continue;
 		const nameNode = getFunctionNameNode(func);
 		const name = nameNode ? nameNode.getText() : Node.isConstructorDeclaration(func) ? "constructor" : null;
 		if (!name) continue;
@@ -155,25 +245,44 @@ export function analyzeThrows(config) {
 	}
 
 	for (const [key, group] of groupedDecls) {
-		// a. オーバーロードの JSDoc チェック
-		if (group.length > 1) {
-			let firstWithJsDoc = null;
-			for (const decl of group) {
-				const hasJsDoc = decl.getJsDocs().length > 0;
-				if (hasJsDoc) {
-					if (firstWithJsDoc === null) {
-						firstWithJsDoc = decl;
-					} else {
-						const jsDocs = decl.getJsDocs();
-						const hasOverloadTag = jsDocs.some((doc) => doc.getTags().some((tag) => tag.getTagName() === "overload"));
-						if (!hasOverloadTag) {
-							const currentParamCount = decl.getParameters().length;
-							const firstParamCount = firstWithJsDoc.getParameters().length;
-							if (currentParamCount === firstParamCount) {
+		const hasOverloads = group.length > 1;
+		const implementation = group.find((d) => (d.getBody && d.getBody()) || (Node.isArrowFunction(d) && d.getExpressionBody()));
+
+		for (const decl of group) {
+			const jsDocs = decl.getJsDocs();
+			const relPath = getRelPath(config.rootDir, decl.getSourceFile());
+
+			if (decl === implementation && hasOverloads) {
+				// 実態かつオーバーロードがある場合: @throws のみ許可
+				for (const jsDoc of jsDocs) {
+					const tags = jsDoc.getTags();
+					const comment = jsDoc.getComment()?.trim();
+					const nonThrowsTags = tags.filter((t) => t.getTagName() !== "throws");
+
+					if (comment || nonThrowsTags.length > 0) {
+						result.push({
+							file: relPath,
+							line: jsDoc.getStartLineNumber(),
+							message: "オーバーロードを持つ関数の実態には @throws のみを許可し、タイトルや他のタグは許可されません",
+						});
+					}
+				}
+			} else if (hasOverloads && decl !== implementation) {
+				// オーバーロード定義
+				if (jsDocs.length > 0) {
+					const hasOverloadTag = jsDocs.some((doc) => doc.getTags().some((tag) => tag.getTagName() === "overload"));
+					if (!hasOverloadTag) {
+						const currentParams = decl.getParameters().map((p) => p.getType().getText());
+						const sameSignatureDecls = group.filter((d) => d !== decl && d !== implementation && d.getParameters().length === decl.getParameters().length && d.getParameters().every((p, i) => p.getType().getText() === currentParams[i]));
+
+						if (sameSignatureDecls.length > 0) {
+							const myIndex = group.indexOf(decl);
+							const earlierSame = sameSignatureDecls.some((d) => group.indexOf(d) < myIndex);
+							if (earlierSame) {
 								result.push({
-									file: getRelPath(config.rootDir, decl.getSourceFile()),
+									file: relPath,
 									line: decl.getStartLineNumber(),
-									message: "不必要なJSDocです。最初のオーバーロード宣言にのみ記述するか、@overloadを付与してください",
+									message: "引数が同一のオーバーロードにはJSDocを許可しません (@overloadを付与する場合を除く)",
 								});
 							}
 						}
@@ -182,10 +291,8 @@ export function analyzeThrows(config) {
 			}
 		}
 
-		// b. 冗長な @throws のチェック
-		const implementation = group.find((d) => (d.getBody && d.getBody()) || (Node.isArrowFunction(d) && d.getExpressionBody()));
 		if (implementation) {
-			const actualThrows = collectActualThrows(implementation, funcToTags, project);
+			const actualThrows = collectActualThrowsRecursive(implementation, funcToTags, project);
 			for (const decl of group) {
 				const tags = funcToTags.get(decl);
 				if (tags) {
@@ -194,7 +301,7 @@ export function analyzeThrows(config) {
 							result.push({
 								file: getRelPath(config.rootDir, decl.getSourceFile()),
 								line: tag.line,
-								message: `余剰な @throws {${tag.type}} があります`,
+								message: `余剰な @throws {${tag.type}} があります (この例外は発生しません)`,
 							});
 						}
 					}
@@ -203,56 +310,47 @@ export function analyzeThrows(config) {
 		}
 	}
 
-	// 2. [チェック2] 明示的な throw 文のチェック
+	// 2. 明示的な throw 文のチェック と 3. 伝播のチェック
 	for (const sourceFile of sourceFiles) {
+		const relPath = getRelPath(config.rootDir, sourceFile);
+
+		// 明示的な throw
 		const throwStmts = sourceFile.getDescendantsOfKind(SyntaxKind.ThrowStatement);
 		for (const throwStmt of throwStmts) {
 			if (isThrowStatementHandled(throwStmt)) continue;
 			const func = findDocumentableEnclosingFunction(throwStmt);
 			if (!func) continue;
-			if (isAllowedThrowContext(func, sourceFile.getFilePath(), config.allowedDynamicDirs)) continue;
 
 			const throwType = getThrowType(throwStmt);
 			const tags = funcToTags.get(func) || [];
 			if (tags.some((t) => t.type === throwType)) continue;
 
 			result.push({
-				file: getRelPath(config.rootDir, sourceFile),
+				file: relPath,
 				line: throwStmt.getStartLineNumber(),
 				message: `未補足のthrowです。@throws {${throwType}} を付与してください`,
 			});
 		}
-	}
 
-	// 3. [チェック3] @throws を持つ関数の呼び出し元のチェック（伝播の強制）
-	for (const { node: targetFunc, tags: targetTags } of allDefinedFunctions) {
-		const nameNode = getFunctionNameNode(targetFunc);
-		if (!nameNode) continue;
+		// 関数呼び出し
+		const callNodes = [...sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression), ...sourceFile.getDescendantsOfKind(SyntaxKind.NewExpression)];
+		for (const callExpr of callNodes) {
+			if (isCallHandledByTryCatch(callExpr) || isCallHandledByPromise(callExpr)) continue;
 
-		const references = nameNode.findReferences();
-		for (const ref of references) {
-			for (const refEntry of ref.getReferences()) {
-				const refNode = refEntry.getNode();
-				const callExpr = getCallExpressionFromRef(refNode);
-				if (!callExpr) continue;
+			const enclosingFunc = findDocumentableEnclosingFunction(callExpr);
+			if (!enclosingFunc) continue;
 
-				// ハンドリング（try-catch / .catch）されていればOK
-				if (isCallHandledByTryCatch(callExpr) || isCallHandledByPromise(callExpr)) continue;
+			const calledDecls = getCalledDeclarations(callExpr, project);
+			for (const decl of calledDecls) {
+				const targetTags = funcToTags.get(decl) || [];
+				const callerTags = funcToTags.get(enclosingFunc) || [];
 
-				const enclosingFunc = findDocumentableEnclosingFunction(callExpr);
-				if (!enclosingFunc) continue;
-
-				const callerTags = parseThrowsTags(getThrowsTags(enclosingFunc));
-
-				// 呼び出し先の全ての @throws が呼び出し元にも定義されているか確認
 				for (const targetTag of targetTags) {
-					const isDelegated = callerTags.some((t) => t.type === targetTag.type);
-					if (!isDelegated) {
-						// 【修正箇所】型だけでなく、説明文(description)も含めて返却
+					if (!callerTags.some((t) => t.type === targetTag.type)) {
 						const errorDetail = targetTag.description ? `{${targetTag.type}} ${targetTag.description}` : `{${targetTag.type}}`;
 						result.push({
-							file: getRelPath(config.rootDir, refNode.getSourceFile()),
-							line: refNode.getStartLineNumber(),
+							file: relPath,
+							line: callExpr.getStartLineNumber(),
 							message: `例外未処理: \`${errorDetail}\` を @throws に追加してください`,
 						});
 					}
@@ -264,89 +362,34 @@ export function analyzeThrows(config) {
 	return result;
 }
 
-/**
- * JSDocタグから情報を抽出
- */
-function parseSingleTag(tag) {
-	const text = tag.getText();
-	const typeMatch = text.match(/\{([^}]*)\}/);
-	const type = typeMatch ? typeMatch[1] : "Error";
-
-	// @throws と {Type} を除去して残りを説明とする
-	let description = text
-		.replace(/^\/\*\*|\*\/$/g, "") // ブロックコメントの囲みを除去
-		.replace(/^\s*\*\s*/gm, "") // 行頭の * を除去
-		.replace(/@throws\s*/, "")
-		.replace(/\{[^}]*\}\s*/, "");
-
-	// ハイフンから始まる場合はハイフンを除去 (フォーマット統一のため)
-	description = description.replace(/^\s*-\s+/, "").trim();
-
-	return {
-		type,
-		description,
-		line: tag.getStartLineNumber(),
-	};
-}
-
-function parseThrowsTags(tags) {
-	return tags.map(parseSingleTag);
-}
-
-/**
- * プロパティアクセス（Class.method）を考慮して CallExpression / NewExpression を取得
- */
-function getCallExpressionFromRef(refNode) {
-	let parent = refNode.getParent();
-	while (parent && (Node.isPropertyAccessExpression(parent) || Node.isElementAccessExpression(parent))) {
-		parent = parent.getParent();
+function isExported(node) {
+	if (Node.isExportable(node) && node.isExported()) return true;
+	if (Node.isVariableDeclaration(node)) {
+		const stmt = node.getFirstAncestorByKind(SyntaxKind.VariableStatement);
+		return stmt && stmt.isExported();
 	}
-	return Node.isCallExpression(parent) || Node.isNewExpression(parent) ? parent : null;
+	if (Node.isTypeAliasDeclaration(node) || Node.isInterfaceDeclaration(node) || Node.isEnumDeclaration(node)) {
+		return node.isExported();
+	}
+	return false;
 }
 
-function getRelPath(rootDir, sourceFile) {
-	return path.relative(rootDir, sourceFile.getFilePath()) || sourceFile.getFilePath();
-}
+function isDocumentable(node) {
+	if (!node) return false;
+	if (isExported(node)) return true;
 
-function getThrowsTags(func) {
-	if (!func) return [];
-	let target = func;
-
-	// アロー関数の場合は変数宣言側からJSDocを取得
-	if (Node.isArrowFunction(func) || Node.isFunctionExpression(func)) {
-		const varDecl = func.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
-		const varStmt = varDecl?.getFirstAncestorByKind(SyntaxKind.VariableStatement);
-		if (varStmt) target = varStmt;
+	const parent = node.getParent();
+	if (Node.isClassDeclaration(parent) || Node.isInterfaceDeclaration(parent) || Node.isEnumDeclaration(parent)) {
+		if (isDocumentable(parent)) return true;
 	}
 
-	if (!target.getJsDocs) return [];
-	return target.getJsDocs().flatMap((doc) => doc.getTags().filter((t) => t.getTagName() === "throws"));
-}
-
-function hasThrowsJSDoc(func) {
-	return getThrowsTags(func).length > 0;
-}
-
-function findDocumentableEnclosingFunction(node) {
-	let curr = node.getFirstAncestor((a) => Node.isFunctionDeclaration(a) || Node.isMethodDeclaration(a) || Node.isConstructorDeclaration(a) || Node.isArrowFunction(a) || Node.isFunctionExpression(a));
-	while (curr) {
-		if (isDocumentable(curr)) return curr;
-		curr = curr.getFirstAncestor((a) => Node.isFunctionDeclaration(a) || Node.isMethodDeclaration(a) || Node.isConstructorDeclaration(a) || Node.isArrowFunction(a) || Node.isFunctionExpression(a));
+	if (Node.isFunctionLikeDeclaration(node) || Node.isMethodDeclaration(node) || Node.isConstructorDeclaration(node)) {
+		if (isVariableArrowFunc(node)) {
+			const varDecl = node.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
+			if (varDecl && isExported(varDecl)) return true;
+		}
 	}
-	return null;
-}
 
-function isDocumentable(func) {
-	const parent = func.getParent();
-	if (Node.isSourceFile(parent)) return true;
-	if (Node.isClassDeclaration(parent)) {
-		return Node.isMethodDeclaration(func) || Node.isConstructorDeclaration(func);
-	}
-	if (isVariableArrowFunc(func)) {
-		const varDecl = func.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
-		const varStmt = varDecl?.getFirstAncestorByKind(SyntaxKind.VariableStatement);
-		if (varStmt && Node.isSourceFile(varStmt.getParent())) return true;
-	}
 	return false;
 }
 
@@ -356,11 +399,54 @@ function isVariableArrowFunc(node) {
 }
 
 function getFunctionNameNode(func) {
+	if (!func) return null;
 	if (func.getNameNode?.()) return func.getNameNode();
 	if (isVariableArrowFunc(func)) {
 		return func.getFirstAncestorByKind(SyntaxKind.VariableDeclaration)?.getNameNode();
 	}
 	return null;
+}
+
+function findDocumentableEnclosingFunction(node) {
+	let curr = node.getParent();
+	while (curr) {
+		if (Node.isFunctionDeclaration(curr) || Node.isMethodDeclaration(curr) || Node.isConstructorDeclaration(curr) || Node.isArrowFunction(curr) || Node.isFunctionExpression(curr)) {
+			if (isDocumentable(curr)) return curr;
+		}
+		curr = curr.getParent();
+	}
+	return null;
+}
+
+function getThrowsTags(func) {
+	if (!func) return [];
+	let target = func;
+	if (isVariableArrowFunc(func)) {
+		const varDecl = func.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
+		const varStmt = varDecl?.getFirstAncestorByKind(SyntaxKind.VariableStatement);
+		if (varStmt) target = varStmt;
+	}
+	if (!target.getJsDocs) return [];
+	return target.getJsDocs().flatMap((doc) => doc.getTags().filter((t) => t.getTagName() === "throws"));
+}
+
+function parseThrowsTags(tags) {
+	return tags.map((tag) => {
+		const text = tag.getText();
+		const typeMatch = text.match(/\{([^}]*)\}/);
+		const type = typeMatch ? typeMatch[1] : "Error";
+		let description = text
+			.replace(/^\/\*\*|\*\/$/g, "")
+			.replace(/^\s*\*\s*/gm, "")
+			.replace(/@throws\s*/, "")
+			.replace(/\{[^}]*\}\s*/, "");
+		description = description.replace(/^\s*-\s+/, "").trim();
+		return { type, description, line: tag.getStartLineNumber() };
+	});
+}
+
+function getRelPath(rootDir, sourceFile) {
+	return path.relative(rootDir, sourceFile.getFilePath()) || sourceFile.getFilePath();
 }
 
 function isThrowStatementHandled(throwStmt) {
@@ -381,78 +467,6 @@ function isCallHandledByPromise(callExpr) {
 	return false;
 }
 
-function isAllowedThrowContext(func, filePath, allowedDirs) {
-	if (!func) return false;
-	const normalized = path.normalize(filePath);
-	if (!allowedDirs.some((dir) => normalized.includes(path.normalize(dir + path.sep)))) return false;
-	return hasThrowsJSDoc(func);
-}
-
-function collectActualThrows(func, funcToTags, project) {
-	const types = new Set();
-	const body = (func.getBody && func.getBody()) || (Node.isArrowFunction(func) && func.getExpressionBody());
-	if (!body) return types;
-
-	// 明示的な throw
-	body.getDescendantsOfKind(SyntaxKind.ThrowStatement).forEach((throwStmt) => {
-		if (isThrowStatementHandled(throwStmt)) return;
-		// その関数（またはその内部関数）からの throw であることを確認
-		let enclosing = throwStmt.getFirstAncestor((a) => Node.isFunctionDeclaration(a) || Node.isMethodDeclaration(a) || Node.isConstructorDeclaration(a) || Node.isArrowFunction(a) || Node.isFunctionExpression(a));
-		while (enclosing && !isDocumentable(enclosing)) {
-			enclosing = enclosing.getFirstAncestor((a) => Node.isFunctionDeclaration(a) || Node.isMethodDeclaration(a) || Node.isConstructorDeclaration(a) || Node.isArrowFunction(a) || Node.isFunctionExpression(a));
-		}
-		if (enclosing !== func) return;
-		types.add(getThrowType(throwStmt));
-	});
-
-	// 関数呼び出し / インスタンス化
-	const callNodes = [...body.getDescendantsOfKind(SyntaxKind.CallExpression), ...body.getDescendantsOfKind(SyntaxKind.NewExpression)];
-	callNodes.forEach((callExpr) => {
-		if (isCallHandledByTryCatch(callExpr) || isCallHandledByPromise(callExpr)) return;
-		let enclosing = callExpr.getFirstAncestor((a) => Node.isFunctionDeclaration(a) || Node.isMethodDeclaration(a) || Node.isConstructorDeclaration(a) || Node.isArrowFunction(a) || Node.isFunctionExpression(a));
-		while (enclosing && !isDocumentable(enclosing)) {
-			enclosing = enclosing.getFirstAncestor((a) => Node.isFunctionDeclaration(a) || Node.isMethodDeclaration(a) || Node.isConstructorDeclaration(a) || Node.isArrowFunction(a) || Node.isFunctionExpression(a));
-		}
-		if (enclosing !== func) return;
-
-		const accessExpr = callExpr.getExpression();
-		// node_modules 内のものはスキップ
-		const typeChecker = project.getTypeChecker();
-		let symbol = typeChecker.getSymbolAtLocation(accessExpr);
-
-		if (!symbol && (Node.isPropertyAccessExpression(accessExpr) || Node.isElementAccessExpression(accessExpr))) {
-			symbol = accessExpr.getSymbol();
-		}
-
-		if (symbol) {
-			const declarations = symbol.getDeclarations();
-			if (!declarations || declarations.some((d) => d.getSourceFile().getFilePath().includes("/node_modules/"))) return;
-			for (const decl of declarations) {
-				if (Node.isClassDeclaration(decl)) {
-					const constructors = decl.getConstructors();
-					for (const ctor of constructors) {
-						const tags = funcToTags.get(ctor);
-						if (tags) {
-							for (const t of tags) {
-								types.add(t.type);
-							}
-						}
-					}
-					continue;
-				}
-				const tags = funcToTags.get(decl);
-				if (tags) {
-					for (const t of tags) {
-						types.add(t.type);
-					}
-				}
-			}
-		}
-	});
-
-	return types;
-}
-
 function getThrowType(throwStmt) {
 	const expr = throwStmt.getExpression();
 	if (Node.isNewExpression(expr) || Node.isCallExpression(expr)) {
@@ -460,4 +474,86 @@ function getThrowType(throwStmt) {
 		return callExpr.getText();
 	}
 	return "Error";
+}
+
+function getCalledDeclarations(callExpr, project) {
+	const accessExpr = callExpr.getExpression();
+	const typeChecker = project.getTypeChecker();
+	let symbol = typeChecker.getSymbolAtLocation(accessExpr);
+	if (!symbol && (Node.isPropertyAccessExpression(accessExpr) || Node.isElementAccessExpression(accessExpr))) {
+		symbol = accessExpr.getSymbol();
+	}
+	if (!symbol) return [];
+	const declarations = symbol.getDeclarations() || [];
+	return declarations.filter((d) => !d.getSourceFile().getFilePath().includes("/node_modules/"));
+}
+
+function collectActualThrowsRecursive(func, funcToTags, project, visited = new Set()) {
+	if (visited.has(func)) return new Set();
+	visited.add(func);
+
+	const types = new Set();
+	const body = (func.getBody && func.getBody()) || (Node.isArrowFunction(func) && func.getExpressionBody());
+	if (!body) return types;
+
+	// 明示的な throw
+	body.getDescendantsOfKind(SyntaxKind.ThrowStatement).forEach((throwStmt) => {
+		if (isThrowStatementHandled(throwStmt)) return;
+
+		let temp = throwStmt.getParent();
+		let belongsToFunc = false;
+		while (temp && temp !== func) {
+			if (Node.isFunctionLikeDeclaration(temp) || Node.isMethodDeclaration(temp)) {
+				if (isDocumentable(temp)) {
+					belongsToFunc = false;
+					break;
+				}
+			}
+			temp = temp.getParent();
+		}
+		if (temp === func) belongsToFunc = true;
+
+		if (belongsToFunc) types.add(getThrowType(throwStmt));
+	});
+
+	// 関数呼び出し
+	const callNodes = [...body.getDescendantsOfKind(SyntaxKind.CallExpression), ...body.getDescendantsOfKind(SyntaxKind.NewExpression)];
+	callNodes.forEach((callExpr) => {
+		if (isCallHandledByTryCatch(callExpr) || isCallHandledByPromise(callExpr)) return;
+
+		let temp = callExpr.getParent();
+		let belongsToFunc = false;
+		while (temp && temp !== func) {
+			if (Node.isFunctionLikeDeclaration(temp) || Node.isMethodDeclaration(temp)) {
+				if (isDocumentable(temp)) {
+					belongsToFunc = false;
+					break;
+				}
+			}
+			temp = temp.getParent();
+		}
+		if (temp === func) belongsToFunc = true;
+		if (!belongsToFunc) return;
+
+		const calledDecls = getCalledDeclarations(callExpr, project);
+		for (const decl of calledDecls) {
+			if (Node.isClassDeclaration(decl)) {
+				decl.getConstructors().forEach((ctor) => {
+					const tags = funcToTags.get(ctor) || [];
+					tags.forEach((t) => types.add(t.type));
+					if (!isDocumentable(ctor)) {
+						collectActualThrowsRecursive(ctor, funcToTags, project, visited).forEach((t) => types.add(t));
+					}
+				});
+			} else {
+				const tags = funcToTags.get(decl) || [];
+				tags.forEach((t) => types.add(t.type));
+				if (!isDocumentable(decl) && (Node.isFunctionLikeDeclaration(decl) || Node.isMethodDeclaration(decl))) {
+					collectActualThrowsRecursive(decl, funcToTags, project, visited).forEach((t) => types.add(t));
+				}
+			}
+		}
+	});
+
+	return types;
 }
