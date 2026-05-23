@@ -35,9 +35,7 @@ export enum SpecialValueState {
 	NAN = 3,
 }
 
-/**
- * BigFloat 構成オプション
- */
+/** BigFloat 構成オプション */
 export interface BigFloatOptions {
 	/** 精度の不一致を許容するかどうか */
 	allowPrecisionMismatch?: boolean;

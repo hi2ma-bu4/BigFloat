@@ -41,6 +41,7 @@ export class BigFloatConfig {
 	 * @param options.extraPrecision - 計算時に追加する精度
 	 * @param options.trigFuncsMaxSteps - 三角関数の最大ステップ数
 	 * @param options.lnMaxSteps - 対数計算の最大ステップ数
+	 * @returns 設定オブジェクト
 	 */
 	public constructor({ allowPrecisionMismatch = false, allowComplexNumbers = false, mutateResult = false, allowSpecialValues = true, roundingMode = RoundingMode.TRUNCATE, extraPrecision = 6n, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n }: BigFloatOptions = {}) {
 		this.allowPrecisionMismatch = allowPrecisionMismatch;
@@ -409,6 +410,7 @@ export class BigFloat {
 	 * BigFloat コンストラクタ
 	 * @param value - 初期値 (数値, 文字列, BigInt, または別の BigFloat)
 	 * @param precision - 精度 (小数点以下の最大桁数)
+	 * @returns BigFloat インスタンス
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を渡した場合
 	 * @throws {TypeError} 虚部が 0 でない複素数を渡した場合

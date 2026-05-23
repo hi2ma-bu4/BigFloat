@@ -23,7 +23,8 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	 * BigFloatComplexMatrix コンストラクタ
 	 * @param rows - 行列要素の反復可能オブジェクト
 	 * @param precision - 精度
-	 * @throws {RangeError} Matrix rows must have the same length
+	 * @returns BigFloatComplexMatrix インスタンス
+	 * @throws {RangeError} 各行の長さが一致しない場合
 	 */
 	public constructor(rows: BigFloatAnyMatrixLike = [], precision?: PrecisionValue) {
 		const rawRows = Array.from(rows as BigFloatComplexMatrixLike, (row) => Array.from(row));
@@ -56,7 +57,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	}
 
 	/**
-	 * 与えられた二次元配列が矩形であることを検証する
+	 * 二次元配列が矩形であることを検証する
 	 * @param rows - 検証対象の二次元配列
 	 * @throws {RangeError} 各行の長さが一致しない場合
 	 */
@@ -257,8 +258,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 
 	/**
 	 * 要素を流すストリームへ変換する
-	 * @throws {RangeError} 例外が発生した場合
-	 * @throws {TypeError} 例外が発生した場合
+	 * @returns 要素のストリーム
 	 */
 	public toStream(): BigFloatStream {
 		return BigFloatStream.from(this._flattenValues());
@@ -289,7 +289,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	/**
 	 * 行列の積を計算する
 	 * @param other - 乗算する行列
-	 * @returns 計算結果の行列
+	 * @returns 行列の積
 	 * @throws {RangeError} 行列の次元が一致しない場合
 	 */
 	public matmul(other: BigFloatAnyMatrixLike): this {
@@ -326,7 +326,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	}
 
 	/**
-	 * 正方行列のトレース（対角和）を計算する
+	 * 行列のトレース（対角和）を計算する
 	 * @returns トレースの値
 	 * @throws {RangeError} 正方行列でない場合
 	 */
@@ -341,7 +341,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	}
 
 	/**
-	 * 正方行列の行列式を計算する
+	 * 行列式を計算する
 	 * @returns 行列式の値
 	 * @throws {RangeError} 正方行列でない場合
 	 */
@@ -387,7 +387,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	 * 逆行列を計算する
 	 * @returns 逆行列
 	 * @throws {RangeError} 正方行列でない場合
-	 * @throws {SingularMatrixError} 行列が特異（逆行列が存在しない）な場合
+	 * @throws {SingularMatrixError} 行列が特異な場合
 	 */
 	public inverse(): this {
 		if (!this.isSquare()) throw new RangeError("Matrix must be square");
@@ -439,10 +439,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	}
 
 	/**
-	 * 連立一次方程式 Ax = b を解く（bはベクトル）
-	 * @param rhs - 右辺ベクトル b
-	 * @returns 解ベクトル x
-	 * @throws {RangeError} 行列が正方でない、または次元が一致しない場合
+	 * 連立一次方程式を解く（ベクトル）
+	 * @param rhs - 右辺ベクトル
+	 * @returns 解ベクトル
+	 * @throws {RangeError} 次元が一致しない場合
 	 */
 	public solveVector(rhs: BigFloatAnyVectorLike): BigFloatComplexVector {
 		if (!this.isSquare()) throw new RangeError("Matrix must be square");
@@ -453,10 +453,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	}
 
 	/**
-	 * 連立一次方程式 AX = B を解く（Bは行列）
-	 * @param rhs - 右辺行列 B
-	 * @returns 解行列 X
-	 * @throws {RangeError} 行列が正方でない、または次元が一致しない場合
+	 * 連立一次方程式を解く（行列）
+	 * @param rhs - 右辺行列
+	 * @returns 解行列
+	 * @throws {RangeError} 次元が一致しない場合
 	 * @throws {SingularMatrixError} 行列が特異な場合
 	 */
 	public solveMatrix(rhs: BigFloatAnyMatrixLike): this {
@@ -518,8 +518,8 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	/**
 	 * 行列のべき乗を計算する
 	 * @param exponent - 指数
-	 * @returns 計算結果の行列
-	 * @throws {RangeError} 行列が正方でない、または指数が整数でない場合
+	 * @returns 行列のべき乗
+	 * @throws {RangeError} 指数が整数でない場合、または正方行列でない場合
 	 */
 	public matrixPow(exponent: number): this {
 		if (!this.isSquare()) throw new RangeError("Matrix must be square");
@@ -550,7 +550,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	}
 
 	/**
-	 * 他の行列と等しいかどうかを判定する
+	 * 行列が等しいかどうかを判定する
 	 * @param other - 比較対象の行列
 	 * @returns 等しい場合は true、そうでない場合は false
 	 */
@@ -591,8 +591,8 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	/**
 	 * 行列とベクトルの積を計算する
 	 * @param vector - 乗算するベクトル
-	 * @returns 計算結果のベクトル
-	 * @throws {RangeError} 行列の列数とベクトルの次元が一致しない場合
+	 * @returns ベクトルとの積
+	 * @throws {RangeError} 次元が一致しない場合
 	 */
 	public mulVector(vector: BigFloatAnyVectorLike): BigFloatComplexVector {
 		const rhs = BigFloatComplexVector.from(vector);
@@ -601,7 +601,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	}
 
 	/**
-	 * 行列の対角成分をベクトルとして取得する
+	 * 対角成分をベクトルとして取得する
 	 * @returns 対角成分のベクトル
 	 * @throws {RangeError} 正方行列でない場合
 	 */
@@ -638,9 +638,9 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	}
 
 	/**
-	 * 全ての要素が条件を満たすかどうかを判定する
+	 * すべての要素が条件を満たすか判定する
 	 * @param fn - 判定関数
-	 * @returns 全ての要素が条件を満たす場合は true、そうでない場合は false
+	 * @returns すべての要素が条件を満たす場合は true、そうでない場合は false
 	 */
 	public every(fn: (value: BigFloatComplex, row: number, column: number) => boolean): boolean {
 		for (let r = 0; r < this.rowCount; r++) {
@@ -652,9 +652,9 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	}
 
 	/**
-	 * 他の行列を行方向に連結する
+	 * 行列を行方向に連結する
 	 * @param others - 連結する行列
-	 * @returns 連結された新しい行列
+	 * @returns 連結された行列
 	 * @throws {RangeError} 列数が一致しない場合
 	 */
 	public concatRows(...others: BigFloatAnyMatrixLike[]): this {
@@ -818,8 +818,8 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	}
 
 	/**
-	 * 各要素の逆双曲線正弦 (asinh) を計算する
-	 * @returns 各要素に asinh を適用した行列
+	 * 各要素の逆双曲線正弦を計算する
+	 * @returns asinh を適用した行列
 	 */
 	public asinh(): this {
 		return this._mapValues((v) => v.asinh());
@@ -866,8 +866,8 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	}
 
 	/**
-	 * gamma
-	 * @throws {TypeError} 例外が発生した場合
+	 * 各要素のガンマ関数を計算する
+	 * @returns ガンマ関数を適用した行列
 	 */
 	public gamma(): this {
 		// Not implemented in BigFloatComplex

@@ -27,29 +27,29 @@ export function analyzeThrows(config) {
 	for (const sourceFile of sourceFiles) {
 		const relPath = getRelPath(config.rootDir, sourceFile);
 
-		// Export されているものへの JSDoc 強制
-		sourceFile.forEachChild((node) => {
-			if (isExported(node)) {
+		// ドキュメント化可能な要素への JSDoc 強制
+		sourceFile.getDescendants().forEach((node) => {
+			if (isDocumentable(node)) {
 				// export from は除く
 				if (Node.isExportDeclaration(node)) return;
 
+				// VariableDeclaration は親の VariableStatement でチェックするためスキップ
+				if (Node.isVariableDeclaration(node)) return;
+
+				// 名前がないもの、プライベートなものはスキップ（ただし明示的な private は除く）
+				if (node.getName && !node.getName()) return;
+
+				// 実装を持つ関数のオーバーロードがある場合は、実態には JSDoc 必須ではない
+				if (Node.isFunctionDeclaration(node) || Node.isMethodDeclaration(node)) {
+					if (node.getOverloads().length > 0 && node.getBody()) return;
+				}
+
 				const jsDocs = node.getJsDocs ? node.getJsDocs() : [];
 				if (jsDocs.length === 0) {
-					// 変数宣言の場合は VariableStatement を見る
-					if (Node.isVariableDeclaration(node)) {
-						const stmt = node.getFirstAncestorByKind(SyntaxKind.VariableStatement);
-						if (stmt && stmt.getJsDocs().length > 0) return;
-					}
-
-					// 関数実装でオーバーロードがある場合は、実態にはJSDoc必須ではない（ただし@throwsのみ許可される）
-					if (Node.isFunctionDeclaration(node) || Node.isMethodDeclaration(node)) {
-						if (node.getOverloads().length > 0) return;
-					}
-
 					result.push({
 						file: relPath,
 						line: node.getStartLineNumber(),
-						message: "Exportされている要素にはJSDocが必須です",
+						message: `${Node.isMethodDeclaration(node) || Node.isPropertyDeclaration(node) ? "クラスメンバ" : "Exportされている要素"}にはJSDocが必須です`,
 					});
 				}
 			}
@@ -379,17 +379,33 @@ function isExported(node) {
 
 function isDocumentable(node) {
 	if (!node) return false;
+
+	// クラス、インターフェース、列挙型、関数、変数、型エイリアスなどが対象
+	const isBasicDocumentable = Node.isClassDeclaration(node) || Node.isInterfaceDeclaration(node) || Node.isEnumDeclaration(node) || Node.isFunctionDeclaration(node) || Node.isVariableStatement(node) || Node.isTypeAliasDeclaration(node) || Node.isMethodDeclaration(node) || Node.isPropertyDeclaration(node) || Node.isPropertySignature(node) || Node.isEnumMember(node) || Node.isConstructorDeclaration(node);
+
+	if (!isBasicDocumentable) return false;
+
+	// Export されているものは必須
 	if (isExported(node)) return true;
 
+	// クラスメンバやインターフェースメンバなどのチェック
 	const parent = node.getParent();
 	if (Node.isClassDeclaration(parent) || Node.isInterfaceDeclaration(parent) || Node.isEnumDeclaration(parent)) {
-		if (isDocumentable(parent)) return true;
+		// 親がドキュメント化対象（Exportされているなど）であれば、そのメンバも対象
+		if (isDocumentable(parent)) {
+			// ただし、明示的に private なものは除く（#name または private キーワード）
+			if (typeof node.getModifiers === "function" && node.getModifiers().some((m) => m.getKind() === SyntaxKind.PrivateKeyword)) {
+				return false;
+			}
+			return true;
+		}
 	}
 
 	if (Node.isFunctionLikeDeclaration(node) || Node.isMethodDeclaration(node) || Node.isConstructorDeclaration(node)) {
 		if (isVariableArrowFunc(node)) {
 			const varDecl = node.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
-			if (varDecl && isExported(varDecl)) return true;
+			const varStmt = varDecl?.getFirstAncestorByKind(SyntaxKind.VariableStatement);
+			if (varStmt && isExported(varStmt)) return true;
 		}
 	}
 

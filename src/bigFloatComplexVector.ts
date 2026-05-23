@@ -21,6 +21,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	 * BigFloatComplexVector コンストラクタ
 	 * @param values - 要素のソース
 	 * @param precision - 精度
+	 * @returns BigFloatComplexVector インスタンス
 	 */
 	public constructor(values: BigFloatAnyVectorLike = [], precision?: PrecisionValue) {
 		const array = Array.from(values);
@@ -135,6 +136,9 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 
 	/**
 	 * 要素の反復可能オブジェクトから BigFloatComplexVector を生成する
+	 * @param values - 要素のソース
+	 * @param precision - 精度
+	 * @returns 生成されたベクトル
 	 */
 	public static from(values: BigFloatAnyVectorLike, precision?: PrecisionValue): BigFloatComplexVector {
 		return new BigFloatComplexVector(values, precision);
@@ -142,6 +146,8 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 
 	/**
 	 * BigFloatStream からベクトルを生成する
+	 * @param stream - 要素のストリーム
+	 * @returns 生成されたベクトル
 	 */
 	public static fromStream(stream: BigFloatStream): BigFloatComplexVector {
 		return this.from(stream.toArray());
@@ -149,6 +155,8 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 
 	/**
 	 * 引数リストからベクトルを生成する
+	 * @param values - 要素のリスト
+	 * @returns 生成されたベクトル
 	 */
 	public static of(...values: BigFloatInputValue[]): BigFloatComplexVector {
 		return this.from(values);
@@ -156,6 +164,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 
 	/**
 	 * 指定された値で埋められたベクトルを生成する
+	 * @param length - ベクトルの長さ
+	 * @param value - 埋める値
+	 * @param precision - 精度
+	 * @returns 生成されたベクトル
 	 */
 	public static fill(length: number, value: BigFloatInputValue, precision?: PrecisionValue): BigFloatComplexVector {
 		if (length <= 0) return this.empty();
@@ -166,6 +178,9 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 
 	/**
 	 * 零ベクトルを生成する
+	 * @param length - ベクトルの長さ
+	 * @param precision - 精度
+	 * @returns 生成された零ベクトル
 	 */
 	public static zeros(length: number, precision?: PrecisionValue): BigFloatComplexVector {
 		return this.fill(length, 0, precision);
@@ -173,6 +188,9 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 
 	/**
 	 * すべての要素が 1 のベクトルを生成する
+	 * @param length - ベクトルの長さ
+	 * @param precision - 精度
+	 * @returns 生成されたベクトル
 	 */
 	public static ones(length: number, precision?: PrecisionValue): BigFloatComplexVector {
 		return this.fill(length, 1, precision);
@@ -194,6 +212,11 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 
 	/**
 	 * 指定した範囲を等分割する数値ベクトルを生成する
+	 * @param start - 開始値
+	 * @param end - 終了値
+	 * @param count - 分割数
+	 * @param precision - 精度
+	 * @returns 生成されたベクトル
 	 */
 	public static linspace(start: BigFloatInputValue, end: BigFloatInputValue, count: number, precision?: PrecisionValue): BigFloatComplexVector {
 		if (count <= 0) return this.empty();
@@ -217,6 +240,9 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 
 	/**
 	 * 乱数ベクトルを生成する
+	 * @param length - ベクトルの長さ
+	 * @param options - 乱数生成オプション
+	 * @returns 生成された乱数ベクトル
 	 */
 	public static random(length: number, options: BigFloatComplexVectorRandomOptions = {}): BigFloatComplexVector {
 		if (length <= 0) return this.empty();
@@ -265,8 +291,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 
 	/**
 	 * 要素を流すストリームへ変換する
-	 * @throws {TypeError} 例外が発生した場合
-	 * @throws {RangeError} 例外が発生した場合
+	 * @returns 要素のストリーム
 	 */
 	public toStream(): BigFloatStream {
 		return BigFloatStream.from(this.toArray());
@@ -494,8 +519,9 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	}
 
 	/**
-	 * max
-	 * @throws {TypeError} max() is not supported for complex vectors
+	 * 最大値を取得する（複素数では未サポート）
+	 * @returns 最大値
+	 * @throws {TypeError} 複素数ベクトルではサポートされていないため
 	 */
 	public max(): BigFloatComplex {
 		if (this.isEmpty()) throw new TypeError("No elements");
@@ -505,8 +531,9 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	}
 
 	/**
-	 * min
-	 * @throws {TypeError} min() is not supported for complex vectors
+	 * 最小値を取得する（複素数では未サポート）
+	 * @returns 最小値
+	 * @throws {TypeError} 複素数ベクトルではサポートされていないため
 	 */
 	public min(): BigFloatComplex {
 		if (this.isEmpty()) throw new TypeError("No elements");
@@ -548,8 +575,9 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	}
 
 	/**
-	 * normalize
-	 * @throws {RangeError} Cannot normalize zero vector
+	 * ベクトルを正規化する
+	 * @returns 正規化されたベクトル
+	 * @throws {RangeError} ゼロベクトルを正規化しようとした場合
 	 */
 	public normalize(): this {
 		const length = this.norm();
@@ -562,8 +590,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	}
 
 	/**
-	 * cross
-	 * @throws {RangeError} Cross product is only defined for 3-dimensional vectors
+	 * 外積を計算する
+	 * @param other - 相手のベクトル
+	 * @returns 外積の結果
+	 * @throws {RangeError} 3次元ベクトルでない場合
 	 */
 	public cross(other: BigFloatAnyVectorLike): this {
 		const vector = BigFloatComplexVector._coerceVector(other, this._values);

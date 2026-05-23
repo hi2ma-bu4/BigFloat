@@ -27,6 +27,7 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * BigFloatComplex コンストラクタ
 	 * @param value - 実部、複素数表現 (文字列 "1+2i" など)、または複素数オブジェクト
 	 * @param precision - 精度
+	 * @returns BigFloatComplex インスタンス
 	 */
 	public constructor(value?: BigFloatComplexValue, precision?: PrecisionValue);
 	/**
@@ -34,6 +35,7 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @param real - 実部または複素数表現
 	 * @param imag - 虚部
 	 * @param precision - 精度
+	 * @returns BigFloatComplex インスタンス
 	 */
 	public constructor(real: BigFloatComplexValue, imag?: BigFloatValue, precision?: PrecisionValue);
 	/**
@@ -164,6 +166,8 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 
 	/**
 	 * 複素数文字列を解析する
+	 * @param value - 解析対象の文字列
+	 * @returns 解析結果、または複素数でない場合は null
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	protected static _parseComplexString(value: string): { realPart: BigFloatValue; imagPart: BigFloatValue } | null {
@@ -196,6 +200,9 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 
 	/**
 	 * 虚部係数を正規化する
+	 * @param value - 係数文字列
+	 * @param original - 元の複素数文字列
+	 * @returns 正規化された係数
 	 * @throws {SyntaxError} 係数が無効な場合
 	 */
 	protected static _normalizeImaginaryCoefficient(value: string, original: string): BigFloatValue {
@@ -396,6 +403,7 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 
 	/**
 	 * 実部を取得する (複製)
+	 * @returns 実部
 	 */
 	public get real(): BigFloat {
 		return this._real.clone();
@@ -403,6 +411,7 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 
 	/**
 	 * 虚部を取得する (複製)
+	 * @returns 虚部
 	 */
 	public get imag(): BigFloat {
 		return this._imag.clone();
@@ -410,6 +419,7 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 
 	/**
 	 * 精度を取得する
+	 * @returns 精度
 	 */
 	public get precision(): bigint {
 		return this._precision;

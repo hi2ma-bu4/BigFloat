@@ -1588,6 +1588,7 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
    * BigFloatComplexVector コンストラクタ
    * @param values - 要素のソース
    * @param precision - 精度
+   * @returns BigFloatComplexVector インスタンス
    */
   constructor(values = [], precision) {
     const array = Array.from(values);
@@ -1692,24 +1693,35 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
   }
   /**
    * 要素の反復可能オブジェクトから BigFloatComplexVector を生成する
+   * @param values - 要素のソース
+   * @param precision - 精度
+   * @returns 生成されたベクトル
    */
   static from(values, precision) {
     return new _BigFloatComplexVector(values, precision);
   }
   /**
    * BigFloatStream からベクトルを生成する
+   * @param stream - 要素のストリーム
+   * @returns 生成されたベクトル
    */
   static fromStream(stream) {
     return this.from(stream.toArray());
   }
   /**
    * 引数リストからベクトルを生成する
+   * @param values - 要素のリスト
+   * @returns 生成されたベクトル
    */
   static of(...values) {
     return this.from(values);
   }
   /**
    * 指定された値で埋められたベクトルを生成する
+   * @param length - ベクトルの長さ
+   * @param value - 埋める値
+   * @param precision - 精度
+   * @returns 生成されたベクトル
    */
   static fill(length, value, precision) {
     if (length <= 0) return this.empty();
@@ -1719,12 +1731,18 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
   }
   /**
    * 零ベクトルを生成する
+   * @param length - ベクトルの長さ
+   * @param precision - 精度
+   * @returns 生成された零ベクトル
    */
   static zeros(length, precision) {
     return this.fill(length, 0, precision);
   }
   /**
    * すべての要素が 1 のベクトルを生成する
+   * @param length - ベクトルの長さ
+   * @param precision - 精度
+   * @returns 生成されたベクトル
    */
   static ones(length, precision) {
     return this.fill(length, 1, precision);
@@ -1744,6 +1762,11 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
   }
   /**
    * 指定した範囲を等分割する数値ベクトルを生成する
+   * @param start - 開始値
+   * @param end - 終了値
+   * @param count - 分割数
+   * @param precision - 精度
+   * @returns 生成されたベクトル
    */
   static linspace(start, end, count, precision) {
     if (count <= 0) return this.empty();
@@ -1766,6 +1789,9 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
   }
   /**
    * 乱数ベクトルを生成する
+   * @param length - ベクトルの長さ
+   * @param options - 乱数生成オプション
+   * @returns 生成された乱数ベクトル
    */
   static random(length, options = {}) {
     if (length <= 0) return this.empty();
@@ -1806,8 +1832,7 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
   }
   /**
    * 要素を流すストリームへ変換する
-   * @throws {TypeError} 例外が発生した場合
-   * @throws {RangeError} 例外が発生した場合
+   * @returns 要素のストリーム
    */
   toStream() {
     return BigFloatStream.from(this.toArray());
@@ -1981,16 +2006,18 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
     return this._mapValues((v) => v.log(10));
   }
   /**
-   * max
-   * @throws {TypeError} max() is not supported for complex vectors
+   * 最大値を取得する（複素数では未サポート）
+   * @returns 最大値
+   * @throws {TypeError} 複素数ベクトルではサポートされていないため
    */
   max() {
     if (this.isEmpty()) throw new TypeError("No elements");
     throw new TypeError("max() is not supported for complex vectors");
   }
   /**
-   * min
-   * @throws {TypeError} min() is not supported for complex vectors
+   * 最小値を取得する（複素数では未サポート）
+   * @returns 最小値
+   * @throws {TypeError} 複素数ベクトルではサポートされていないため
    */
   min() {
     if (this.isEmpty()) throw new TypeError("No elements");
@@ -2024,8 +2051,9 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
     return this.squaredNorm().sqrt();
   }
   /**
-   * normalize
-   * @throws {RangeError} Cannot normalize zero vector
+   * ベクトルを正規化する
+   * @returns 正規化されたベクトル
+   * @throws {RangeError} ゼロベクトルを正規化しようとした場合
    */
   normalize() {
     const length = this.norm();
@@ -2036,8 +2064,10 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
     return this.sub(other).norm();
   }
   /**
-   * cross
-   * @throws {RangeError} Cross product is only defined for 3-dimensional vectors
+   * 外積を計算する
+   * @param other - 相手のベクトル
+   * @returns 外積の結果
+   * @throws {RangeError} 3次元ベクトルでない場合
    */
   cross(other) {
     const vector = _BigFloatComplexVector._coerceVector(other, this._values);
@@ -3314,6 +3344,8 @@ var BigFloatComplex = class _BigFloatComplex {
   }
   /**
    * 複素数文字列を解析する
+   * @param value - 解析対象の文字列
+   * @returns 解析結果、または複素数でない場合は null
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static _parseComplexString(value) {
@@ -3342,6 +3374,9 @@ var BigFloatComplex = class _BigFloatComplex {
   }
   /**
    * 虚部係数を正規化する
+   * @param value - 係数文字列
+   * @param original - 元の複素数文字列
+   * @returns 正規化された係数
    * @throws {SyntaxError} 係数が無効な場合
    */
   static _normalizeImaginaryCoefficient(value, original) {
@@ -3513,18 +3548,21 @@ var BigFloatComplex = class _BigFloatComplex {
   }
   /**
    * 実部を取得する (複製)
+   * @returns 実部
    */
   get real() {
     return this._real.clone();
   }
   /**
    * 虚部を取得する (複製)
+   * @returns 虚部
    */
   get imag() {
     return this._imag.clone();
   }
   /**
    * 精度を取得する
+   * @returns 精度
    */
   get precision() {
     return this._precision;
@@ -4397,6 +4435,7 @@ var BigFloatConfig = class _BigFloatConfig {
    * @param options.extraPrecision - 計算時に追加する精度
    * @param options.trigFuncsMaxSteps - 三角関数の最大ステップ数
    * @param options.lnMaxSteps - 対数計算の最大ステップ数
+   * @returns 設定オブジェクト
    */
   constructor({ allowPrecisionMismatch = false, allowComplexNumbers = false, mutateResult = false, allowSpecialValues = true, roundingMode = 0 /* TRUNCATE */, extraPrecision = 6n, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n } = {}) {
     this.allowPrecisionMismatch = allowPrecisionMismatch;
@@ -4731,6 +4770,7 @@ var BigFloat = class _BigFloat {
    * BigFloat コンストラクタ
    * @param value - 初期値 (数値, 文字列, BigInt, または別の BigFloat)
    * @param precision - 精度 (小数点以下の最大桁数)
+   * @returns BigFloat インスタンス
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を渡した場合
    * @throws {TypeError} 虚部が 0 でない複素数を渡した場合
@@ -10983,7 +11023,8 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
    * BigFloatComplexMatrix コンストラクタ
    * @param rows - 行列要素の反復可能オブジェクト
    * @param precision - 精度
-   * @throws {RangeError} Matrix rows must have the same length
+   * @returns BigFloatComplexMatrix インスタンス
+   * @throws {RangeError} 各行の長さが一致しない場合
    */
   constructor(rows = [], precision) {
     const rawRows = Array.from(rows, (row) => Array.from(row));
@@ -11012,7 +11053,7 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return resolved;
   }
   /**
-   * 与えられた二次元配列が矩形であることを検証する
+   * 二次元配列が矩形であることを検証する
    * @param rows - 検証対象の二次元配列
    * @throws {RangeError} 各行の長さが一致しない場合
    */
@@ -11173,8 +11214,7 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
   }
   /**
    * 要素を流すストリームへ変換する
-   * @throws {RangeError} 例外が発生した場合
-   * @throws {TypeError} 例外が発生した場合
+   * @returns 要素のストリーム
    */
   toStream() {
     return BigFloatStream.from(this._flattenValues());
@@ -11199,7 +11239,7 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
   /**
    * 行列の積を計算する
    * @param other - 乗算する行列
-   * @returns 計算結果の行列
+   * @returns 行列の積
    * @throws {RangeError} 行列の次元が一致しない場合
    */
   matmul(other) {
@@ -11232,7 +11272,7 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return BigFloatComplexVector.from(Array.from({ length: this.columnCount }, (_, col) => this._values.reduce((acc, row) => acc.add(row[col]), new BigFloatComplex(0, 0, resolvedPrecision))));
   }
   /**
-   * 正方行列のトレース（対角和）を計算する
+   * 行列のトレース（対角和）を計算する
    * @returns トレースの値
    * @throws {RangeError} 正方行列でない場合
    */
@@ -11246,7 +11286,7 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return total;
   }
   /**
-   * 正方行列の行列式を計算する
+   * 行列式を計算する
    * @returns 行列式の値
    * @throws {RangeError} 正方行列でない場合
    */
@@ -11289,7 +11329,7 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
    * 逆行列を計算する
    * @returns 逆行列
    * @throws {RangeError} 正方行列でない場合
-   * @throws {SingularMatrixError} 行列が特異（逆行列が存在しない）な場合
+   * @throws {SingularMatrixError} 行列が特異な場合
    */
   inverse() {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
@@ -11331,10 +11371,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return _BigFloatComplexMatrix._fromComplexGrid(augmented.map((row) => row.slice(size)));
   }
   /**
-   * 連立一次方程式 Ax = b を解く（bはベクトル）
-   * @param rhs - 右辺ベクトル b
-   * @returns 解ベクトル x
-   * @throws {RangeError} 行列が正方でない、または次元が一致しない場合
+   * 連立一次方程式を解く（ベクトル）
+   * @param rhs - 右辺ベクトル
+   * @returns 解ベクトル
+   * @throws {RangeError} 次元が一致しない場合
    */
   solveVector(rhs) {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
@@ -11344,10 +11384,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return solution.column(0) ?? BigFloatComplexVector.empty();
   }
   /**
-   * 連立一次方程式 AX = B を解く（Bは行列）
-   * @param rhs - 右辺行列 B
-   * @returns 解行列 X
-   * @throws {RangeError} 行列が正方でない、または次元が一致しない場合
+   * 連立一次方程式を解く（行列）
+   * @param rhs - 右辺行列
+   * @returns 解行列
+   * @throws {RangeError} 次元が一致しない場合
    * @throws {SingularMatrixError} 行列が特異な場合
    */
   solveMatrix(rhs) {
@@ -11402,8 +11442,8 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
   /**
    * 行列のべき乗を計算する
    * @param exponent - 指数
-   * @returns 計算結果の行列
-   * @throws {RangeError} 行列が正方でない、または指数が整数でない場合
+   * @returns 行列のべき乗
+   * @throws {RangeError} 指数が整数でない場合、または正方行列でない場合
    */
   matrixPow(exponent) {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
@@ -11432,7 +11472,7 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return _BigFloatComplexMatrix._fromComplexGrid(Array.from({ length: s }, (_, r) => Array.from({ length: s }, (_2, c) => new BigFloatComplex(r === c ? 1 : 0, 0, p))));
   }
   /**
-   * 他の行列と等しいかどうかを判定する
+   * 行列が等しいかどうかを判定する
    * @param other - 比較対象の行列
    * @returns 等しい場合は true、そうでない場合は false
    */
@@ -11466,8 +11506,8 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
   /**
    * 行列とベクトルの積を計算する
    * @param vector - 乗算するベクトル
-   * @returns 計算結果のベクトル
-   * @throws {RangeError} 行列の列数とベクトルの次元が一致しない場合
+   * @returns ベクトルとの積
+   * @throws {RangeError} 次元が一致しない場合
    */
   mulVector(vector) {
     const rhs = BigFloatComplexVector.from(vector);
@@ -11475,7 +11515,7 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return BigFloatComplexVector.from(this._values.map((row) => BigFloatComplexVector.from(row).dot(rhs)));
   }
   /**
-   * 行列の対角成分をベクトルとして取得する
+   * 対角成分をベクトルとして取得する
    * @returns 対角成分のベクトル
    * @throws {RangeError} 正方行列でない場合
    */
@@ -11507,9 +11547,9 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return false;
   }
   /**
-   * 全ての要素が条件を満たすかどうかを判定する
+   * すべての要素が条件を満たすか判定する
    * @param fn - 判定関数
-   * @returns 全ての要素が条件を満たす場合は true、そうでない場合は false
+   * @returns すべての要素が条件を満たす場合は true、そうでない場合は false
    */
   every(fn) {
     for (let r = 0; r < this.rowCount; r++) {
@@ -11520,9 +11560,9 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return true;
   }
   /**
-   * 他の行列を行方向に連結する
+   * 行列を行方向に連結する
    * @param others - 連結する行列
-   * @returns 連結された新しい行列
+   * @returns 連結された行列
    * @throws {RangeError} 列数が一致しない場合
    */
   concatRows(...others) {
@@ -11641,8 +11681,8 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return this._mapValues((v) => v.tanh());
   }
   /**
-   * 各要素の逆双曲線正弦 (asinh) を計算する
-   * @returns 各要素に asinh を適用した行列
+   * 各要素の逆双曲線正弦を計算する
+   * @returns asinh を適用した行列
    */
   asinh() {
     return this._mapValues((v) => v.asinh());
@@ -11678,8 +11718,8 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return this._mapValues((v) => v.add(1).ln());
   }
   /**
-   * gamma
-   * @throws {TypeError} 例外が発生した場合
+   * 各要素のガンマ関数を計算する
+   * @returns ガンマ関数を適用した行列
    */
   gamma() {
     return this._mapValues((v) => {
