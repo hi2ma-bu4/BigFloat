@@ -16,9 +16,7 @@ type BigFloatVectorRandomOptions = {
  * @throws {RangeError} 例外が発生した場合
  */
 export class BigFloatVector implements Iterable<BigFloat> {
-	/**
-	 * 内部要素 (BigFloat の配列)
-	 */
+	/** 内部要素 (BigFloat の配列) */
 	public _values: BigFloat[];
 
 	/**

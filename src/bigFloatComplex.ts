@@ -16,17 +16,11 @@ type BigFloatComplexAggregateSource = Iterable<BigFloatComplexValue>;
  * BigFloat を用いた複素数クラス
  */
 export class BigFloatComplex implements Iterable<BigFloat> {
-	/**
-	 * 実部
-	 */
+	/** 実部 */
 	protected _real: BigFloat;
-	/**
-	 * 虚部
-	 */
+	/** 虚部 */
 	protected _imag: BigFloat;
-	/**
-	 * 精度 (小数点以下の最大桁数)
-	 */
+	/** 精度 (小数点以下の最大桁数) */
 	protected _precision: bigint;
 
 	/**

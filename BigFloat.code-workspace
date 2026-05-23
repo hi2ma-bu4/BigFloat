@@ -19,6 +19,7 @@
 			"Funcs",
 			"hadamard",
 			"hypot",
+			"imag",
 			"imul",
 			"linspace",
 			"logspace",
@@ -27,6 +28,7 @@
 			"matmul",
 			"Multipliable",
 			"Prec",
+			"RREF",
 			"Spouge",
 			"stddev",
 			"trunc"

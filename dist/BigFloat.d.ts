@@ -7,9 +7,7 @@ export type BigFloatMatrixRandomOptions = {
  * BigFloat を固定長行列として扱うクラス
  */
 export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
-	/**
-	 * 内部要素 (行ごとの配列)
-	 */
+	/** 内部要素 (行ごとの配列) */
 	_values: BigFloat[][];
 	/**
 	 * BigFloatMatrix コンストラクタ
@@ -1039,9 +1037,7 @@ export type BigFloatComplexMatrixRandomOptions = {
  * @throws {RangeError} 例外が発生した場合
  */
 export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
-	/**
-	 * 内部要素 (行ごとの配列)
-	 */
+	/** 内部要素 (行ごとの配列) */
 	_values: BigFloatComplex[][];
 	/**
 	 * BigFloatComplexMatrix コンストラクタ
@@ -1054,8 +1050,9 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	protected static _toComplex(value: BigFloatInputValue, precision?: bigint): BigFloatComplex;
 	protected static _resolvePrecision(values: BigFloatInputValue[], precision?: PrecisionValue): bigint;
 	/**
-	 * _assertRectangularRaw
-	 * @throws {RangeError} 例外が発生した場合
+	 * 与えられた二次元配列が矩形であることを検証する
+	 * @param rows - 検証対象の二次元配列
+	 * @throws {RangeError} 各行の長さが一致しない場合
 	 */
 	protected static _assertRectangularRaw(rows: BigFloatInputValue[][]): void;
 	protected static _assertSameShape(left: BigFloatAnyMatrix, right: BigFloatAnyMatrix): void;
@@ -1102,36 +1099,47 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	mul(scalar: BigFloatInputValue): this;
 	div(scalar: BigFloatInputValue): this;
 	/**
-	 * matmul
-	 * @throws {RangeError} Inner matrix dimensions must agree
+	 * 行列の積を計算する
+	 * @param other - 乗算する行列
+	 * @returns 計算結果の行列
+	 * @throws {RangeError} 行列の次元が一致しない場合
 	 */
 	matmul(other: BigFloatAnyMatrixLike): this;
 	transpose(): this;
 	rowSums(): BigFloatComplexVector;
 	columnSums(): BigFloatComplexVector;
 	/**
-	 * trace
-	 * @throws {RangeError} Matrix must be square
+	 * 正方行列のトレース（対角和）を計算する
+	 * @returns トレースの値
+	 * @throws {RangeError} 正方行列でない場合
 	 */
 	trace(): BigFloatComplex;
 	/**
-	 * determinant
-	 * @throws {RangeError} Matrix must be square
+	 * 正方行列の行列式を計算する
+	 * @returns 行列式の値
+	 * @throws {RangeError} 正方行列でない場合
 	 */
 	determinant(): BigFloatComplex;
 	/**
-	 * inverse
-	 * @throws {RangeError} Matrix must be square
+	 * 逆行列を計算する
+	 * @returns 逆行列
+	 * @throws {RangeError} 正方行列でない場合
+	 * @throws {SingularMatrixError} 行列が特異（逆行列が存在しない）な場合
 	 */
 	inverse(): this;
 	/**
-	 * solveVector
-	 * @throws {RangeError} Dimension mismatch
+	 * 連立一次方程式 Ax = b を解く（bはベクトル）
+	 * @param rhs - 右辺ベクトル b
+	 * @returns 解ベクトル x
+	 * @throws {RangeError} 行列が正方でない、または次元が一致しない場合
 	 */
 	solveVector(rhs: BigFloatAnyVectorLike): BigFloatComplexVector;
 	/**
-	 * solveMatrix
-	 * @throws {RangeError} Matrix is singular
+	 * 連立一次方程式 AX = B を解く（Bは行列）
+	 * @param rhs - 右辺行列 B
+	 * @returns 解行列 X
+	 * @throws {RangeError} 行列が正方でない、または次元が一致しない場合
+	 * @throws {SingularMatrixError} 行列が特異な場合
 	 */
 	solveMatrix(rhs: BigFloatAnyMatrixLike): this;
 	protected static _reducedRowEchelon(values: BigFloatComplex[][], leftColumnCount?: number): {
@@ -1139,18 +1147,23 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 		pivotColumns: number[];
 	};
 	/**
-	 * matrixPow
-	 * @throws {RangeError} Exponent must be integer
+	 * 行列のべき乗を計算する
+	 * @param exponent - 指数
+	 * @returns 計算結果の行列
+	 * @throws {RangeError} 行列が正方でない、または指数が整数でない場合
 	 */
 	matrixPow(exponent: number): this;
 	/**
-	 * identity
-	 * @throws {RangeError} 例外が発生した場合
+	 * 単位行列を生成する
+	 * @param size - 行列のサイズ
+	 * @param precision - 精度
+	 * @returns 単位行列
 	 */
 	static identity(size: number, precision?: PrecisionValue): BigFloatComplexMatrix;
 	/**
-	 * equals
-	 * @throws {RangeError} 例外が発生した場合
+	 * 他の行列と等しいかどうかを判定する
+	 * @param other - 比較対象の行列
+	 * @returns 等しい場合は true、そうでない場合は false
 	 */
 	equals(other: BigFloatAnyMatrixLike): boolean;
 	sum(): BigFloatComplex;
@@ -1158,13 +1171,16 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	average(): BigFloatComplex;
 	frobeniusNorm(): BigFloat;
 	/**
-	 * mulVector
-	 * @throws {RangeError} Inner matrix dimensions must agree
+	 * 行列とベクトルの積を計算する
+	 * @param vector - 乗算するベクトル
+	 * @returns 計算結果のベクトル
+	 * @throws {RangeError} 行列の列数とベクトルの次元が一致しない場合
 	 */
 	mulVector(vector: BigFloatAnyVectorLike): BigFloatComplexVector;
 	/**
-	 * diagonalVector
-	 * @throws {RangeError} Matrix must be square
+	 * 行列の対角成分をベクトルとして取得する
+	 * @returns 対角成分のベクトル
+	 * @throws {RangeError} 正方行列でない場合
 	 */
 	diagonalVector(): BigFloatComplexVector;
 	flatten(): BigFloatComplexVector;
@@ -1172,13 +1188,16 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	reduce<U>(fn: (acc: U, value: BigFloatComplex, row: number, column: number) => U, initial: U): U;
 	some(fn: (value: BigFloatComplex, row: number, column: number) => boolean): boolean;
 	/**
-	 * every
-	 * @throws {RangeError} 例外が発生した場合
+	 * 全ての要素が条件を満たすかどうかを判定する
+	 * @param fn - 判定関数
+	 * @returns 全ての要素が条件を満たす場合は true、そうでない場合は false
 	 */
 	every(fn: (value: BigFloatComplex, row: number, column: number) => boolean): boolean;
 	/**
-	 * concatRows
-	 * @throws {RangeError} 例外が発生した場合
+	 * 他の行列を行方向に連結する
+	 * @param others - 連結する行列
+	 * @returns 連結された新しい行列
+	 * @throws {RangeError} 列数が一致しない場合
 	 */
 	concatRows(...others: BigFloatAnyMatrixLike[]): this;
 	concatColumns(...others: BigFloatAnyMatrixLike[]): this;
@@ -1214,8 +1233,8 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	cosh(): this;
 	tanh(): this;
 	/**
-	 * asinh
-	 * @throws {TypeError} 例外が発生した場合
+	 * 各要素の逆双曲線正弦 (asinh) を計算する
+	 * @returns 各要素に asinh を適用した行列
 	 */
 	asinh(): this;
 	acosh(): this;
@@ -1237,95 +1256,53 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	factorial(): this;
 	rank(): number;
 }
-/**
- * 丸めモード
- */
+/** 丸めモード */
 export declare enum RoundingMode {
-	/**
-	 * 0に近い方向に切り捨て
-	 */
+	/** 0に近い方向に切り捨て */
 	TRUNCATE = 0,
-	/**
-	 * 絶対値が小さい方向に切り捨て（TRUNCATEと同じ）
-	 */
+	/** 絶対値が小さい方向に切り捨て（TRUNCATEと同じ） */
 	DOWN = 0,
-	/**
-	 * 絶対値が大きい方向に切り上げ
-	 */
+	/** 絶対値が大きい方向に切り上げ */
 	UP = 1,
-	/**
-	 * 正の無限大方向に切り上げ
-	 */
+	/** 正の無限大方向に切り上げ */
 	CEIL = 2,
-	/**
-	 * 負の無限大方向に切り捨て
-	 */
+	/** 負の無限大方向に切り捨て */
 	FLOOR = 3,
-	/**
-	 * 四捨五入
-	 */
+	/** 四捨五入 */
 	HALF_UP = 4,
-	/**
-	 * 五捨六入（5未満切り捨て）
-	 */
+	/** 五捨六入（5未満切り捨て） */
 	HALF_DOWN = 5
 }
-/**
- * BigFloat の特別な値の状態
- */
+/** BigFloat の特別な値の状態 */
 export declare enum SpecialValueState {
-	/**
-	 * 有限の値
-	 */
+	/** 有限の値 */
 	FINITE = 0,
-	/**
-	 * 正の無限大
-	 */
+	/** 正の無限大 */
 	POSITIVE_INFINITY = 1,
-	/**
-	 * 負の無限大
-	 */
+	/** 負の無限大 */
 	NEGATIVE_INFINITY = 2,
-	/**
-	 * 非数 (NaN)
-	 */
+	/** 非数 (NaN) */
 	NAN = 3
 }
 /**
  * BigFloat 構成オプション
  */
 export interface BigFloatOptions {
-	/**
-	 * 精度の不一致を許容するかどうか
-	 */
+	/** 精度の不一致を許容するかどうか */
 	allowPrecisionMismatch?: boolean;
-	/**
-	 * BigFloatComplex との相互運用を許容するかどうか
-	 */
+	/** BigFloatComplex との相互運用を許容するかどうか */
 	allowComplexNumbers?: boolean;
-	/**
-	 * 破壊的な計算(自身の上書き)をするかどうか
-	 */
+	/** 破壊的な計算(自身の上書き)をするかどうか */
 	mutateResult?: boolean;
-	/**
-	 * Infinity/NaN の特殊値を許容するかどうか
-	 */
+	/** Infinity/NaN の特殊値を許容するかどうか */
 	allowSpecialValues?: boolean;
-	/**
-	 * 丸めモード
-	 */
+	/** 丸めモード */
 	roundingMode?: RoundingMode;
-	/**
-	 * 計算時に追加する精度
-	 */
+	/** 計算時に追加する精度 */
 	extraPrecision?: bigint;
-	/**
-	 * 三角関数の最大ステップ数
-	 */
+	/** 三角関数の最大ステップ数 */
 	trigFuncsMaxSteps?: bigint;
-	/**
-	 * 対数計算の最大ステップ数
-	 */
+	/** 対数計算の最大ステップ数 */
 	lnMaxSteps?: bigint;
 }
 /**
@@ -1389,49 +1366,27 @@ declare const BIGFLOAT_STREAM_SKIP: unique symbol;
  * BigFloat 用の遅延評価ストリーム (Lazy List) クラス
  */
 export declare class BigFloatStream implements Iterable<BigFloatLike> {
-	/**
-	 * mapステージ定義
-	 */
+	/** mapステージ定義 */
 	private static readonly _mapStageDefinition;
-	/**
-	 * filterステージ定義
-	 */
+	/** filterステージ定義 */
 	private static readonly _filterStageDefinition;
-	/**
-	 * peekステージ定義
-	 */
+	/** peekステージ定義 */
 	private static readonly _peekStageDefinition;
-	/**
-	 * flatMapステージ定義
-	 */
+	/** flatMapステージ定義 */
 	private static readonly _flatMapStageDefinition;
-	/**
-	 * distinctステージ定義
-	 */
+	/** distinctステージ定義 */
 	private static readonly _distinctStageDefinition;
-	/**
-	 * limitステージ定義
-	 */
+	/** limitステージ定義 */
 	private static readonly _limitStageDefinition;
-	/**
-	 * skipステージ定義
-	 */
+	/** skipステージ定義 */
 	private static readonly _skipStageDefinition;
-	/**
-	 * 内部イテレータファクトリ
-	 */
+	/** 内部イテレータファクトリ */
 	private _sourceFactory;
-	/**
-	 * パイプラインにおける直前のストリーム
-	 */
+	/** パイプラインにおける直前のストリーム */
 	private _previousStream;
-	/**
-	 * このストリームが表すステージの定義
-	 */
+	/** このストリームが表すステージの定義 */
 	private _stageDefinition;
-	/**
-	 * ステージに渡される固定データ (コールバック関数など)
-	 */
+	/** ステージに渡される固定データ (コールバック関数など) */
 	private _stageData;
 	/**
 	 * BigFloatStream コンストラクタ
@@ -2359,9 +2314,7 @@ export type BigFloatComplexVectorRandomOptions = {
  * BigFloatComplex を要素とする固定長ベクトルクラス
  */
 export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> {
-	/**
-	 * 内部要素 (BigFloatComplex の配列)
-	 */
+	/** 内部要素 (BigFloatComplex の配列) */
 	_values: BigFloatComplex[];
 	/**
 	 * BigFloatComplexVector コンストラクタ
@@ -2568,9 +2521,7 @@ export type BigFloatVectorRandomOptions = {
  * @throws {RangeError} 例外が発生した場合
  */
 export declare class BigFloatVector implements Iterable<BigFloat> {
-	/**
-	 * 内部要素 (BigFloat の配列)
-	 */
+	/** 内部要素 (BigFloat の配列) */
 	_values: BigFloat[];
 	/**
 	 * BigFloatVector コンストラクタ
@@ -3495,17 +3446,11 @@ export type BigFloatComplexAggregateSource = Iterable<BigFloatComplexValue>;
  * BigFloat を用いた複素数クラス
  */
 export declare class BigFloatComplex implements Iterable<BigFloat> {
-	/**
-	 * 実部
-	 */
+	/** 実部 */
 	protected _real: BigFloat;
-	/**
-	 * 虚部
-	 */
+	/** 虚部 */
 	protected _imag: BigFloat;
-	/**
-	 * 精度 (小数点以下の最大桁数)
-	 */
+	/** 精度 (小数点以下の最大桁数) */
 	protected _precision: bigint;
 	/**
 	 * BigFloatComplex コンストラクタ
@@ -4387,37 +4332,21 @@ export type BigFloatCacheEntry = {
  * BigFloat settings
  */
 export declare class BigFloatConfig {
-	/**
-	 * 精度の不一致を許容するかどうか
-	 */
+	/** 精度の不一致を許容するかどうか */
 	allowPrecisionMismatch: boolean;
-	/**
-	 * BigFloatComplex との相互運用を許容するかどうか
-	 */
+	/** BigFloatComplex との相互運用を許容するかどうか */
 	allowComplexNumbers: boolean;
-	/**
-	 * 破壊的な計算(自身の上書き)をするかどうか
-	 */
+	/** 破壊的な計算(自身の上書き)をするかどうか */
 	mutateResult: boolean;
-	/**
-	 * Infinity/NaN の特殊値を許容するかどうか
-	 */
+	/** Infinity/NaN の特殊値を許容するかどうか */
 	allowSpecialValues: boolean;
-	/**
-	 * 丸めモード
-	 */
+	/** 丸めモード */
 	roundingMode: RoundingMode;
-	/**
-	 * 計算時に追加する精度
-	 */
+	/** 計算時に追加する精度 */
 	extraPrecision: bigint;
-	/**
-	 * 三角関数の最大ステップ数
-	 */
+	/** 三角関数の最大ステップ数 */
 	trigFuncsMaxSteps: bigint;
-	/**
-	 * 対数計算の最大ステップ数
-	 */
+	/** 対数計算の最大ステップ数 */
 	lnMaxSteps: bigint;
 	/**
 	 * BigFloatConfig コンストラクタ
@@ -4454,65 +4383,35 @@ export declare class BigFloatConfig {
  * 大きな浮動小数点数を扱えるクラス
  */
 export declare class BigFloat {
-	/**
-	 * 最大精度 (Stringの限界)
-	 */
+	/** 最大精度 (Stringの限界) */
 	static MAX_PRECISION: bigint;
-	/**
-	 * レイジー正規化の閾値
-	 */
+	/** レイジー正規化の閾値 */
 	static LAZY_NORMALIZE_SMALL_THRESHOLD: bigint;
-	/**
-	 * デフォルトの精度
-	 */
+	/** デフォルトの精度 */
 	static DEFAULT_PRECISION: bigint;
-	/**
-	 * 設定
-	 */
+	/** 設定 */
 	static config: BigFloatConfig;
-	/**
-	 * 円周率キャッシュ
-	 */
+	/** 円周率キャッシュ */
 	private static _piCache;
-	/**
-	 * eキャッシュ
-	 */
+	/** eキャッシュ */
 	private static _eCache;
-	/**
-	 * 対数キャッシュ
-	 */
+	/** 対数キャッシュ */
 	private static _lnCache;
-	/**
-	 * 5の累乗キャッシュ
-	 */
+	/** 5の累乗キャッシュ */
 	private static _pow5Cache;
-	/**
-	 * 2の累乗キャッシュ
-	 */
+	/** 2の累乗キャッシュ */
 	private static _pow2Cache;
-	/**
-	 * Bernoulli numbers cache
-	 */
+	/** Bernoulli numbers cache */
 	private static _bernoulliCache;
-	/**
-	 * 内部的な値 (mantissa × 2^exp2 × 5^exp5)
-	 */
+	/** 内部的な値 (mantissa × 2^exp2 × 5^exp5) */
 	mantissa: bigint;
-	/**
-	 * 2の指数
-	 */
+	/** 2の指数 */
 	_exp2: bigint;
-	/**
-	 * 5の指数
-	 */
+	/** 5の指数 */
 	_exp5: bigint;
-	/**
-	 * 精度 (小数点以下の最大桁数)
-	 */
+	/** 精度 (小数点以下の最大桁数) */
 	_precision: bigint;
-	/**
-	 * 特殊値の状態
-	 */
+	/** 特殊値の状態 */
 	_specialState: SpecialValueState;
 	/**
 	 * キャッシュをクリアする

@@ -13,37 +13,21 @@ type BigFloatCacheEntry = {
  * BigFloat settings
  */
 export class BigFloatConfig {
-	/**
-	 * 精度の不一致を許容するかどうか
-	 */
+	/** 精度の不一致を許容するかどうか */
 	public allowPrecisionMismatch: boolean;
-	/**
-	 * BigFloatComplex との相互運用を許容するかどうか
-	 */
+	/** BigFloatComplex との相互運用を許容するかどうか */
 	public allowComplexNumbers: boolean;
-	/**
-	 * 破壊的な計算(自身の上書き)をするかどうか
-	 */
+	/** 破壊的な計算(自身の上書き)をするかどうか */
 	public mutateResult: boolean;
-	/**
-	 * Infinity/NaN の特殊値を許容するかどうか
-	 */
+	/** Infinity/NaN の特殊値を許容するかどうか */
 	public allowSpecialValues: boolean;
-	/**
-	 * 丸めモード
-	 */
+	/** 丸めモード */
 	public roundingMode: RoundingMode;
-	/**
-	 * 計算時に追加する精度
-	 */
+	/** 計算時に追加する精度 */
 	public extraPrecision: bigint;
-	/**
-	 * 三角関数の最大ステップ数
-	 */
+	/** 三角関数の最大ステップ数 */
 	public trigFuncsMaxSteps: bigint;
-	/**
-	 * 対数計算の最大ステップ数
-	 */
+	/** 対数計算の最大ステップ数 */
 	public lnMaxSteps: bigint;
 
 	/**
@@ -112,70 +96,40 @@ export class BigFloatConfig {
  * 大きな浮動小数点数を扱えるクラス
  */
 export class BigFloat {
-	/**
-	 * 最大精度 (Stringの限界)
-	 */
+	/** 最大精度 (Stringの限界) */
 	public static MAX_PRECISION = 200000000n;
 
-	/**
-	 * レイジー正規化の閾値
-	 */
+	/** レイジー正規化の閾値 */
 	public static LAZY_NORMALIZE_SMALL_THRESHOLD = 32n;
 
-	/**
-	 * デフォルトの精度
-	 */
+	/** デフォルトの精度 */
 	public static DEFAULT_PRECISION = 20n;
 
-	/**
-	 * 設定
-	 */
+	/** 設定 */
 	public static config = new BigFloatConfig();
 
-	/**
-	 * 円周率キャッシュ
-	 */
+	/** 円周率キャッシュ */
 	private static _piCache: BigFloatCacheEntry | null = null;
-	/**
-	 * eキャッシュ
-	 */
+	/** eキャッシュ */
 	private static _eCache: BigFloatCacheEntry | null = null;
-	/**
-	 * 対数キャッシュ
-	 */
+	/** 対数キャッシュ */
 	private static _lnCache: Record<string, BigFloatCacheEntry> = Object.create(null);
-	/**
-	 * 5の累乗キャッシュ
-	 */
+	/** 5の累乗キャッシュ */
 	private static _pow5Cache: bigint[] = [1n];
-	/**
-	 * 2の累乗キャッシュ
-	 */
+	/** 2の累乗キャッシュ */
 	private static _pow2Cache: bigint[] = [1n];
-	/**
-	 * Bernoulli numbers cache
-	 */
+	/** Bernoulli numbers cache */
 	private static _bernoulliCache: Record<string, bigint[]> = Object.create(null);
 
-	/**
-	 * 内部的な値 (mantissa × 2^exp2 × 5^exp5)
-	 */
+	/** 内部的な値 (mantissa × 2^exp2 × 5^exp5) */
 	public mantissa: bigint = 0n;
-	/**
-	 * 2の指数
-	 */
+	/** 2の指数 */
 	public _exp2: bigint = 0n;
-	/**
-	 * 5の指数
-	 */
+	/** 5の指数 */
 	public _exp5: bigint = 0n;
-	/**
-	 * 精度 (小数点以下の最大桁数)
-	 */
+	/** 精度 (小数点以下の最大桁数) */
 	public _precision: bigint = (this.constructor as BigFloatConstructor).DEFAULT_PRECISION;
-	/**
-	 * 特殊値の状態
-	 */
+	/** 特殊値の状態 */
 	public _specialState: SpecialValueState = SpecialValueState.FINITE;
 
 	/**

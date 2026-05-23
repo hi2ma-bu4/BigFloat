@@ -14,9 +14,7 @@ type BigFloatComplexVectorRandomOptions = {
  * BigFloatComplex を要素とする固定長ベクトルクラス
  */
 export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
-	/**
-	 * 内部要素 (BigFloatComplex の配列)
-	 */
+	/** 内部要素 (BigFloatComplex の配列) */
 	public _values: BigFloatComplex[];
 
 	/**

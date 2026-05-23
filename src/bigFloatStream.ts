@@ -30,23 +30,17 @@ const BIGFLOAT_STREAM_SKIP = Symbol("BIGFLOAT_STREAM_SKIP");
  * BigFloat 用の遅延評価ストリーム (Lazy List) クラス
  */
 export class BigFloatStream implements Iterable<BigFloatLike> {
-	/**
-	 * mapステージ定義
-	 */
+	/** mapステージ定義 */
 	private static readonly _mapStageDefinition: BigFloatStreamStageDefinition = {
 		createState: () => null,
 		process: (value, _state, data) => (data as (item: BigFloatLike) => BigFloatLike)(value),
 	};
-	/**
-	 * filterステージ定義
-	 */
+	/** filterステージ定義 */
 	private static readonly _filterStageDefinition: BigFloatStreamStageDefinition = {
 		createState: () => null,
 		process: (value, _state, data) => ((data as (item: BigFloatLike) => boolean)(value) ? value : BIGFLOAT_STREAM_SKIP),
 	};
-	/**
-	 * peekステージ定義
-	 */
+	/** peekステージ定義 */
 	private static readonly _peekStageDefinition: BigFloatStreamStageDefinition = {
 		createState: () => null,
 		process: (value, _state, data) => {
@@ -54,9 +48,7 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 			return value;
 		},
 	};
-	/**
-	 * flatMapステージ定義
-	 */
+	/** flatMapステージ定義 */
 	private static readonly _flatMapStageDefinition: BigFloatStreamStageDefinition = {
 		createState: () => null,
 		process: (value, _state, data, context, nextStageIndex) => {
@@ -65,9 +57,7 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 			return BIGFLOAT_STREAM_SKIP;
 		},
 	};
-	/**
-	 * distinctステージ定義
-	 */
+	/** distinctステージ定義 */
 	private static readonly _distinctStageDefinition: BigFloatStreamStageDefinition = {
 		createState: () => new Set<unknown>(),
 		process: (value, state, data) => {
@@ -78,9 +68,7 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 			return value;
 		},
 	};
-	/**
-	 * limitステージ定義
-	 */
+	/** limitステージ定義 */
 	private static readonly _limitStageDefinition: BigFloatStreamStageDefinition = {
 		createState: (data) => ({ remaining: data as number }),
 		process: (value, state, _data, context) => {
@@ -93,9 +81,7 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 			return value;
 		},
 	};
-	/**
-	 * skipステージ定義
-	 */
+	/** skipステージ定義 */
 	private static readonly _skipStageDefinition: BigFloatStreamStageDefinition = {
 		createState: (data) => ({ remaining: data as number }),
 		process: (value, state) => {
@@ -108,21 +94,13 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 		},
 	};
 
-	/**
-	 * 内部イテレータファクトリ
-	 */
+	/** 内部イテレータファクトリ */
 	private _sourceFactory: BigFloatStreamFactory;
-	/**
-	 * パイプラインにおける直前のストリーム
-	 */
+	/** パイプラインにおける直前のストリーム */
 	private _previousStream: BigFloatStream | null;
-	/**
-	 * このストリームが表すステージの定義
-	 */
+	/** このストリームが表すステージの定義 */
 	private _stageDefinition: BigFloatStreamStageDefinition | null;
-	/**
-	 * ステージに渡される固定データ (コールバック関数など)
-	 */
+	/** ステージに渡される固定データ (コールバック関数など) */
 	private _stageData: unknown;
 
 	/**

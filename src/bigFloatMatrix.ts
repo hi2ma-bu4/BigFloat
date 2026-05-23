@@ -15,9 +15,7 @@ type BigFloatMatrixRandomOptions = {
  * BigFloat を固定長行列として扱うクラス
  */
 export class BigFloatMatrix implements Iterable<BigFloatVector> {
-	/**
-	 * 内部要素 (行ごとの配列)
-	 */
+	/** 内部要素 (行ごとの配列) */
 	public _values: BigFloat[][];
 
 	/**

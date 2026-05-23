@@ -8,23 +8,17 @@
 // src/bigFloatStream.ts
 var BIGFLOAT_STREAM_SKIP = /* @__PURE__ */ Symbol("BIGFLOAT_STREAM_SKIP");
 var BigFloatStream = class _BigFloatStream {
-  /**
-   * mapステージ定義
-   */
+  /** mapステージ定義 */
   static _mapStageDefinition = {
     createState: () => null,
     process: (value, _state, data) => data(value)
   };
-  /**
-   * filterステージ定義
-   */
+  /** filterステージ定義 */
   static _filterStageDefinition = {
     createState: () => null,
     process: (value, _state, data) => data(value) ? value : BIGFLOAT_STREAM_SKIP
   };
-  /**
-   * peekステージ定義
-   */
+  /** peekステージ定義 */
   static _peekStageDefinition = {
     createState: () => null,
     process: (value, _state, data) => {
@@ -32,9 +26,7 @@ var BigFloatStream = class _BigFloatStream {
       return value;
     }
   };
-  /**
-   * flatMapステージ定義
-   */
+  /** flatMapステージ定義 */
   static _flatMapStageDefinition = {
     createState: () => null,
     process: (value, _state, data, context, nextStageIndex) => {
@@ -43,9 +35,7 @@ var BigFloatStream = class _BigFloatStream {
       return BIGFLOAT_STREAM_SKIP;
     }
   };
-  /**
-   * distinctステージ定義
-   */
+  /** distinctステージ定義 */
   static _distinctStageDefinition = {
     createState: () => /* @__PURE__ */ new Set(),
     process: (value, state, data) => {
@@ -56,9 +46,7 @@ var BigFloatStream = class _BigFloatStream {
       return value;
     }
   };
-  /**
-   * limitステージ定義
-   */
+  /** limitステージ定義 */
   static _limitStageDefinition = {
     createState: (data) => ({ remaining: data }),
     process: (value, state, _data, context) => {
@@ -71,9 +59,7 @@ var BigFloatStream = class _BigFloatStream {
       return value;
     }
   };
-  /**
-   * skipステージ定義
-   */
+  /** skipステージ定義 */
   static _skipStageDefinition = {
     createState: (data) => ({ remaining: data }),
     process: (value, state) => {
@@ -85,21 +71,13 @@ var BigFloatStream = class _BigFloatStream {
       return value;
     }
   };
-  /**
-   * 内部イテレータファクトリ
-   */
+  /** 内部イテレータファクトリ */
   _sourceFactory;
-  /**
-   * パイプラインにおける直前のストリーム
-   */
+  /** パイプラインにおける直前のストリーム */
   _previousStream;
-  /**
-   * このストリームが表すステージの定義
-   */
+  /** このストリームが表すステージの定義 */
   _stageDefinition;
-  /**
-   * ステージに渡される固定データ (コールバック関数など)
-   */
+  /** ステージに渡される固定データ (コールバック関数など) */
   _stageData;
   /**
    * BigFloatStream コンストラクタ
@@ -1604,9 +1582,7 @@ var BigFloatStream = class _BigFloatStream {
 
 // src/bigFloatComplexVector.ts
 var BigFloatComplexVector = class _BigFloatComplexVector {
-  /**
-   * 内部要素 (BigFloatComplex の配列)
-   */
+  /** 内部要素 (BigFloatComplex の配列) */
   _values;
   /**
    * BigFloatComplexVector コンストラクタ
@@ -2120,9 +2096,7 @@ var SingularMatrixError = class extends BigFloatError {
 
 // src/bigFloatVector.ts
 var BigFloatVector = class _BigFloatVector {
-  /**
-   * 内部要素 (BigFloat の配列)
-   */
+  /** 内部要素 (BigFloat の配列) */
   _values;
   /**
    * BigFloatVector コンストラクタ
@@ -3213,17 +3187,11 @@ var BigFloatVector = class _BigFloatVector {
 
 // src/bigFloatComplex.ts
 var BigFloatComplex = class _BigFloatComplex {
-  /**
-   * 実部
-   */
+  /** 実部 */
   _real;
-  /**
-   * 虚部
-   */
+  /** 虚部 */
   _imag;
-  /**
-   * 精度 (小数点以下の最大桁数)
-   */
+  /** 精度 (小数点以下の最大桁数) */
   _precision;
   /**
    * BigFloatComplex コンストラクタ
@@ -4402,37 +4370,21 @@ var SpecialValueState = /* @__PURE__ */ ((SpecialValueState2) => {
 
 // src/bigFloat.ts
 var BigFloatConfig = class _BigFloatConfig {
-  /**
-   * 精度の不一致を許容するかどうか
-   */
+  /** 精度の不一致を許容するかどうか */
   allowPrecisionMismatch;
-  /**
-   * BigFloatComplex との相互運用を許容するかどうか
-   */
+  /** BigFloatComplex との相互運用を許容するかどうか */
   allowComplexNumbers;
-  /**
-   * 破壊的な計算(自身の上書き)をするかどうか
-   */
+  /** 破壊的な計算(自身の上書き)をするかどうか */
   mutateResult;
-  /**
-   * Infinity/NaN の特殊値を許容するかどうか
-   */
+  /** Infinity/NaN の特殊値を許容するかどうか */
   allowSpecialValues;
-  /**
-   * 丸めモード
-   */
+  /** 丸めモード */
   roundingMode;
-  /**
-   * 計算時に追加する精度
-   */
+  /** 計算時に追加する精度 */
   extraPrecision;
-  /**
-   * 三角関数の最大ステップ数
-   */
+  /** 三角関数の最大ステップ数 */
   trigFuncsMaxSteps;
-  /**
-   * 対数計算の最大ステップ数
-   */
+  /** 対数計算の最大ステップ数 */
   lnMaxSteps;
   /**
    * BigFloatConfig コンストラクタ
@@ -4492,65 +4444,35 @@ var BigFloatConfig = class _BigFloatConfig {
   }
 };
 var BigFloat = class _BigFloat {
-  /**
-   * 最大精度 (Stringの限界)
-   */
+  /** 最大精度 (Stringの限界) */
   static MAX_PRECISION = 200000000n;
-  /**
-   * レイジー正規化の閾値
-   */
+  /** レイジー正規化の閾値 */
   static LAZY_NORMALIZE_SMALL_THRESHOLD = 32n;
-  /**
-   * デフォルトの精度
-   */
+  /** デフォルトの精度 */
   static DEFAULT_PRECISION = 20n;
-  /**
-   * 設定
-   */
+  /** 設定 */
   static config = new BigFloatConfig();
-  /**
-   * 円周率キャッシュ
-   */
+  /** 円周率キャッシュ */
   static _piCache = null;
-  /**
-   * eキャッシュ
-   */
+  /** eキャッシュ */
   static _eCache = null;
-  /**
-   * 対数キャッシュ
-   */
+  /** 対数キャッシュ */
   static _lnCache = /* @__PURE__ */ Object.create(null);
-  /**
-   * 5の累乗キャッシュ
-   */
+  /** 5の累乗キャッシュ */
   static _pow5Cache = [1n];
-  /**
-   * 2の累乗キャッシュ
-   */
+  /** 2の累乗キャッシュ */
   static _pow2Cache = [1n];
-  /**
-   * Bernoulli numbers cache
-   */
+  /** Bernoulli numbers cache */
   static _bernoulliCache = /* @__PURE__ */ Object.create(null);
-  /**
-   * 内部的な値 (mantissa × 2^exp2 × 5^exp5)
-   */
+  /** 内部的な値 (mantissa × 2^exp2 × 5^exp5) */
   mantissa = 0n;
-  /**
-   * 2の指数
-   */
+  /** 2の指数 */
   _exp2 = 0n;
-  /**
-   * 5の指数
-   */
+  /** 5の指数 */
   _exp5 = 0n;
-  /**
-   * 精度 (小数点以下の最大桁数)
-   */
+  /** 精度 (小数点以下の最大桁数) */
   _precision = this.constructor.DEFAULT_PRECISION;
-  /**
-   * 特殊値の状態
-   */
+  /** 特殊値の状態 */
   _specialState = 0 /* FINITE */;
   /**
    * キャッシュをクリアする
@@ -9555,9 +9477,7 @@ function bigFloat(value, precision) {
 
 // src/bigFloatMatrix.ts
 var BigFloatMatrix = class _BigFloatMatrix {
-  /**
-   * 内部要素 (行ごとの配列)
-   */
+  /** 内部要素 (行ごとの配列) */
   _values;
   /**
    * BigFloatMatrix コンストラクタ
@@ -11057,9 +10977,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
 
 // src/bigFloatComplexMatrix.ts
 var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
-  /**
-   * 内部要素 (行ごとの配列)
-   */
+  /** 内部要素 (行ごとの配列) */
   _values;
   /**
    * BigFloatComplexMatrix コンストラクタ
@@ -11094,8 +11012,9 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return resolved;
   }
   /**
-   * _assertRectangularRaw
-   * @throws {RangeError} 例外が発生した場合
+   * 与えられた二次元配列が矩形であることを検証する
+   * @param rows - 検証対象の二次元配列
+   * @throws {RangeError} 各行の長さが一致しない場合
    */
   static _assertRectangularRaw(rows) {
     if (rows.length === 0) return;
@@ -11278,8 +11197,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return this._mapValues((v) => v.div(s));
   }
   /**
-   * matmul
-   * @throws {RangeError} Inner matrix dimensions must agree
+   * 行列の積を計算する
+   * @param other - 乗算する行列
+   * @returns 計算結果の行列
+   * @throws {RangeError} 行列の次元が一致しない場合
    */
   matmul(other) {
     const matrix = _BigFloatComplexMatrix._coerceMatrix(other, this._flattenValues());
@@ -11311,8 +11232,9 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return BigFloatComplexVector.from(Array.from({ length: this.columnCount }, (_, col) => this._values.reduce((acc, row) => acc.add(row[col]), new BigFloatComplex(0, 0, resolvedPrecision))));
   }
   /**
-   * trace
-   * @throws {RangeError} Matrix must be square
+   * 正方行列のトレース（対角和）を計算する
+   * @returns トレースの値
+   * @throws {RangeError} 正方行列でない場合
    */
   trace() {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
@@ -11324,8 +11246,9 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return total;
   }
   /**
-   * determinant
-   * @throws {RangeError} Matrix must be square
+   * 正方行列の行列式を計算する
+   * @returns 行列式の値
+   * @throws {RangeError} 正方行列でない場合
    */
   determinant() {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
@@ -11363,8 +11286,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return sign < 0 ? det.neg() : det;
   }
   /**
-   * inverse
-   * @throws {RangeError} Matrix must be square
+   * 逆行列を計算する
+   * @returns 逆行列
+   * @throws {RangeError} 正方行列でない場合
+   * @throws {SingularMatrixError} 行列が特異（逆行列が存在しない）な場合
    */
   inverse() {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
@@ -11406,8 +11331,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return _BigFloatComplexMatrix._fromComplexGrid(augmented.map((row) => row.slice(size)));
   }
   /**
-   * solveVector
-   * @throws {RangeError} Dimension mismatch
+   * 連立一次方程式 Ax = b を解く（bはベクトル）
+   * @param rhs - 右辺ベクトル b
+   * @returns 解ベクトル x
+   * @throws {RangeError} 行列が正方でない、または次元が一致しない場合
    */
   solveVector(rhs) {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
@@ -11417,8 +11344,11 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return solution.column(0) ?? BigFloatComplexVector.empty();
   }
   /**
-   * solveMatrix
-   * @throws {RangeError} Matrix is singular
+   * 連立一次方程式 AX = B を解く（Bは行列）
+   * @param rhs - 右辺行列 B
+   * @returns 解行列 X
+   * @throws {RangeError} 行列が正方でない、または次元が一致しない場合
+   * @throws {SingularMatrixError} 行列が特異な場合
    */
   solveMatrix(rhs) {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
@@ -11470,8 +11400,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return { values: rows, pivotColumns };
   }
   /**
-   * matrixPow
-   * @throws {RangeError} Exponent must be integer
+   * 行列のべき乗を計算する
+   * @param exponent - 指数
+   * @returns 計算結果の行列
+   * @throws {RangeError} 行列が正方でない、または指数が整数でない場合
    */
   matrixPow(exponent) {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
@@ -11489,8 +11421,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return result;
   }
   /**
-   * identity
-   * @throws {RangeError} 例外が発生した場合
+   * 単位行列を生成する
+   * @param size - 行列のサイズ
+   * @param precision - 精度
+   * @returns 単位行列
    */
   static identity(size, precision) {
     const s = Math.trunc(size);
@@ -11498,8 +11432,9 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return _BigFloatComplexMatrix._fromComplexGrid(Array.from({ length: s }, (_, r) => Array.from({ length: s }, (_2, c) => new BigFloatComplex(r === c ? 1 : 0, 0, p))));
   }
   /**
-   * equals
-   * @throws {RangeError} 例外が発生した場合
+   * 他の行列と等しいかどうかを判定する
+   * @param other - 比較対象の行列
+   * @returns 等しい場合は true、そうでない場合は false
    */
   equals(other) {
     const matrix = _BigFloatComplexMatrix._coerceMatrix(other, this._flattenValues());
@@ -11529,8 +11464,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return this._flattenValues().reduce((acc, v) => acc.add(v.absSquared()), new BigFloat(0, this._values[0]?.[0]?.precision)).sqrt();
   }
   /**
-   * mulVector
-   * @throws {RangeError} Inner matrix dimensions must agree
+   * 行列とベクトルの積を計算する
+   * @param vector - 乗算するベクトル
+   * @returns 計算結果のベクトル
+   * @throws {RangeError} 行列の列数とベクトルの次元が一致しない場合
    */
   mulVector(vector) {
     const rhs = BigFloatComplexVector.from(vector);
@@ -11538,8 +11475,9 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return BigFloatComplexVector.from(this._values.map((row) => BigFloatComplexVector.from(row).dot(rhs)));
   }
   /**
-   * diagonalVector
-   * @throws {RangeError} Matrix must be square
+   * 行列の対角成分をベクトルとして取得する
+   * @returns 対角成分のベクトル
+   * @throws {RangeError} 正方行列でない場合
    */
   diagonalVector() {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
@@ -11569,8 +11507,9 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return false;
   }
   /**
-   * every
-   * @throws {RangeError} 例外が発生した場合
+   * 全ての要素が条件を満たすかどうかを判定する
+   * @param fn - 判定関数
+   * @returns 全ての要素が条件を満たす場合は true、そうでない場合は false
    */
   every(fn) {
     for (let r = 0; r < this.rowCount; r++) {
@@ -11581,8 +11520,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return true;
   }
   /**
-   * concatRows
-   * @throws {RangeError} 例外が発生した場合
+   * 他の行列を行方向に連結する
+   * @param others - 連結する行列
+   * @returns 連結された新しい行列
+   * @throws {RangeError} 列数が一致しない場合
    */
   concatRows(...others) {
     const values = this.toArray();
@@ -11700,8 +11641,8 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     return this._mapValues((v) => v.tanh());
   }
   /**
-   * asinh
-   * @throws {TypeError} 例外が発生した場合
+   * 各要素の逆双曲線正弦 (asinh) を計算する
+   * @returns 各要素に asinh を適用した行列
    */
   asinh() {
     return this._mapValues((v) => v.asinh());

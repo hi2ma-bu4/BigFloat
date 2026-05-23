@@ -65,8 +65,11 @@ export function analyzeThrows(config) {
 			const isSingleLine = lines.length === 1;
 
 			// アスタリスクの位置が揃っているか検証
-			const firstLineMatch = lines[0].match(/^(\s*)\/\*\*/);
-			const indent = firstLineMatch ? firstLineMatch[1] : "";
+			// インデント（タブまたはスペース）を取得
+			const fullText = sourceFile.getFullText();
+			const start = jsDoc.getStart();
+			const lineStart = fullText.lastIndexOf("\n", start) + 1;
+			const indent = fullText.substring(lineStart, start);
 
 			for (let i = 1; i < lines.length; i++) {
 				const line = lines[i];
