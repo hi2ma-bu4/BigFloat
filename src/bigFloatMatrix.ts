@@ -22,6 +22,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * BigFloatMatrix コンストラクタ
 	 * @param rows - 行列要素の反復可能オブジェクト
 	 * @param precision - 変換時の精度
+	 * @returns BigFloatMatrix インスタンス
 	 * @throws {RangeError} 行列の行が同じ長さを持たない場合
 	 */
 	public constructor(rows: BigFloatMatrixLike = [], precision?: PrecisionValue) {
@@ -35,11 +36,23 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * 内部配列から行列を生成する (内部用)
 	 * @param values - BigFloat の二次元配列
 	 * @returns BigFloatMatrix インスタンス
-	 * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _fromBigFloatGrid(values: BigFloat[][]): BigFloatMatrix;
+	/**
+	 * 内部配列から複素行列を生成する (内部用)
+	 * @param values - BigFloatComplex の二次元配列
+	 * @returns BigFloatComplexMatrix インスタンス
+	 */
 	protected static _fromBigFloatGrid(values: BigFloatComplex[][]): BigFloatComplexMatrix;
+	/**
+	 * 内部配列から行列を生成する (内部用)
+	 * @param values - 値の二次元配列
+	 * @returns 行列インスタンス
+	 */
 	protected static _fromBigFloatGrid(values: BigFloatLike[][]): BigFloatAnyMatrix;
+	/**
+	 * @throws {TypeError} デフォルトでは複素数を受け入れない場合
+	 */
 	protected static _fromBigFloatGrid(values: BigFloatLike[][]): BigFloatAnyMatrix {
 		let matrix: BigFloatAnyMatrix;
 		if (values.every((r) => r.every((c) => c instanceof BigFloat))) {
@@ -57,11 +70,19 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param value - 変換対象の値
 	 * @param precision - 精度
 	 * @returns BigFloat インスタンス
-	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _toBigFloat(value: BigFloatValue, precision?: bigint): BigFloat;
+	/**
+	 * 値を BigFloatComplex へ変換する (内部用)
+	 * @param value - 変換対象の複素数
+	 * @param precision - 精度
+	 * @returns BigFloatComplex インスタンス
+	 */
 	protected static _toBigFloat(value: BigFloatComplex, precision?: bigint): BigFloatComplex;
+	/**
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {TypeError} デフォルトでは複素数を受け入れない場合
+	 */
 	protected static _toBigFloat(value: BigFloatInputValue, precision?: bigint): BigFloatLike {
 		if (value instanceof BigFloat) {
 			const cloned = value.clone();
@@ -94,8 +115,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 
 	/**
 	 * 次元を正規化する
+	 * @param size - 元のサイズ
+	 * @param name - パラメータ名
+	 * @returns 正規化されたサイズ
 	 * @throws {RangeError} size が負または非有限の場合
-	 * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _normalizeSize(size: number, name: string): number {
 		if (!Number.isFinite(size)) throw new RangeError(`${name} must be finite`);
@@ -198,14 +221,26 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	}
 
 	/**
-	 * 全要素に対して変換関数を適用した新しい行列を返す (内部用)
-	 * @param fn - 変換関数
-	 * @returns 変換後の新しい行列
-	 * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
+	 * 各要素に関数を適用して新しい実数行列を生成する
+	 * @param fn - 適用する関数
+	 * @returns 変換後の新しい実数行列
 	 */
 	protected _mapValues(fn: (value: BigFloat, row: number, column: number) => BigFloatValue): this | BigFloatMatrix;
+	/**
+	 * 各要素に関数を適用して新しい複素行列を生成する
+	 * @param fn - 適用する関数
+	 * @returns 変換後の新しい複素行列
+	 */
 	protected _mapValues(fn: (value: BigFloatLike, row: number, column: number) => BigFloatInputValue): BigFloatComplexMatrix;
+	/**
+	 * 各要素に関数を適用して新しい行列を生成する
+	 * @param fn - 適用する関数
+	 * @returns 変換後の新しい行列
+	 */
 	protected _mapValues(fn: ((value: BigFloat, row: number, column: number) => BigFloatValue) | ((value: BigFloatLike, row: number, column: number) => BigFloatInputValue)): this | BigFloatAnyMatrix;
+	/**
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 */
 	protected _mapValues(fn: ((value: BigFloat, row: number, column: number) => BigFloatValue) | ((value: BigFloatLike, row: number, column: number) => BigFloatInputValue)): this | BigFloatAnyMatrix {
 		const values = this._values.map((currentRow, rowIndex) =>
 			currentRow.map((value, columnIndex) => {
@@ -217,15 +252,30 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	}
 
 	/**
-	 * オペランドとの二項演算を全要素に対して行う (内部用)
-	 * @param other - 行列またはスカラ値
-	 * @param fn - 二項演算関数
-	 * @returns 演算後の新しい行列
-	 * @throws {RangeError} 行列形状が一致しない場合
-	 * @throws {TypeError} BigFloatMatrix operation does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
+	 * オペランドを用いて各要素に関数を適用し、新しい実数行列を生成する
+	 * @param other - オペランド（行列またはスカラー）
+	 * @param fn - 適用する関数
+	 * @returns 演算後の新しい実数行列
 	 */
 	protected _mapWithOperand(other: BigFloatMatrixLike | BigFloatValue, fn: (left: BigFloat, right: BigFloat, row: number, column: number) => BigFloatValue): this | BigFloatMatrix;
+	/**
+	 * オペランドを用いて各要素に関数を適用し、新しい複素行列を生成する
+	 * @param other - オペランド（行列またはスカラー）
+	 * @param fn - 適用する関数
+	 * @returns 演算後の新しい複素行列
+	 */
 	protected _mapWithOperand(other: BigFloatAnyMatrixLike | BigFloatComplex, fn: (left: BigFloat, right: BigFloatLike, row: number, column: number) => BigFloatInputValue): BigFloatComplexMatrix;
+	/**
+	 * オペランドを用いて各要素に関数を適用し、新しい行列を生成する
+	 * @param other - オペランド（行列またはスカラー）
+	 * @param fn - 適用する関数
+	 * @returns 演算後の新しい行列
+	 */
+	protected _mapWithOperand(other: BigFloatAnyMatrixLike | BigFloatInputValue, fn: ((left: BigFloat, right: BigFloat, row: number, column: number) => BigFloatValue) | ((left: BigFloat, right: BigFloatLike, row: number, column: number) => BigFloatInputValue)): this | BigFloatAnyMatrix;
+	/**
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {RangeError} 行列の形状が一致しない場合
+	 */
 	protected _mapWithOperand(other: BigFloatAnyMatrixLike | BigFloatInputValue, fn: ((left: BigFloat, right: BigFloat, row: number, column: number) => BigFloatValue) | ((left: BigFloat, right: BigFloatLike, row: number, column: number) => BigFloatInputValue)): this | BigFloatAnyMatrix {
 		if (other instanceof BigFloatComplexMatrix || BigFloat._isComplexValue(other)) {
 			if (this._values.length > 0 && this._values[0].length > 0) {
@@ -317,14 +367,22 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	}
 
 	/**
-	 * 行列要素の反復可能オブジェクトから BigFloatMatrix を生成する
-	 * @param rows - 要素
+	 * 二次元配列から実数行列を生成する
+	 * @param rows - 二次元配列
 	 * @param precision - 精度
 	 * @returns BigFloatMatrix インスタンス
-	 * @throws {TypeError} 例外が発生した場合
 	 */
 	public static from(rows: BigFloatMatrixLike, precision?: PrecisionValue): BigFloatMatrix;
+	/**
+	 * 二次元配列から複素行列を生成する
+	 * @param rows - 二次元配列
+	 * @param precision - 精度
+	 * @returns BigFloatComplexMatrix インスタンス
+	 */
 	public static from(rows: BigFloatComplexMatrixLike, precision?: PrecisionValue): BigFloatComplexMatrix;
+	/**
+	 * @throws {TypeError} デフォルトでは複素数を受け入れない場合
+	 */
 	public static from(rows: BigFloatAnyMatrixLike, precision?: PrecisionValue): BigFloatAnyMatrix {
 		const rawRows = Array.from(rows as BigFloatMatrix, (row) => Array.from(row));
 		if (rawRows.flat().some((v) => BigFloat._isComplexValue(v))) {
@@ -348,6 +406,9 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 
 	/**
 	 * 列ベクトル群から生成する
+	 * @param columns - 列ベクトルのリスト
+	 * @param precision - 精度
+	 * @returns BigFloatMatrix インスタンス
 	 * @throws {RangeError} 列ベクトルの長さが異なる場合
 	 */
 	public static fromColumns(columns: BigFloatMatrixLike, precision?: PrecisionValue): BigFloatMatrix {

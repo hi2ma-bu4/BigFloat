@@ -1811,22 +1811,46 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
     });
     return this._fromComplexArray(values);
   }
+  /**
+   * ベクトルの長さ（要素数）
+   */
   get length() {
     return this._values.length;
   }
+  /**
+   * ベクトルの次元数を取得する
+   * @returns 次元数 (length と同じ)
+   */
   dimension() {
     return this.length;
   }
+  /**
+   * ベクトルが空であるか判定する
+   * @returns 空なら true
+   */
   isEmpty() {
     return this.length === 0;
   }
+  /**
+   * 指定したインデックスの要素を取得する
+   * @param index - インデックス
+   * @returns 要素の値、インデックスが範囲外の場合は undefined
+   */
   at(index) {
     if (index < 0 || index >= this.length) return void 0;
     return this._values[index].clone();
   }
+  /**
+   * ベクトルを複製する
+   * @returns 複製された BigFloatComplexVector
+   */
   clone() {
     return _BigFloatComplexVector._fromComplexArray(this._values.map((v) => v.clone()));
   }
+  /**
+   * 配列に変換する
+   * @returns BigFloatComplex の配列
+   */
   toArray() {
     return this._values.map((v) => v.clone());
   }
@@ -1837,27 +1861,67 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
   toStream() {
     return BigFloatStream.from(this.toArray());
   }
+  /**
+   * ベクトルのイテレータを取得する
+   * @returns 要素のイテレータ
+   */
   [Symbol.iterator]() {
     return this.toArray()[Symbol.iterator]();
   }
+  /**
+   * 各要素に対して処理を実行する
+   * @param fn - 実行する関数
+   */
   forEach(fn) {
     this._values.forEach((v, i) => fn(v.clone(), i));
   }
+  /**
+   * 各要素に関数を適用して新しいベクトルを生成する
+   * @param fn - 適用する関数
+   * @returns 変換後の新しいベクトル
+   */
   map(fn) {
     return this._mapValues(fn);
   }
+  /**
+   * 二つのベクトルの各要素に対して関数を適用し、新しいベクトルを生成する
+   * @param other - 比較対象のベクトル
+   * @param fn - 適用する関数
+   * @returns 演算結果のベクトル
+   */
   zipMap(other, fn) {
     return this._mapWithOperand(other, fn);
   }
+  /**
+   * 各要素を累積して単一の値を計算する
+   * @param fn - 累積関数
+   * @param initial - 初期値
+   * @returns 累積された結果
+   */
   reduce(fn, initial) {
     return this._values.reduce((acc, v, i) => fn(acc, v.clone(), i), initial);
   }
+  /**
+   * いずれかの要素が条件を満たすか判定する
+   * @param fn - 判定関数
+   * @returns 条件を満たす要素があれば true
+   */
   some(fn) {
     return this._values.some((v, i) => fn(v.clone(), i));
   }
+  /**
+   * すべての要素が条件を満たすか判定する
+   * @param fn - 判定関数
+   * @returns すべての要素が条件を満たせば true
+   */
   every(fn) {
     return this._values.every((v, i) => fn(v.clone(), i));
   }
+  /**
+   * ベクトルを連結する
+   * @param others - 連結するベクトル
+   * @returns 連結後の新しいベクトル
+   */
   concat(...others) {
     const values = this.toArray();
     for (const other of others) {
@@ -1865,143 +1929,339 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
     }
     return _BigFloatComplexVector._fromComplexArray(values);
   }
+  /**
+   * 指定した範囲の要素を抽出する
+   * @param start - 開始インデックス
+   * @param end - 終了インデックス
+   * @returns 抽出された新しいベクトル
+   */
   slice(start, end) {
     return _BigFloatComplexVector._fromComplexArray(this._values.slice(start, end).map((v) => v.clone()));
   }
+  /**
+   * 要素の順序を反転させる
+   * @returns 反転した新しいベクトル
+   */
   reverse() {
     return _BigFloatComplexVector._fromComplexArray([...this._values].reverse().map((v) => v.clone()));
   }
+  /**
+   * ベクトルの精度を変更する
+   * @param precision - 新しい精度
+   * @returns 精度が変更された新しいベクトル
+   */
   changePrecision(precision) {
     const p = BigInt(precision);
     return this._mapValues((v) => v.changePrecision(p));
   }
+  /**
+   * ベクトルが等しいか判定する
+   * @param other - 比較対象のベクトル
+   * @returns 等しい場合は true
+   */
   equals(other) {
     const vector = _BigFloatComplexVector._coerceVector(other, this._values);
     if (this.length !== vector.length) return false;
     return this._values.every((v, i) => v.equals(vector._values[i]));
   }
+  /**
+   * ベクトルの加算を行う
+   * @param other - 加算するベクトルまたはスカラ
+   * @returns 加算後の新しいベクトル
+   */
   add(other) {
     return this._mapWithOperand(other, (l, r) => l.add(r));
   }
+  /**
+   * ベクトルの減算を行う
+   * @param other - 減算するベクトルまたはスカラ
+   * @returns 減算後の新しいベクトル
+   */
   sub(other) {
     return this._mapWithOperand(other, (l, r) => l.sub(r));
   }
+  /**
+   * スカラー倍を行う
+   * @param scalar - 乗算するスカラー
+   * @returns 乗算後の新しいベクトル
+   */
   mul(scalar) {
     const s = _BigFloatComplexVector._toComplex(scalar, this._values[0]?.precision);
     return this._mapValues((v) => v.mul(s));
   }
+  /**
+   * スカラー除算を行う
+   * @param scalar - 除算するスカラー
+   * @returns 除算後の新しいベクトル
+   */
   div(scalar) {
     const s = _BigFloatComplexVector._toComplex(scalar, this._values[0]?.precision);
     return this._mapValues((v) => v.div(s));
   }
+  /**
+   * 各要素の剰余を計算する
+   * @param other - 除数（ベクトルまたはスカラ）
+   * @returns 演算後の新しいベクトル
+   */
   mod(other) {
     return this._mapWithOperand(other, (l, r) => l.mod(r));
   }
+  /**
+   * アダマール積（要素ごとの積）を計算する
+   * @param other - 乗算するベクトル
+   * @returns Hadamard積の結果のベクトル
+   */
   hadamard(other) {
     return this._mapWithOperand(other, (l, r) => l.mul(r));
   }
+  /**
+   * 各要素の符号を反転する
+   * @returns 符号反転後の新しいベクトル
+   */
   neg() {
     return this._mapValues((v) => v.neg());
   }
+  /**
+   * 各要素の絶対値を計算する
+   * @returns 絶対値適用後の新しい実数ベクトル
+   */
   abs() {
     return BigFloatVector.from(this._values.map((v) => v.abs()));
   }
+  /**
+   * 各要素の符号を計算する
+   * @returns 符号ベクトル
+   */
   sign() {
     return this._mapValues((v) => v.sign());
   }
+  /**
+   * 各要素の逆数を計算する
+   * @returns 逆数ベクトル
+   */
   reciprocal() {
     return this._mapValues((v) => v.reciprocal());
   }
+  /**
+   * 各要素のべき乗を計算する
+   * @param exponent - 指数（ベクトルまたはスカラ）
+   * @returns 冪乗後の新しいベクトル
+   */
   pow(exponent) {
     return this._mapWithOperand(exponent, (l, r) => l.pow(r));
   }
+  /**
+   * 各要素の平方根を計算する
+   * @returns 平方根適用後の新しいベクトル
+   */
   sqrt() {
     return this._mapValues((v) => v.sqrt());
   }
+  /**
+   * 各要素の立方根を計算する
+   * @returns 立方根適用後の新しいベクトル
+   */
   cbrt() {
     return this._mapValues((v) => v.cbrt());
   }
+  /**
+   * 各要素の n 乗根を計算する
+   * @param n - 次数
+   * @returns n 乗根適用後の新しいベクトル
+   */
   nthRoot(n) {
     return this._mapValues((v) => v.nthRoot(n));
   }
+  /**
+   * 各要素の床関数を計算する
+   * @returns 床関数適用後の新しいベクトル
+   */
   floor() {
     return this._mapValues((v) => v.floor());
   }
+  /**
+   * 各要素の天井関数を計算する
+   * @returns 天井関数適用後の新しいベクトル
+   */
   ceil() {
     return this._mapValues((v) => v.ceil());
   }
+  /**
+   * 各要素を四捨五入する
+   * @returns 四捨五入後の新しいベクトル
+   */
   round() {
     return this._mapValues((v) => v.round());
   }
+  /**
+   * 各要素を切り捨てる
+   * @returns 切り捨て後の新しいベクトル
+   */
   trunc() {
     return this._mapValues((v) => v.trunc());
   }
+  /**
+   * 各要素を最も近い単精度浮動小数点数形式に丸める
+   * @returns 丸め後の新しいベクトル
+   */
   fround() {
     return this._mapValues((v) => v.fround());
   }
+  /**
+   * 各要素の 32 ビット整数としての先頭のゼロの個数を計算する
+   * @returns 結果のベクトル
+   */
   clz32() {
     return this._mapValues((v) => v.clz32());
   }
+  /**
+   * 各要素の相対差を計算する
+   * @param other - 比較対象（ベクトルまたはスカラ）
+   * @returns 相対差のベクトル
+   */
   relativeDiff(other) {
     return this._mapWithOperand(other, (l, r) => l.relativeDiff(r));
   }
+  /**
+   * 各要素の絶対差を計算する
+   * @param other - 比較対象（ベクトルまたはスカラ）
+   * @returns 絶対差のベクトル
+   */
   absoluteDiff(other) {
     return this._mapWithOperand(other, (l, r) => l.absoluteDiff(r));
   }
+  /**
+   * 各要素の百分率差分を計算する
+   * @param other - 比較対象（ベクトルまたはスカラ）
+   * @returns 百分率差分のベクトル (%)
+   */
   percentDiff(other) {
     return this._mapWithOperand(other, (l, r) => l.percentDiff(r));
   }
+  /**
+   * 各要素の正弦（sin）を計算する
+   * @returns sin 適用後のベクトル
+   */
   sin() {
     return this._mapValues((v) => v.sin());
   }
+  /**
+   * 各要素の余弦（cos）を計算する
+   * @returns cos 適用後のベクトル
+   */
   cos() {
     return this._mapValues((v) => v.cos());
   }
+  /**
+   * 各要素の正接（tan）を計算する
+   * @returns tan 適用後のベクトル
+   */
   tan() {
     return this._mapValues((v) => v.tan());
   }
+  /**
+   * 各要素の逆正弦（asin）を計算する
+   * @returns asin 適用後のベクトル
+   */
   asin() {
     return this._mapValues((v) => v.asin());
   }
+  /**
+   * 各要素の逆余弦（acos）を計算する
+   * @returns acos 適用後のベクトル
+   */
   acos() {
     return this._mapValues((v) => v.acos());
   }
+  /**
+   * 各要素の逆正接（atan）を計算する
+   * @returns atan 適用後のベクトル
+   */
   atan() {
     return this._mapValues((v) => v.atan());
   }
+  /**
+   * 各要素の双曲線正弦（sinh）を計算する
+   * @returns sinh 適用後のベクトル
+   */
   sinh() {
     return this._mapValues((v) => v.sinh());
   }
+  /**
+   * 各要素の双曲線余弦（cosh）を計算する
+   * @returns cosh 適用後のベクトル
+   */
   cosh() {
     return this._mapValues((v) => v.cosh());
   }
+  /**
+   * 各要素の双曲線正接（tanh）を計算する
+   * @returns tanh 適用後のベクトル
+   */
   tanh() {
     return this._mapValues((v) => v.tanh());
   }
+  /**
+   * 各要素の逆双曲線正弦（asinh）を計算する
+   * @returns asinh 適用後のベクトル
+   */
   asinh() {
     return this._mapValues((v) => v.asinh());
   }
+  /**
+   * 各要素の逆双曲線余弦（acosh）を計算する
+   * @returns acosh 適用後のベクトル
+   */
   acosh() {
     return this._mapValues((v) => v.acosh());
   }
+  /**
+   * 各要素の逆双曲線正接（atanh）を計算する
+   * @returns atanh 適用後のベクトル
+   */
   atanh() {
     return this._mapValues((v) => v.atanh());
   }
+  /**
+   * 各要素の指数関数（exp）を計算する
+   * @returns exp 適用後のベクトル
+   */
   exp() {
     return this._mapValues((v) => v.exp());
   }
+  /**
+   * 各要素の exp(x) - 1 を計算する
+   * @returns expm1 適用後のベクトル
+   */
   expm1() {
     return this._mapValues((v) => v.expm1());
   }
+  /**
+   * 各要素の自然対数（ln）を計算する
+   * @returns ln 適用後のベクトル
+   */
   ln() {
     return this._mapValues((v) => v.ln());
   }
+  /**
+   * 各要素の任意の底の対数を計算する
+   * @param base - 対数の底（ベクトルまたはスカラ）
+   * @returns 対数計算後のベクトル
+   */
   log(base) {
     return this._mapWithOperand(base, (l, r) => l.log(r));
   }
+  /**
+   * 各要素の 2 を底とする対数を計算する
+   * @returns log2 適用後のベクトル
+   */
   log2() {
     return this._mapValues((v) => v.log(2));
   }
+  /**
+   * 各要素の 10 を底とする対数を計算する
+   * @returns log10 適用後のベクトル
+   */
   log10() {
     return this._mapValues((v) => v.log(10));
   }
@@ -2023,18 +2283,35 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
     if (this.isEmpty()) throw new TypeError("No elements");
     throw new TypeError("min() is not supported for complex vectors");
   }
+  /**
+   * 要素の合計を計算する
+   * @returns 合計値
+   */
   sum() {
     if (this.isEmpty()) return new BigFloatComplex(0);
     return this._values.reduce((acc, v) => acc.add(v), new BigFloatComplex(0, this._values[0].precision));
   }
+  /**
+   * 要素の総乗を計算する
+   * @returns 総乗の値
+   */
   product() {
     if (this.isEmpty()) return new BigFloatComplex(1);
     return this._values.reduce((acc, v) => acc.mul(v), new BigFloatComplex(1, this._values[0].precision));
   }
+  /**
+   * 要素の平均を計算する
+   * @returns 平均値
+   */
   average() {
     if (this.isEmpty()) return new BigFloatComplex(0);
     return this.sum().div(this.length);
   }
+  /**
+   * 他のベクトルとの内積を計算する
+   * @param other - 対象のベクトル
+   * @returns 内積の値
+   */
   dot(other) {
     const vector = _BigFloatComplexVector._coerceVector(other, this._values);
     _BigFloatComplexVector._assertSameLength(this, vector);
@@ -2044,9 +2321,17 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
     }
     return total;
   }
+  /**
+   * 二乗ノルムを計算する
+   * @returns 二乗ノルム
+   */
   squaredNorm() {
     return this._values.reduce((acc, v) => acc.add(v.absSquared()), new BigFloat(0, this._values[0]?.precision));
   }
+  /**
+   * ノルム（ベクトルの長さ）を計算する
+   * @returns ノルム
+   */
   norm() {
     return this.squaredNorm().sqrt();
   }
@@ -2060,6 +2345,11 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
     if (length.isZero()) throw new RangeError("Cannot normalize zero vector");
     return this.div(length);
   }
+  /**
+   * 他のベクトルとの距離を計算する
+   * @param other - 対象のベクトル
+   * @returns 距離
+   */
   distanceTo(other) {
     return this.sub(other).norm();
   }
@@ -2077,12 +2367,19 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
     const [bx, by, bz] = vector._values;
     return _BigFloatComplexVector._fromComplexArray([ay.mul(bz).sub(az.mul(by)), az.mul(bx).sub(ax.mul(bz)), ax.mul(by).sub(ay.mul(bx))]);
   }
+  /**
+   * 他のベクトルとの二乗距離を計算する
+   * @param other - 対象のベクトル
+   * @returns 二乗距離
+   */
   squaredDistanceTo(other) {
     return this.sub(other).squaredNorm();
   }
   /**
    * 別のベクトルへの正射影ベクトルを計算する
-   * @throws {RangeError} 例外が発生した場合
+   * @param other - 射影先のベクトル
+   * @returns 射影された新しいベクトル
+   * @throws {RangeError} ゼロベクトルに射影しようとした場合
    */
   projectOnto(other) {
     const vector = _BigFloatComplexVector._coerceVector(other, this._values);
@@ -9544,6 +9841,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * BigFloatMatrix コンストラクタ
    * @param rows - 行列要素の反復可能オブジェクト
    * @param precision - 変換時の精度
+   * @returns BigFloatMatrix インスタンス
    * @throws {RangeError} 行列の行が同じ長さを持たない場合
    */
   constructor(rows = [], precision) {
@@ -9552,6 +9850,9 @@ var BigFloatMatrix = class _BigFloatMatrix {
     const resolvedPrecision = _BigFloatMatrix._resolvePrecision(rawRows.flat(), precision);
     this._values = rawRows.map((row) => row.map((value) => _BigFloatMatrix._toBigFloat(value, resolvedPrecision)));
   }
+  /**
+   * @throws {TypeError} デフォルトでは複素数を受け入れない場合
+   */
   static _fromBigFloatGrid(values) {
     let matrix;
     if (values.every((r) => r.every((c) => c instanceof BigFloat))) {
@@ -9563,6 +9864,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
     }
     return matrix;
   }
+  /**
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {TypeError} デフォルトでは複素数を受け入れない場合
+   */
   static _toBigFloat(value, precision) {
     if (value instanceof BigFloat) {
       const cloned = value.clone();
@@ -9593,8 +9898,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
   }
   /**
    * 次元を正規化する
+   * @param size - 元のサイズ
+   * @param name - パラメータ名
+   * @returns 正規化されたサイズ
    * @throws {RangeError} size が負または非有限の場合
-   * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
    */
   static _normalizeSize(size, name) {
     if (!Number.isFinite(size)) throw new RangeError(`${name} must be finite`);
@@ -9687,6 +9994,9 @@ var BigFloatMatrix = class _BigFloatMatrix {
   _flattenValues() {
     return this._values.flat();
   }
+  /**
+   * @throws {TypeError} 複素数モードが無効な場合
+   */
   _mapValues(fn) {
     const values = this._values.map(
       (currentRow, rowIndex) => currentRow.map((value, columnIndex) => {
@@ -9696,6 +10006,10 @@ var BigFloatMatrix = class _BigFloatMatrix {
     );
     return _BigFloatMatrix._fromBigFloatGrid(values);
   }
+  /**
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {RangeError} 行列の形状が一致しない場合
+   */
   _mapWithOperand(other, fn) {
     if (other instanceof BigFloatComplexMatrix || BigFloat._isComplexValue(other)) {
       if (this._values.length > 0 && this._values[0].length > 0) {
@@ -9776,6 +10090,9 @@ var BigFloatMatrix = class _BigFloatMatrix {
   static empty() {
     return this._fromBigFloatGrid([]);
   }
+  /**
+   * @throws {TypeError} デフォルトでは複素数を受け入れない場合
+   */
   static from(rows, precision) {
     const rawRows = Array.from(rows, (row) => Array.from(row));
     if (rawRows.flat().some((v) => BigFloat._isComplexValue(v))) {
@@ -9797,6 +10114,9 @@ var BigFloatMatrix = class _BigFloatMatrix {
   }
   /**
    * 列ベクトル群から生成する
+   * @param columns - 列ベクトルのリスト
+   * @param precision - 精度
+   * @returns BigFloatMatrix インスタンス
    * @throws {RangeError} 列ベクトルの長さが異なる場合
    */
   static fromColumns(columns, precision) {
@@ -11053,17 +11373,34 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     const resolvedPrecision = _BigFloatComplexMatrix._resolvePrecision(rawRows.flat(), precision);
     this._values = rawRows.map((row) => row.map((value) => _BigFloatComplexMatrix._toComplex(value, resolvedPrecision)));
   }
+  /**
+   * BigFloatComplex の二次元配列から行列を生成する
+   * @param values - BigFloatComplex の二次元配列
+   * @returns BigFloatComplexMatrix インスタンス
+   */
   static _fromComplexGrid(values) {
     const matrix = Object.create(_BigFloatComplexMatrix.prototype);
     matrix._values = values;
     return matrix;
   }
+  /**
+   * 値を BigFloatComplex に変換する
+   * @param value - 変換する値
+   * @param precision - 精度
+   * @returns BigFloatComplex インスタンス
+   */
   static _toComplex(value, precision) {
     if (value instanceof BigFloatComplex) {
       return precision === void 0 || value.precision === precision ? value.clone() : value.changePrecision(precision);
     }
     return new BigFloatComplex(value, 0, precision);
   }
+  /**
+   * 精度を解決する
+   * @param values - 対象の値の配列
+   * @param precision - 指定された精度
+   * @returns 解決された精度
+   */
   static _resolvePrecision(values, precision) {
     if (precision !== void 0) return BigInt(precision);
     let resolved = BigFloat.DEFAULT_PRECISION;
@@ -11085,11 +11422,23 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
       if (row.length !== columnCount) throw new RangeError("Matrix rows must have the same length");
     }
   }
+  /**
+   * 二つの行列の形状が一致することを検証する
+   * @param left - 左辺行列
+   * @param right - 右辺行列
+   * @throws {RangeError} 行列の形状が一致しない場合
+   */
   static _assertSameShape(left, right) {
     if (left.rowCount !== right.rowCount || left.columnCount !== right.columnCount) {
       throw new RangeError("Matrix shapes must match");
     }
   }
+  /**
+   * 値を行列に変換する
+   * @param value - 変換する値
+   * @param referenceValues - 精度の解決に使用する参照値
+   * @returns BigFloatComplexMatrix インスタンス
+   */
   static _coerceMatrix(value, referenceValues = []) {
     if (value instanceof _BigFloatComplexMatrix) return value;
     if (value instanceof BigFloatMatrix) {
@@ -11099,9 +11448,18 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     const resolvedPrecision = _BigFloatComplexMatrix._resolvePrecision([...referenceValues, ...rows.flat()]);
     return new _BigFloatComplexMatrix(rows, resolvedPrecision);
   }
+  /**
+   * 行列の全要素をフラットな配列として取得する
+   * @returns 全要素の配列
+   */
   _flattenValues() {
     return this._values.flat();
   }
+  /**
+   * 各要素に関数を適用して新しい行列を生成する
+   * @param fn - 適用する関数
+   * @returns 変換後の新しい行列
+   */
   _mapValues(fn) {
     const values = this._values.map(
       (currentRow, rowIndex) => currentRow.map((value, columnIndex) => {
@@ -11111,6 +11469,12 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     );
     return _BigFloatComplexMatrix._fromComplexGrid(values);
   }
+  /**
+   * オペランドを用いて各要素に関数を適用し、新しい行列を生成する
+   * @param other - オペランド（行列またはスカラー）
+   * @param fn - 適用する関数
+   * @returns 演算後の新しい行列
+   */
   _mapWithOperand(other, fn) {
     if (other instanceof _BigFloatComplexMatrix || other instanceof BigFloatMatrix || typeof other === "object" && other !== null && Symbol.iterator in other && !(other instanceof BigFloat) && !(other instanceof BigFloatComplex)) {
       const matrix = _BigFloatComplexMatrix._coerceMatrix(other, this._flattenValues());
@@ -11126,15 +11490,37 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     const right = _BigFloatComplexMatrix._toComplex(other, this._values[0]?.[0]?.precision);
     return this._mapValues((value, row, column) => fn(value, right, row, column));
   }
+  /**
+   * 空の行列を生成する
+   * @returns 空の行列
+   */
   static empty() {
     return this._fromComplexGrid([]);
   }
+  /**
+   * 二次元配列から行列を生成する
+   * @param rows - 二次元配列
+   * @param precision - 精度
+   * @returns BigFloatComplexMatrix インスタンス
+   */
   static from(rows, precision) {
     return new _BigFloatComplexMatrix(rows, precision);
   }
+  /**
+   * 行の配列から行列を生成する
+   * @param rows - 行の配列
+   * @param precision - 精度
+   * @returns BigFloatComplexMatrix インスタンス
+   */
   static fromRows(rows, precision) {
     return this.from(rows, precision);
   }
+  /**
+   * 列の配列から行列を生成する
+   * @param columns - 列の配列
+   * @param precision - 精度
+   * @returns BigFloatComplexMatrix インスタンス
+   */
   static fromColumns(columns, precision) {
     const rawColumns = Array.from(columns, (col) => Array.from(col));
     if (rawColumns.length === 0) return this.empty();
@@ -11142,26 +11528,66 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     const rows = Array.from({ length: rowCount }, (_, r) => rawColumns.map((col) => col[r]));
     return this.from(rows, precision);
   }
+  /**
+   * 可変長引数の行から行列を生成する
+   * @param rows - 行ベクトルの配列
+   * @returns BigFloatComplexMatrix インスタンス
+   */
   static of(...rows) {
     return this.from(rows);
   }
+  /**
+   * 指定された値で埋められた行列を生成する
+   * @param rowCount - 行数
+   * @param columnCount - 列数
+   * @param value - 埋める値
+   * @param precision - 精度
+   * @returns BigFloatComplexMatrix インスタンス
+   */
   static fill(rowCount, columnCount, value, precision) {
     if (rowCount <= 0 || columnCount <= 0) return this.empty();
     const resolvedPrecision = _BigFloatComplexMatrix._resolvePrecision([value], precision);
     const base = this._toComplex(value, resolvedPrecision);
     return this._fromComplexGrid(Array.from({ length: rowCount }, () => Array.from({ length: columnCount }, () => base.clone())));
   }
+  /**
+   * 零行列を生成する
+   * @param rowCount - 行数
+   * @param columnCount - 列数
+   * @param precision - 精度
+   * @returns 零行列
+   */
   static zeros(rowCount, columnCount, precision) {
     return this.fill(rowCount, columnCount, 0, precision);
   }
+  /**
+   * すべての要素が 1 の行列を生成する
+   * @param rowCount - 行数
+   * @param columnCount - 列数
+   * @param precision - 精度
+   * @returns すべての要素が 1 の行列
+   */
   static ones(rowCount, columnCount, precision) {
     return this.fill(rowCount, columnCount, 1, precision);
   }
+  /**
+   * 対角行列を生成する
+   * @param values - 対角成分の配列
+   * @param precision - 精度
+   * @returns 対角行列
+   */
   static diagonal(values, precision) {
     const entries = Array.from(values);
     const resolvedPrecision = this._resolvePrecision(entries, precision);
     return this._fromComplexGrid(entries.map((v, r) => entries.map((_, c) => r === c ? this._toComplex(v, resolvedPrecision) : new BigFloatComplex(0, 0, resolvedPrecision))));
   }
+  /**
+   * ランダムな値を持つ行列を生成する
+   * @param rowCount - 行数
+   * @param columnCount - 列数
+   * @param options - ランダム生成のオプション
+   * @returns ランダムな行列
+   */
   static random(rowCount, columnCount, options = {}) {
     if (rowCount <= 0 || columnCount <= 0) return this.empty();
     const min = options.min ?? 0;
@@ -11184,45 +11610,99 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
       )
     );
   }
+  /**
+   * 行数
+   */
   get rowCount() {
     return this._values.length;
   }
+  /**
+   * 列数
+   */
   get columnCount() {
     return this.rowCount === 0 ? 0 : this._values[0].length;
   }
+  /**
+   * 正方行列であるか判定する
+   * @returns 正方行列なら true
+   */
   isSquare() {
     return this.rowCount === this.columnCount;
   }
+  /**
+   * 空の行列であるか判定する
+   * @returns 空なら true
+   */
   isEmpty() {
     return this.rowCount === 0 || this.columnCount === 0;
   }
+  /**
+   * 行列の形状を取得する
+   * @returns [行数, 列数]
+   */
   shape() {
     return [this.rowCount, this.columnCount];
   }
+  /**
+   * 指定したインデックスの要素を取得する
+   * @param row - 行インデックス
+   * @param column - 列インデックス
+   * @returns 要素の値、インデックスが範囲外の場合は undefined
+   */
   at(row, column) {
     if (row < 0 || column < 0 || row >= this.rowCount || column >= this.columnCount) return void 0;
     return this._values[row][column].clone();
   }
+  /**
+   * 指定した行のベクトルを取得する
+   * @param index - 行インデックス
+   * @returns 指定行のベクトル、インデックスが範囲外の場合は undefined
+   */
   row(index) {
     if (index < 0 || index >= this.rowCount) return void 0;
     return BigFloatComplexVector.from(this._values[index].map((v) => v.clone()));
   }
+  /**
+   * 指定した列のベクトルを取得する
+   * @param index - 列インデックス
+   * @returns 指定列のベクトル、インデックスが範囲外の場合は undefined
+   */
   column(index) {
     if (index < 0 || index >= this.columnCount) return void 0;
     return BigFloatComplexVector.from(this._values.map((row) => row[index].clone()));
   }
+  /**
+   * 行列を複製する
+   * @returns 複製された BigFloatComplexMatrix
+   */
   clone() {
     return _BigFloatComplexMatrix._fromComplexGrid(this._values.map((row) => row.map((v) => v.clone())));
   }
+  /**
+   * 二次元配列に変換する
+   * @returns 各要素が BigFloatComplex の二次元配列
+   */
   toArray() {
     return this._values.map((row) => row.map((v) => v.clone()));
   }
+  /**
+   * 行ベクトルの配列に変換する
+   * @returns BigFloatComplexVector の配列
+   */
   toVectors() {
     return this._values.map((row) => BigFloatComplexVector.from(row.map((v) => v.clone())));
   }
+  /**
+   * 行ベクトルのイテレータを取得する
+   * @returns 行ベクトルのイテレータ
+   */
   [Symbol.iterator]() {
     return this.toVectors()[Symbol.iterator]();
   }
+  /**
+   * 各要素に対して処理を実行する
+   * @param fn - 実行する関数
+   */
   forEach(fn) {
     for (let r = 0; r < this.rowCount; r++) {
       for (let c = 0; c < this.columnCount; c++) {
@@ -11230,6 +11710,11 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
       }
     }
   }
+  /**
+   * 各要素に関数を適用して新しい行列を生成する
+   * @param fn - 適用する関数
+   * @returns 変換後の新しい行列
+   */
   map(fn) {
     return this._mapValues(fn);
   }
@@ -11240,19 +11725,44 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
   toStream() {
     return BigFloatStream.from(this._flattenValues());
   }
+  /**
+   * 行列の加算を行う
+   * @param other - 加算する行列またはスカラー
+   * @returns 加算後の新しい行列
+   */
   add(other) {
     return this._mapWithOperand(other, (l, r) => l.add(r));
   }
+  /**
+   * 行列の減算を行う
+   * @param other - 減算する行列またはスカラー
+   * @returns 減算後の新しい行列
+   */
   sub(other) {
     return this._mapWithOperand(other, (l, r) => l.sub(r));
   }
+  /**
+   * アダマール積（要素ごとの積）を計算する
+   * @param other - 乗算する行列
+   * @returns アダマール積の結果の行列
+   */
   hadamard(other) {
     return this._mapWithOperand(other, (l, r) => l.mul(r));
   }
+  /**
+   * スカラー倍を行う
+   * @param scalar - 乗算するスカラー
+   * @returns 乗算後の新しい行列
+   */
   mul(scalar) {
     const s = _BigFloatComplexMatrix._toComplex(scalar, this._values[0]?.[0]?.precision);
     return this._mapValues((v) => v.mul(s));
   }
+  /**
+   * スカラー除算を行う
+   * @param scalar - 除算するスカラー
+   * @returns 除算後の新しい行列
+   */
   div(scalar) {
     const s = _BigFloatComplexMatrix._toComplex(scalar, this._values[0]?.[0]?.precision);
     return this._mapValues((v) => v.div(s));
@@ -11280,13 +11790,25 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     );
     return _BigFloatComplexMatrix._fromComplexGrid(values);
   }
+  /**
+   * 転置行列を生成する
+   * @returns 転置された新しい行列
+   */
   transpose() {
     if (this.rowCount === 0) return _BigFloatComplexMatrix.empty();
     return _BigFloatComplexMatrix._fromComplexGrid(Array.from({ length: this.columnCount }, (_, column) => this._values.map((row) => row[column].clone())));
   }
+  /**
+   * 各行の和を計算する
+   * @returns 各行の和を持つベクトル
+   */
   rowSums() {
     return BigFloatComplexVector.from(this._values.map((row) => BigFloatComplexVector.from(row).sum()));
   }
+  /**
+   * 各列の和を計算する
+   * @returns 各列の和を持つベクトル
+   */
   columnSums() {
     if (this.isEmpty()) return BigFloatComplexVector.empty();
     const resolvedPrecision = _BigFloatComplexMatrix._resolvePrecision(this._flattenValues());
@@ -11421,6 +11943,12 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     if (pivotColumns.length !== size) throw new RangeError("Matrix is singular");
     return _BigFloatComplexMatrix._fromComplexGrid(values.map((row) => row.slice(size)));
   }
+  /**
+   * 行階段形（簡約行階段形）を計算する
+   * @param values - 対象の行列データ
+   * @param leftColumnCount - 左側の列数
+   * @returns 簡約行階段形行列とそのピボット列のインデックス
+   */
   static _reducedRowEchelon(values, leftColumnCount = values[0]?.length ?? 0) {
     const rows = values.map((row) => row.map((v) => v.clone()));
     const pivotColumns = [];
@@ -11507,20 +12035,36 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     }
     return true;
   }
+  /**
+   * 全要素の合計を計算する
+   * @returns 合計値
+   */
   sum() {
     if (this.isEmpty()) return new BigFloatComplex(0, 0, BigFloat.DEFAULT_PRECISION);
     const resolvedPrecision = _BigFloatComplexMatrix._resolvePrecision(this._flattenValues());
     return this._flattenValues().reduce((acc, v) => acc.add(v), new BigFloatComplex(0, 0, resolvedPrecision));
   }
+  /**
+   * 全要素の積を計算する
+   * @returns 積の値
+   */
   product() {
     if (this.isEmpty()) return new BigFloatComplex(1, 0, BigFloat.DEFAULT_PRECISION);
     const resolvedPrecision = _BigFloatComplexMatrix._resolvePrecision(this._flattenValues());
     return this._flattenValues().reduce((acc, v) => acc.mul(v), new BigFloatComplex(1, 0, resolvedPrecision));
   }
+  /**
+   * 全要素の平均を計算する
+   * @returns 平均値
+   */
   average() {
     if (this.isEmpty()) return new BigFloatComplex(0, 0, BigFloat.DEFAULT_PRECISION);
     return this.sum().div(this.rowCount * this.columnCount);
   }
+  /**
+   * フロベニウスノルムを計算する
+   * @returns ノルムの値
+   */
   frobeniusNorm() {
     return this._flattenValues().reduce((acc, v) => acc.add(v.absSquared()), new BigFloat(0, this._values[0]?.[0]?.precision)).sqrt();
   }
@@ -11540,16 +12084,37 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
    * @returns 対角成分のベクトル
    * @throws {RangeError} 正方行列でない場合
    */
+  /**
+   * 対角成分をベクトルとして取得する
+   * @returns 対角成分のベクトル
+   * @throws {RangeError} 正方行列でない場合
+   */
   diagonalVector() {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
     return BigFloatComplexVector.from(this._values.map((row, index) => row[index].clone()));
   }
+  /**
+   * 全要素を一つのベクトルに変換する
+   * @returns 全要素のベクトル
+   */
   flatten() {
     return BigFloatComplexVector.from(this._flattenValues().map((v) => v.clone()));
   }
+  /**
+   * 二つの行列の各要素に対して関数を適用し、新しい行列を生成する
+   * @param other - 比較対象の行列
+   * @param fn - 適用する関数
+   * @returns 演算結果の行列
+   */
   zipMap(other, fn) {
     return this._mapWithOperand(other, fn);
   }
+  /**
+   * 各要素を累積して単一の値を計算する
+   * @param fn - 累積関数
+   * @param initial - 初期値
+   * @returns 累積された結果
+   */
   reduce(fn, initial) {
     let acc = initial;
     for (let r = 0; r < this.rowCount; r++) {
@@ -11559,6 +12124,11 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     }
     return acc;
   }
+  /**
+   * いずれかの要素が条件を満たすか判定する
+   * @param fn - 判定関数
+   * @returns 条件を満たす要素があれば true、そうでない場合は false
+   */
   some(fn) {
     for (let r = 0; r < this.rowCount; r++) {
       for (let c = 0; c < this.columnCount; c++) {
@@ -11595,6 +12165,12 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     }
     return _BigFloatComplexMatrix._fromComplexGrid(values);
   }
+  /**
+   * 行列を列方向に連結する
+   * @param others - 連結する行列
+   * @returns 連結された行列
+   * @throws {RangeError} 行数が一致しない場合
+   */
   concatColumns(...others) {
     let result = this.clone();
     for (const other of others) {
@@ -11604,100 +12180,237 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
     }
     return result;
   }
+  /**
+   * 指定した範囲の行を抽出する
+   * @param start - 開始インデックス
+   * @param end - 終了インデックス
+   * @returns 抽出された新しい行列
+   */
   sliceRows(start, end) {
     return _BigFloatComplexMatrix._fromComplexGrid(this._values.slice(start, end).map((row) => row.map((v) => v.clone())));
   }
+  /**
+   * 指定した範囲の列を抽出する
+   * @param start - 開始インデックス
+   * @param end - 終了インデックス
+   * @returns 抽出された新しい行列
+   */
   sliceColumns(start, end) {
     return _BigFloatComplexMatrix._fromComplexGrid(this._values.map((row) => row.slice(start, end).map((v) => v.clone())));
   }
+  /**
+   * 行列の精度を変更する
+   * @param precision - 新しい精度
+   * @returns 精度が変更された新しい行列
+   */
   changePrecision(precision) {
     const p = BigInt(precision);
     return this._mapValues((v) => v.changePrecision(p));
   }
+  /**
+   * 各要素の剰余を計算する
+   * @param other - 除数（行列またはスカラー）
+   * @returns 演算後の新しい行列
+   */
   mod(other) {
     return this._mapWithOperand(other, (l, r) => l.mod(r));
   }
+  /**
+   * 各要素の符号を反転する
+   * @returns 符号反転後の新しい行列
+   */
   neg() {
     return this._mapValues((v) => v.neg());
   }
+  /**
+   * 各要素の絶対値を計算する
+   * @returns 絶対値適用後の新しい実数行列
+   */
   abs() {
     return BigFloatMatrix.from(this._values.map((row) => row.map((v) => v.abs())));
   }
+  /**
+   * 各要素の符号を計算する
+   * @returns 符号行列
+   */
   sign() {
     return this._mapValues((v) => v.sign());
   }
+  /**
+   * 各要素の逆数を計算する
+   * @returns 逆数行列
+   */
   reciprocal() {
     return this._mapValues((v) => v.reciprocal());
   }
+  /**
+   * 各要素のべき乗を計算する
+   * @param exponent - 指数（行列またはスカラー）
+   * @returns 冪乗後の新しい行列
+   */
   pow(exponent) {
     return this._mapWithOperand(exponent, (l, r) => l.pow(r));
   }
+  /**
+   * 各要素の平方根を計算する
+   * @returns 平方根適用後の新しい行列
+   */
   sqrt() {
     return this._mapValues((v) => v.sqrt());
   }
+  /**
+   * 各要素の立方根を計算する
+   * @returns 立方根適用後の新しい行列
+   */
   cbrt() {
     return this._mapValues((v) => v.cbrt());
   }
+  /**
+   * 各要素の n 乗根を計算する
+   * @param n - 次数
+   * @returns n 乗根適用後の新しい行列
+   */
   nthRoot(n) {
     return this._mapValues((v) => v.nthRoot(n));
   }
+  /**
+   * 各要素の床関数を計算する
+   * @returns 床関数適用後の新しい行列
+   */
   floor() {
     return this._mapValues((v) => v.floor());
   }
+  /**
+   * 各要素の天井関数を計算する
+   * @returns 天井関数適用後の新しい行列
+   */
   ceil() {
     return this._mapValues((v) => v.ceil());
   }
+  /**
+   * 各要素を四捨五入する
+   * @returns 四捨五入後の新しい行列
+   */
   round() {
     return this._mapValues((v) => v.round());
   }
+  /**
+   * 各要素を切り捨てる
+   * @returns 切り捨て後の新しい行列
+   */
   trunc() {
     return this._mapValues((v) => v.trunc());
   }
+  /**
+   * 各要素を最も近い単精度浮動小数点数形式に丸める
+   * @returns 丸め後の新しい行列
+   */
   fround() {
     return this._mapValues((v) => v.fround());
   }
+  /**
+   * 各要素の 32 ビット整数としての先頭のゼロの個数を計算する
+   * @returns 結果の行列
+   */
   clz32() {
     return this._mapValues((v) => v.clz32());
   }
+  /**
+   * 各要素の相対差を計算する
+   * @param other - 比較対象（行列またはスカラー）
+   * @returns 相対差の行列
+   */
   relativeDiff(other) {
     return this._mapWithOperand(other, (l, r) => l.relativeDiff(r));
   }
+  /**
+   * 各要素の絶対差を計算する
+   * @param other - 比較対象（行列またはスカラー）
+   * @returns 絶対差の行列
+   */
   absoluteDiff(other) {
     return this._mapWithOperand(other, (l, r) => l.absoluteDiff(r));
   }
+  /**
+   * 各要素の百分率差分を計算する
+   * @param other - 比較対象（行列またはスカラー）
+   * @returns 百分率差分の行列 (%)
+   */
   percentDiff(other) {
     return this._mapWithOperand(other, (l, r) => l.percentDiff(r));
   }
+  /**
+   * 各要素の正弦（sin）を計算する
+   * @returns sin 適用後の行列
+   */
   sin() {
     return this._mapValues((v) => v.sin());
   }
+  /**
+   * 各要素の余弦（cos）を計算する
+   * @returns cos 適用後の行列
+   */
   cos() {
     return this._mapValues((v) => v.cos());
   }
+  /**
+   * 各要素の正接（tan）を計算する
+   * @returns tan 適用後の行列
+   */
   tan() {
     return this._mapValues((v) => v.tan());
   }
+  /**
+   * 各要素の逆正弦（asin）を計算する
+   * @returns asin 適用後の行列
+   */
   asin() {
     return this._mapValues((v) => v.asin());
   }
+  /**
+   * 各要素の逆余弦（acos）を計算する
+   * @returns acos 適用後の行列
+   */
   acos() {
     return this._mapValues((v) => v.acos());
   }
+  /**
+   * 各要素の逆正接（atan）を計算する
+   * @returns atan 適用後の行列
+   */
   atan() {
     return this._mapValues((v) => v.atan());
   }
+  /**
+   * 各要素の atan2 を計算する
+   * @param x - x 座標（行列またはスカラー）
+   * @returns atan2 適用後の行列
+   * @throws {TypeError} 実数でない複素数が含まれる場合
+   */
   atan2(x) {
     return this._mapWithOperand(x, (l, r) => {
       if (!l.isReal() || !r.isReal()) throw new TypeError("atan2 is not supported for non-real complex numbers");
       return new BigFloatComplex(l.real.atan2(r.real), 0, l.precision);
     });
   }
+  /**
+   * 各要素の双曲線正弦（sinh）を計算する
+   * @returns sinh 適用後の行列
+   */
   sinh() {
     return this._mapValues((v) => v.sinh());
   }
+  /**
+   * 各要素の双曲線余弦（cosh）を計算する
+   * @returns cosh 適用後の行列
+   */
   cosh() {
     return this._mapValues((v) => v.cosh());
   }
+  /**
+   * 各要素の双曲線正接（tanh）を計算する
+   * @returns tanh 適用後の行列
+   */
   tanh() {
     return this._mapValues((v) => v.tanh());
   }
@@ -11708,33 +12421,74 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
   asinh() {
     return this._mapValues((v) => v.asinh());
   }
+  /**
+   * 各要素の逆双曲線余弦（acosh）を計算する
+   * @returns acosh 適用後の行列
+   */
   acosh() {
     return this._mapValues((v) => v.acosh());
   }
+  /**
+   * 各要素の逆双曲線正接（atanh）を計算する
+   * @returns atanh 適用後の行列
+   */
   atanh() {
     return this._mapValues((v) => v.atanh());
   }
+  /**
+   * 各要素の指数関数（exp）を計算する
+   * @returns exp 適用後の行列
+   */
   exp() {
     return this._mapValues((v) => v.exp());
   }
+  /**
+   * 各要素の 2 のべき乗を計算する
+   * @returns exp2 適用後の行列
+   */
   exp2() {
     return this._mapValues((v) => v.pow(2));
   }
+  /**
+   * 各要素の exp(x) - 1 を計算する
+   * @returns expm1 適用後の行列
+   */
   expm1() {
     return this._mapValues((v) => v.expm1());
   }
+  /**
+   * 各要素の自然対数（ln）を計算する
+   * @returns ln 適用後の行列
+   */
   ln() {
     return this._mapValues((v) => v.ln());
   }
+  /**
+   * 各要素の任意の底の対数を計算する
+   * @param base - 対数の底（行列またはスカラー）
+   * @returns 対数計算後の行列
+   */
   log(base) {
     return this._mapWithOperand(base, (l, r) => l.log(r));
   }
+  /**
+   * 各要素の 2 を底とする対数を計算する
+   * @returns log2 適用後の行列
+   */
   log2() {
     return this._mapValues((v) => v.log(2));
   }
+  /**
+   * 各要素の 10 を底とする対数を計算する
+   * @returns log10 適用後の行列
+   */
   log10() {
     return this._mapValues((v) => v.log(10));
   }
+  /**
+   * 各要素の ln(1 + x) を計算する
+   * @returns log1p 適用後の行列
+   */
   log1p() {
     return this._mapValues((v) => v.add(1).ln());
   }
@@ -11748,18 +12502,32 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
       return new BigFloatComplex(v.real.gamma(), 0, v.precision);
     });
   }
+  /**
+   * 各要素のゼータ関数を計算する
+   * @returns ゼータ関数を適用した行列
+   * @throws {TypeError} 実数でない複素数が含まれる場合
+   */
   zeta() {
     return this._mapValues((v) => {
       if (!v.isReal()) throw new TypeError("zeta is not supported for non-real complex numbers");
       return new BigFloatComplex(v.real.zeta(), 0, v.precision);
     });
   }
+  /**
+   * 各要素の階乗を計算する
+   * @returns 階乗適用後の行列
+   * @throws {TypeError} 実数でない複素数が含まれる場合
+   */
   factorial() {
     return this._mapValues((v) => {
       if (!v.isReal()) throw new TypeError("factorial is not supported for non-real complex numbers");
       return new BigFloatComplex(v.real.factorial(), 0, v.precision);
     });
   }
+  /**
+   * 行列のランクを計算する
+   * @returns ランク
+   */
   rank() {
     return _BigFloatComplexMatrix._reducedRowEchelon(this.toArray(), this.columnCount).pivotColumns.length;
   }

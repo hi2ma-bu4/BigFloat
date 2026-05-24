@@ -264,27 +264,51 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this._fromComplexArray(values);
 	}
 
+	/**
+	 * ベクトルの長さ（要素数）
+	 */
 	public get length(): number {
 		return this._values.length;
 	}
 
+	/**
+	 * ベクトルの次元数を取得する
+	 * @returns 次元数 (length と同じ)
+	 */
 	public dimension(): number {
 		return this.length;
 	}
 
+	/**
+	 * ベクトルが空であるか判定する
+	 * @returns 空なら true
+	 */
 	public isEmpty(): boolean {
 		return this.length === 0;
 	}
 
+	/**
+	 * 指定したインデックスの要素を取得する
+	 * @param index - インデックス
+	 * @returns 要素の値、インデックスが範囲外の場合は undefined
+	 */
 	public at(index: number): BigFloatComplex | undefined {
 		if (index < 0 || index >= this.length) return undefined;
 		return this._values[index].clone();
 	}
 
+	/**
+	 * ベクトルを複製する
+	 * @returns 複製された BigFloatComplexVector
+	 */
 	public clone(): BigFloatComplexVector {
 		return BigFloatComplexVector._fromComplexArray(this._values.map((v) => v.clone()));
 	}
 
+	/**
+	 * 配列に変換する
+	 * @returns BigFloatComplex の配列
+	 */
 	public toArray(): BigFloatComplex[] {
 		return this._values.map((v) => v.clone());
 	}
@@ -297,34 +321,74 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return BigFloatStream.from(this.toArray());
 	}
 
+	/**
+	 * ベクトルのイテレータを取得する
+	 * @returns 要素のイテレータ
+	 */
 	public [Symbol.iterator](): Iterator<BigFloatComplex, void, undefined> {
 		return this.toArray()[Symbol.iterator]();
 	}
 
+	/**
+	 * 各要素に対して処理を実行する
+	 * @param fn - 実行する関数
+	 */
 	public forEach(fn: (value: BigFloatComplex, index: number) => void): void {
 		this._values.forEach((v, i) => fn(v.clone(), i));
 	}
 
+	/**
+	 * 各要素に関数を適用して新しいベクトルを生成する
+	 * @param fn - 適用する関数
+	 * @returns 変換後の新しいベクトル
+	 */
 	public map(fn: (value: BigFloatComplex, index: number) => BigFloatInputValue): this {
 		return this._mapValues(fn);
 	}
 
+	/**
+	 * 二つのベクトルの各要素に対して関数を適用し、新しいベクトルを生成する
+	 * @param other - 比較対象のベクトル
+	 * @param fn - 適用する関数
+	 * @returns 演算結果のベクトル
+	 */
 	public zipMap(other: BigFloatAnyVectorLike, fn: (left: BigFloatComplex, right: BigFloatComplex, index: number) => BigFloatInputValue): this {
 		return this._mapWithOperand(other, fn);
 	}
 
+	/**
+	 * 各要素を累積して単一の値を計算する
+	 * @param fn - 累積関数
+	 * @param initial - 初期値
+	 * @returns 累積された結果
+	 */
 	public reduce<U>(fn: (acc: U, value: BigFloatComplex, index: number) => U, initial: U): U {
 		return this._values.reduce((acc, v, i) => fn(acc, v.clone(), i), initial);
 	}
 
+	/**
+	 * いずれかの要素が条件を満たすか判定する
+	 * @param fn - 判定関数
+	 * @returns 条件を満たす要素があれば true
+	 */
 	public some(fn: (value: BigFloatComplex, index: number) => boolean): boolean {
 		return this._values.some((v, i) => fn(v.clone(), i));
 	}
 
+	/**
+	 * すべての要素が条件を満たすか判定する
+	 * @param fn - 判定関数
+	 * @returns すべての要素が条件を満たせば true
+	 */
 	public every(fn: (value: BigFloatComplex, index: number) => boolean): boolean {
 		return this._values.every((v, i) => fn(v.clone(), i));
 	}
 
+	/**
+	 * ベクトルを連結する
+	 * @param others - 連結するベクトル
+	 * @returns 連結後の新しいベクトル
+	 */
 	public concat(...others: BigFloatAnyVectorLike[]): this {
 		const values = this.toArray();
 		for (const other of others) {
@@ -333,187 +397,383 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return BigFloatComplexVector._fromComplexArray(values) as this;
 	}
 
+	/**
+	 * 指定した範囲の要素を抽出する
+	 * @param start - 開始インデックス
+	 * @param end - 終了インデックス
+	 * @returns 抽出された新しいベクトル
+	 */
 	public slice(start?: number, end?: number): this {
 		return BigFloatComplexVector._fromComplexArray(this._values.slice(start, end).map((v) => v.clone())) as this;
 	}
 
+	/**
+	 * 要素の順序を反転させる
+	 * @returns 反転した新しいベクトル
+	 */
 	public reverse(): this {
 		return BigFloatComplexVector._fromComplexArray([...this._values].reverse().map((v) => v.clone())) as this;
 	}
 
+	/**
+	 * ベクトルの精度を変更する
+	 * @param precision - 新しい精度
+	 * @returns 精度が変更された新しいベクトル
+	 */
 	public changePrecision(precision: PrecisionValue): this {
 		const p = BigInt(precision);
 		return this._mapValues((v) => v.changePrecision(p));
 	}
 
+	/**
+	 * ベクトルが等しいか判定する
+	 * @param other - 比較対象のベクトル
+	 * @returns 等しい場合は true
+	 */
 	public equals(other: BigFloatAnyVectorLike): boolean {
 		const vector = BigFloatComplexVector._coerceVector(other, this._values);
 		if (this.length !== vector.length) return false;
 		return this._values.every((v, i) => v.equals(vector._values[i]));
 	}
 
+	/**
+	 * ベクトルの加算を行う
+	 * @param other - 加算するベクトルまたはスカラ
+	 * @returns 加算後の新しいベクトル
+	 */
 	public add(other: BigFloatInputValue | BigFloatAnyVectorLike): this {
 		return this._mapWithOperand(other, (l, r) => l.add(r));
 	}
 
+	/**
+	 * ベクトルの減算を行う
+	 * @param other - 減算するベクトルまたはスカラ
+	 * @returns 減算後の新しいベクトル
+	 */
 	public sub(other: BigFloatInputValue | BigFloatAnyVectorLike): this {
 		return this._mapWithOperand(other, (l, r) => l.sub(r));
 	}
 
+	/**
+	 * スカラー倍を行う
+	 * @param scalar - 乗算するスカラー
+	 * @returns 乗算後の新しいベクトル
+	 */
 	public mul(scalar: BigFloatInputValue): this {
 		const s = BigFloatComplexVector._toComplex(scalar, this._values[0]?.precision);
 		return this._mapValues((v) => v.mul(s));
 	}
 
+	/**
+	 * スカラー除算を行う
+	 * @param scalar - 除算するスカラー
+	 * @returns 除算後の新しいベクトル
+	 */
 	public div(scalar: BigFloatInputValue): this {
 		const s = BigFloatComplexVector._toComplex(scalar, this._values[0]?.precision);
 		return this._mapValues((v) => v.div(s));
 	}
 
+	/**
+	 * 各要素の剰余を計算する
+	 * @param other - 除数（ベクトルまたはスカラ）
+	 * @returns 演算後の新しいベクトル
+	 */
 	public mod(other: BigFloatInputValue | BigFloatAnyVectorLike): this {
 		return this._mapWithOperand(other, (l, r) => l.mod(r));
 	}
 
+	/**
+	 * アダマール積（要素ごとの積）を計算する
+	 * @param other - 乗算するベクトル
+	 * @returns Hadamard積の結果のベクトル
+	 */
 	public hadamard(other: BigFloatAnyVectorLike): this {
 		return this._mapWithOperand(other, (l, r) => l.mul(r));
 	}
 
+	/**
+	 * 各要素の符号を反転する
+	 * @returns 符号反転後の新しいベクトル
+	 */
 	public neg(): this {
 		return this._mapValues((v) => v.neg());
 	}
 
+	/**
+	 * 各要素の絶対値を計算する
+	 * @returns 絶対値適用後の新しい実数ベクトル
+	 */
 	public abs(): BigFloatVector {
 		return BigFloatVector.from(this._values.map((v) => v.abs()));
 	}
 
+	/**
+	 * 各要素の符号を計算する
+	 * @returns 符号ベクトル
+	 */
 	public sign(): this {
 		return this._mapValues((v) => v.sign());
 	}
 
+	/**
+	 * 各要素の逆数を計算する
+	 * @returns 逆数ベクトル
+	 */
 	public reciprocal(): this {
 		return this._mapValues((v) => v.reciprocal());
 	}
 
+	/**
+	 * 各要素のべき乗を計算する
+	 * @param exponent - 指数（ベクトルまたはスカラ）
+	 * @returns 冪乗後の新しいベクトル
+	 */
 	public pow(exponent: BigFloatInputValue | BigFloatAnyVectorLike): this {
 		return this._mapWithOperand(exponent, (l, r) => l.pow(r));
 	}
 
+	/**
+	 * 各要素の平方根を計算する
+	 * @returns 平方根適用後の新しいベクトル
+	 */
 	public sqrt(): this {
 		return this._mapValues((v) => v.sqrt());
 	}
 
+	/**
+	 * 各要素の立方根を計算する
+	 * @returns 立方根適用後の新しいベクトル
+	 */
 	public cbrt(): this {
 		return this._mapValues((v) => v.cbrt());
 	}
 
+	/**
+	 * 各要素の n 乗根を計算する
+	 * @param n - 次数
+	 * @returns n 乗根適用後の新しいベクトル
+	 */
 	public nthRoot(n: number | bigint): this {
 		return this._mapValues((v) => v.nthRoot(n));
 	}
 
+	/**
+	 * 各要素の床関数を計算する
+	 * @returns 床関数適用後の新しいベクトル
+	 */
 	public floor(): this {
 		return this._mapValues((v) => v.floor());
 	}
 
+	/**
+	 * 各要素の天井関数を計算する
+	 * @returns 天井関数適用後の新しいベクトル
+	 */
 	public ceil(): this {
 		return this._mapValues((v) => v.ceil());
 	}
 
+	/**
+	 * 各要素を四捨五入する
+	 * @returns 四捨五入後の新しいベクトル
+	 */
 	public round(): this {
 		return this._mapValues((v) => v.round());
 	}
 
+	/**
+	 * 各要素を切り捨てる
+	 * @returns 切り捨て後の新しいベクトル
+	 */
 	public trunc(): this {
 		return this._mapValues((v) => v.trunc());
 	}
 
+	/**
+	 * 各要素を最も近い単精度浮動小数点数形式に丸める
+	 * @returns 丸め後の新しいベクトル
+	 */
 	public fround(): this {
 		return this._mapValues((v) => v.fround());
 	}
 
+	/**
+	 * 各要素の 32 ビット整数としての先頭のゼロの個数を計算する
+	 * @returns 結果のベクトル
+	 */
 	public clz32(): this {
 		return this._mapValues((v) => v.clz32());
 	}
 
+	/**
+	 * 各要素の相対差を計算する
+	 * @param other - 比較対象（ベクトルまたはスカラ）
+	 * @returns 相対差のベクトル
+	 */
 	public relativeDiff(other: BigFloatInputValue | BigFloatAnyVectorLike): this {
 		return this._mapWithOperand(other, (l, r) => l.relativeDiff(r));
 	}
 
+	/**
+	 * 各要素の絶対差を計算する
+	 * @param other - 比較対象（ベクトルまたはスカラ）
+	 * @returns 絶対差のベクトル
+	 */
 	public absoluteDiff(other: BigFloatInputValue | BigFloatAnyVectorLike): this {
 		return this._mapWithOperand(other, (l, r) => l.absoluteDiff(r));
 	}
 
+	/**
+	 * 各要素の百分率差分を計算する
+	 * @param other - 比較対象（ベクトルまたはスカラ）
+	 * @returns 百分率差分のベクトル (%)
+	 */
 	public percentDiff(other: BigFloatInputValue | BigFloatAnyVectorLike): this {
 		return this._mapWithOperand(other, (l, r) => l.percentDiff(r));
 	}
 
+	/**
+	 * 各要素の正弦（sin）を計算する
+	 * @returns sin 適用後のベクトル
+	 */
 	public sin(): this {
 		return this._mapValues((v) => v.sin());
 	}
 
+	/**
+	 * 各要素の余弦（cos）を計算する
+	 * @returns cos 適用後のベクトル
+	 */
 	public cos(): this {
 		return this._mapValues((v) => v.cos());
 	}
 
+	/**
+	 * 各要素の正接（tan）を計算する
+	 * @returns tan 適用後のベクトル
+	 */
 	public tan(): this {
 		return this._mapValues((v) => v.tan());
 	}
 
+	/**
+	 * 各要素の逆正弦（asin）を計算する
+	 * @returns asin 適用後のベクトル
+	 */
 	public asin(): this {
 		return this._mapValues((v) => v.asin());
 	}
 
+	/**
+	 * 各要素の逆余弦（acos）を計算する
+	 * @returns acos 適用後のベクトル
+	 */
 	public acos(): this {
 		return this._mapValues((v) => v.acos());
 	}
 
+	/**
+	 * 各要素の逆正接（atan）を計算する
+	 * @returns atan 適用後のベクトル
+	 */
 	public atan(): this {
 		return this._mapValues((v) => v.atan());
 	}
 
+	/**
+	 * 各要素の双曲線正弦（sinh）を計算する
+	 * @returns sinh 適用後のベクトル
+	 */
 	public sinh(): this {
 		return this._mapValues((v) => v.sinh());
 	}
 
+	/**
+	 * 各要素の双曲線余弦（cosh）を計算する
+	 * @returns cosh 適用後のベクトル
+	 */
 	public cosh(): this {
 		return this._mapValues((v) => v.cosh());
 	}
 
+	/**
+	 * 各要素の双曲線正接（tanh）を計算する
+	 * @returns tanh 適用後のベクトル
+	 */
 	public tanh(): this {
 		return this._mapValues((v) => v.tanh());
 	}
 
+	/**
+	 * 各要素の逆双曲線正弦（asinh）を計算する
+	 * @returns asinh 適用後のベクトル
+	 */
 	public asinh(): this {
 		return this._mapValues((v) => v.asinh());
 	}
 
+	/**
+	 * 各要素の逆双曲線余弦（acosh）を計算する
+	 * @returns acosh 適用後のベクトル
+	 */
 	public acosh(): this {
 		return this._mapValues((v) => v.acosh());
 	}
 
+	/**
+	 * 各要素の逆双曲線正接（atanh）を計算する
+	 * @returns atanh 適用後のベクトル
+	 */
 	public atanh(): this {
 		return this._mapValues((v) => v.atanh());
 	}
 
+	/**
+	 * 各要素の指数関数（exp）を計算する
+	 * @returns exp 適用後のベクトル
+	 */
 	public exp(): this {
 		return this._mapValues((v) => v.exp());
 	}
 
+	/**
+	 * 各要素の exp(x) - 1 を計算する
+	 * @returns expm1 適用後のベクトル
+	 */
 	public expm1(): this {
 		return this._mapValues((v) => v.expm1());
 	}
 
+	/**
+	 * 各要素の自然対数（ln）を計算する
+	 * @returns ln 適用後のベクトル
+	 */
 	public ln(): this {
 		return this._mapValues((v) => v.ln());
 	}
 
+	/**
+	 * 各要素の任意の底の対数を計算する
+	 * @param base - 対数の底（ベクトルまたはスカラ）
+	 * @returns 対数計算後のベクトル
+	 */
 	public log(base: BigFloatInputValue | BigFloatAnyVectorLike): this {
 		return this._mapWithOperand(base, (l, r) => l.log(r));
 	}
 
+	/**
+	 * 各要素の 2 を底とする対数を計算する
+	 * @returns log2 適用後のベクトル
+	 */
 	public log2(): this {
 		return this._mapValues((v) => v.log(2));
 	}
 
+	/**
+	 * 各要素の 10 を底とする対数を計算する
+	 * @returns log10 適用後のベクトル
+	 */
 	public log10(): this {
 		return this._mapValues((v) => v.log(10));
 	}
@@ -540,21 +800,38 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		throw new TypeError("min() is not supported for complex vectors");
 	}
 
+	/**
+	 * 要素の合計を計算する
+	 * @returns 合計値
+	 */
 	public sum(): BigFloatComplex {
 		if (this.isEmpty()) return new BigFloatComplex(0);
 		return this._values.reduce((acc, v) => acc.add(v), new BigFloatComplex(0, this._values[0].precision));
 	}
 
+	/**
+	 * 要素の総乗を計算する
+	 * @returns 総乗の値
+	 */
 	public product(): BigFloatComplex {
 		if (this.isEmpty()) return new BigFloatComplex(1);
 		return this._values.reduce((acc, v) => acc.mul(v), new BigFloatComplex(1, this._values[0].precision));
 	}
 
+	/**
+	 * 要素の平均を計算する
+	 * @returns 平均値
+	 */
 	public average(): BigFloatComplex {
 		if (this.isEmpty()) return new BigFloatComplex(0);
 		return this.sum().div(this.length);
 	}
 
+	/**
+	 * 他のベクトルとの内積を計算する
+	 * @param other - 対象のベクトル
+	 * @returns 内積の値
+	 */
 	public dot(other: BigFloatAnyVectorLike): BigFloatComplex {
 		const vector = BigFloatComplexVector._coerceVector(other, this._values);
 		BigFloatComplexVector._assertSameLength(this, vector);
@@ -565,11 +842,19 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return total;
 	}
 
+	/**
+	 * 二乗ノルムを計算する
+	 * @returns 二乗ノルム
+	 */
 	public squaredNorm(): BigFloat {
 		// For complex vectors, squared norm is sum(|v_i|^2)
 		return this._values.reduce((acc, v) => acc.add(v.absSquared()), new BigFloat(0, this._values[0]?.precision));
 	}
 
+	/**
+	 * ノルム（ベクトルの長さ）を計算する
+	 * @returns ノルム
+	 */
 	public norm(): BigFloat {
 		return this.squaredNorm().sqrt();
 	}
@@ -585,6 +870,11 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this.div(length);
 	}
 
+	/**
+	 * 他のベクトルとの距離を計算する
+	 * @param other - 対象のベクトル
+	 * @returns 距離
+	 */
 	public distanceTo(other: BigFloatAnyVectorLike): BigFloat {
 		return this.sub(other).norm();
 	}
@@ -604,13 +894,20 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return BigFloatComplexVector._fromComplexArray([ay.mul(bz).sub(az.mul(by)), az.mul(bx).sub(ax.mul(bz)), ax.mul(by).sub(ay.mul(bx))]) as this;
 	}
 
+	/**
+	 * 他のベクトルとの二乗距離を計算する
+	 * @param other - 対象のベクトル
+	 * @returns 二乗距離
+	 */
 	public squaredDistanceTo(other: BigFloatAnyVectorLike): BigFloat {
 		return this.sub(other).squaredNorm();
 	}
 
 	/**
 	 * 別のベクトルへの正射影ベクトルを計算する
-	 * @throws {RangeError} 例外が発生した場合
+	 * @param other - 射影先のベクトル
+	 * @returns 射影された新しいベクトル
+	 * @throws {RangeError} ゼロベクトルに射影しようとした場合
 	 */
 	public projectOnto(other: BigFloatAnyVectorLike): this {
 		const vector = BigFloatComplexVector._coerceVector(other, this._values);

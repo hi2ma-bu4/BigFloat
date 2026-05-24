@@ -81,6 +81,8 @@ constructor(value?: string | number | bigint | BigFloat | BigFloatComplex, preci
 - `value`: 初期値 (数値, 文字列, BigInt, または別の BigFloat)
 - `precision`: 精度 (小数点以下の最大桁数)
 
+**Returns**: BigFloat インスタンス
+
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
 **Throws**: 特殊値が無効な設定で特殊値を渡した場合
@@ -742,6 +744,8 @@ Math.log1p() 相当
 
 **Throws**: キャッシュが存在しない場合
 
+**Throws**: 複素数と比較しようとした場合
+
 #### `log2`
 
 ```ts
@@ -781,6 +785,8 @@ Math.max() 相当
 
 **Throws**: 精度の不一致が許容されていない場合
 
+**Throws**: 複素数と比較しようとした場合
+
 #### `min`
 
 ```ts
@@ -799,6 +805,8 @@ Math.min() 相当
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
 **Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 複素数と比較しようとした場合
 
 #### `pow`
 
@@ -1433,8 +1441,6 @@ softNormalize(): void
 
 ソフト正規化 (2の累乗を外に出す)
 
-**Throws**: BigFloat.mod does not support BigFloatComplex operands
-
 #### `lazyNormalize`
 
 ```ts
@@ -1442,8 +1448,6 @@ lazyNormalize(): void
 ```
 
 レイジー正規化 (5の累乗を外に出す)
-
-**Throws**: BigFloat.mod does not support BigFloatComplex operands
 
 #### `changePrecision`
 
@@ -1459,8 +1463,6 @@ changePrecision(precision: number | bigint): BigFloat
 **Returns**: 精度が変更されたインスタンス
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
-
-**Throws**: BigFloat.mod does not support BigFloatComplex operands
 
 #### `matchingPrecision`
 
@@ -1525,6 +1527,8 @@ eq(other: string | number | bigint | BigFloat | BigFloatComplex): boolean
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
+**Throws**: 複素数と比較しようとした場合
+
 #### `equals`
 
 ```ts
@@ -1543,6 +1547,8 @@ equals(other: string | number | bigint | BigFloat | BigFloatComplex): boolean
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 複素数と比較しようとした場合
 
 #### `ne`
 
@@ -1563,6 +1569,8 @@ ne(other: string | number | bigint | BigFloat | BigFloatComplex): boolean
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
+**Throws**: 複素数と比較しようとした場合
+
 #### `lt`
 
 ```ts
@@ -1581,6 +1589,8 @@ lt(other: string | number | bigint | BigFloat | BigFloatComplex): boolean
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 複素数と比較しようとした場合
 
 #### `lte`
 
@@ -1601,6 +1611,8 @@ lte(other: string | number | bigint | BigFloat | BigFloatComplex): boolean
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
+**Throws**: 複素数と比較しようとした場合
+
 #### `gt`
 
 ```ts
@@ -1620,6 +1632,8 @@ gt(other: string | number | bigint | BigFloat | BigFloatComplex): boolean
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
+**Throws**: 複素数と比較しようとした場合
+
 #### `gte`
 
 ```ts
@@ -1638,6 +1652,8 @@ gte(other: string | number | bigint | BigFloat | BigFloatComplex): boolean
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 複素数と比較しようとした場合
 
 #### `isZero`
 
@@ -1868,9 +1884,7 @@ add(other: string | number | bigint | BigFloat | BigFloatComplex): BigFloat | Bi
 
 **Returns**: 加算結果
 
-**Throws**: BigFloat.mod does not support BigFloatComplex operands
-
-**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合、または対象に特殊値が含まれる場合
 
 **Throws**: 複素数モードが無効な場合
 
@@ -1896,9 +1910,7 @@ sub(other: string | number | bigint | BigFloat | BigFloatComplex): BigFloat | Bi
 
 **Returns**: 減算結果
 
-**Throws**: BigFloat.mod does not support BigFloatComplex operands
-
-**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合、または対象に特殊値が含まれる場合
 
 **Throws**: 精度の不一致が許容されていない場合
 
@@ -1924,9 +1936,7 @@ mul(other: string | number | bigint | BigFloat | BigFloatComplex): BigFloat | Bi
 
 **Returns**: 乗算結果
 
-**Throws**: BigFloat.mod does not support BigFloatComplex operands
-
-**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合、または対象に特殊値が含まれる場合
 
 **Throws**: 複素数モードが無効な場合
 
@@ -1954,9 +1964,7 @@ div(other: string | number | bigint | BigFloat | BigFloatComplex): BigFloat | Bi
 
 **Throws**: Division by zero
 
-**Throws**: BigFloat.mod does not support BigFloatComplex operands
-
-**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合、または対象に特殊値が含まれる場合
 
 **Throws**: ゼロ複素数で除算しようとした場合
 
@@ -1982,13 +1990,9 @@ mod(other: string | number | bigint | BigFloat | BigFloatComplex): BigFloat
 
 **Returns**: 剰余
 
-**Throws**: 常にスローされる
+**Throws**: 複素数モードが無効な場合、または対象が複素数の場合
 
-**Throws**: BigFloat.mod does not support BigFloatComplex operands
-
-**Throws**: 複素数モードが無効な場合
-
-**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合、または対象に特殊値が含まれる場合
 
 **Throws**: 精度の不一致が許容されていない場合
 
@@ -2153,6 +2157,7 @@ clz32(): BigFloat
 ```ts
 pow(exponent: string | number | bigint | BigFloat): BigFloat
 pow(exponent: BigFloatComplex): BigFloatComplex
+pow(exponent: string | number | bigint | BigFloat | BigFloatComplex): BigFloat | BigFloatComplex
 ```
 
 冪乗を計算する
@@ -2622,6 +2627,8 @@ log(base: string | number | bigint | BigFloat): BigFloat
 
 **Throws**: キャッシュが存在しない場合
 
+**Throws**: 複素数と比較しようとした場合
+
 #### `log2`
 
 ```ts
@@ -2671,6 +2678,8 @@ ln(1 + x) を計算する
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: キャッシュが存在しない場合
+
+**Throws**: 複素数と比較しようとした場合
 
 #### `gamma`
 
@@ -2756,6 +2765,8 @@ BigFloat settings
 - `options.extraPrecision`: 計算時に追加する精度
 - `options.trigFuncsMaxSteps`: 三角関数の最大ステップ数
 - `options.lnMaxSteps`: 対数計算の最大ステップ数
+
+**Returns**: 設定オブジェクト
 
 ### Instance Properties
 
@@ -2904,6 +2915,8 @@ BigFloat を用いた複素数クラス
 - `real`: 実部または複素数表現
 - `imag`: 虚部
 - `imagOrPrecision`: 虚部または精度
+
+**Returns**: BigFloatComplex インスタンス
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
@@ -4424,7 +4437,9 @@ BigFloatComplex を要素とする固定長行列クラス
 - `rows`: 行列要素の反復可能オブジェクト
 - `precision`: 精度
 
-**Throws**: Matrix rows must have the same length
+**Returns**: BigFloatComplexMatrix インスタンス
+
+**Throws**: 各行の長さが一致しない場合
 
 ### Static Methods
 
@@ -4434,11 +4449,23 @@ BigFloatComplex を要素とする固定長行列クラス
 empty(): BigFloatComplexMatrix
 ```
 
+空の行列を生成する
+
+**Returns**: 空の行列
+
 #### `from`
 
 ```ts
 from(rows: BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>, precision?: number | bigint): BigFloatComplexMatrix
 ```
+
+二次元配列から行列を生成する
+
+**Parameters**
+- `rows`: 二次元配列
+- `precision`: 精度
+
+**Returns**: BigFloatComplexMatrix インスタンス
 
 #### `fromRows`
 
@@ -4446,11 +4473,27 @@ from(rows: BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike>
 fromRows(rows: BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>, precision?: number | bigint): BigFloatComplexMatrix
 ```
 
+行の配列から行列を生成する
+
+**Parameters**
+- `rows`: 行の配列
+- `precision`: 精度
+
+**Returns**: BigFloatComplexMatrix インスタンス
+
 #### `fromColumns`
 
 ```ts
 fromColumns(columns: BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>, precision?: number | bigint): BigFloatComplexMatrix
 ```
+
+列の配列から行列を生成する
+
+**Parameters**
+- `columns`: 列の配列
+- `precision`: 精度
+
+**Returns**: BigFloatComplexMatrix インスタンス
 
 #### `of`
 
@@ -4458,11 +4501,28 @@ fromColumns(columns: BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatV
 of(...rows: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>[]): BigFloatComplexMatrix
 ```
 
+可変長引数の行から行列を生成する
+
+**Parameters**
+- `rows`: 行ベクトルの配列
+
+**Returns**: BigFloatComplexMatrix インスタンス
+
 #### `fill`
 
 ```ts
 fill(rowCount: number, columnCount: number, value: string | number | bigint | BigFloat | BigFloatComplex, precision?: number | bigint): BigFloatComplexMatrix
 ```
+
+指定された値で埋められた行列を生成する
+
+**Parameters**
+- `rowCount`: 行数
+- `columnCount`: 列数
+- `value`: 埋める値
+- `precision`: 精度
+
+**Returns**: BigFloatComplexMatrix インスタンス
 
 #### `zeros`
 
@@ -4470,11 +4530,29 @@ fill(rowCount: number, columnCount: number, value: string | number | bigint | Bi
 zeros(rowCount: number, columnCount: number, precision?: number | bigint): BigFloatComplexMatrix
 ```
 
+零行列を生成する
+
+**Parameters**
+- `rowCount`: 行数
+- `columnCount`: 列数
+- `precision`: 精度
+
+**Returns**: 零行列
+
 #### `ones`
 
 ```ts
 ones(rowCount: number, columnCount: number, precision?: number | bigint): BigFloatComplexMatrix
 ```
+
+すべての要素が 1 の行列を生成する
+
+**Parameters**
+- `rowCount`: 行数
+- `columnCount`: 列数
+- `precision`: 精度
+
+**Returns**: すべての要素が 1 の行列
 
 #### `diagonal`
 
@@ -4482,11 +4560,28 @@ ones(rowCount: number, columnCount: number, precision?: number | bigint): BigFlo
 diagonal(values: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>, precision?: number | bigint): BigFloatComplexMatrix
 ```
 
+対角行列を生成する
+
+**Parameters**
+- `values`: 対角成分の配列
+- `precision`: 精度
+
+**Returns**: 対角行列
+
 #### `random`
 
 ```ts
 random(rowCount: number, columnCount: number, options?: { min?: string | number | bigint | BigFloat | BigFloatComplex; max?: string | number | bigint | BigFloat | BigFloatComplex; precision?: number | bigint }): BigFloatComplexMatrix
 ```
+
+ランダムな値を持つ行列を生成する
+
+**Parameters**
+- `rowCount`: 行数
+- `columnCount`: 列数
+- `options`: ランダム生成のオプション
+
+**Returns**: ランダムな行列
 
 #### `identity`
 
@@ -4510,11 +4605,15 @@ identity(size: number, precision?: number | bigint): BigFloatComplexMatrix
 rowCount: number
 ```
 
+行数
+
 #### `columnCount`
 
 ```ts
 columnCount: number
 ```
+
+列数
 
 ### Instance Methods
 
@@ -4524,11 +4623,19 @@ columnCount: number
 isSquare(): boolean
 ```
 
+正方行列であるか判定する
+
+**Returns**: 正方行列なら true
+
 #### `isEmpty`
 
 ```ts
 isEmpty(): boolean
 ```
+
+空の行列であるか判定する
+
+**Returns**: 空なら true
 
 #### `shape`
 
@@ -4536,11 +4643,23 @@ isEmpty(): boolean
 shape(): [number, number]
 ```
 
+行列の形状を取得する
+
+**Returns**: [行数, 列数]
+
 #### `at`
 
 ```ts
 at(row: number, column: number): undefined | BigFloatComplex
 ```
+
+指定したインデックスの要素を取得する
+
+**Parameters**
+- `row`: 行インデックス
+- `column`: 列インデックス
+
+**Returns**: 要素の値、インデックスが範囲外の場合は undefined
 
 #### `row`
 
@@ -4548,11 +4667,25 @@ at(row: number, column: number): undefined | BigFloatComplex
 row(index: number): undefined | BigFloatComplexVector
 ```
 
+指定した行のベクトルを取得する
+
+**Parameters**
+- `index`: 行インデックス
+
+**Returns**: 指定行のベクトル、インデックスが範囲外の場合は undefined
+
 #### `column`
 
 ```ts
 column(index: number): undefined | BigFloatComplexVector
 ```
+
+指定した列のベクトルを取得する
+
+**Parameters**
+- `index`: 列インデックス
+
+**Returns**: 指定列のベクトル、インデックスが範囲外の場合は undefined
 
 #### `clone`
 
@@ -4560,11 +4693,19 @@ column(index: number): undefined | BigFloatComplexVector
 clone(): BigFloatComplexMatrix
 ```
 
+行列を複製する
+
+**Returns**: 複製された BigFloatComplexMatrix
+
 #### `toArray`
 
 ```ts
 toArray(): BigFloatComplex[][]
 ```
+
+二次元配列に変換する
+
+**Returns**: 各要素が BigFloatComplex の二次元配列
 
 #### `toVectors`
 
@@ -4572,11 +4713,19 @@ toArray(): BigFloatComplex[][]
 toVectors(): BigFloatComplexVector[]
 ```
 
+行ベクトルの配列に変換する
+
+**Returns**: BigFloatComplexVector の配列
+
 #### `[Symbol.iterator]`
 
 ```ts
 [Symbol.iterator](): Iterator<BigFloatComplexVector, void, undefined>
 ```
+
+行ベクトルのイテレータを取得する
+
+**Returns**: 行ベクトルのイテレータ
 
 #### `forEach`
 
@@ -4584,11 +4733,23 @@ toVectors(): BigFloatComplexVector[]
 forEach(fn: (value: BigFloatComplex, row: number, column: number): void): void
 ```
 
+各要素に対して処理を実行する
+
+**Parameters**
+- `fn`: 実行する関数
+
 #### `map`
 
 ```ts
 map(fn: (value: BigFloatComplex, row: number, column: number): string | number | bigint | BigFloat | BigFloatComplex): BigFloatComplexMatrix
 ```
+
+各要素に関数を適用して新しい行列を生成する
+
+**Parameters**
+- `fn`: 適用する関数
+
+**Returns**: 変換後の新しい行列
 
 #### `toStream`
 
@@ -4598,7 +4759,7 @@ toStream(): BigFloatStream
 
 要素を流すストリームへ変換する
 
-**Throws**: 例外が発生した場合
+**Returns**: 要素のストリーム
 
 #### `add`
 
@@ -4606,11 +4767,25 @@ toStream(): BigFloatStream
 add(other: string | number | bigint | BigFloat | BigFloatComplex | BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>): BigFloatComplexMatrix
 ```
 
+行列の加算を行う
+
+**Parameters**
+- `other`: 加算する行列またはスカラー
+
+**Returns**: 加算後の新しい行列
+
 #### `sub`
 
 ```ts
 sub(other: string | number | bigint | BigFloat | BigFloatComplex | BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>): BigFloatComplexMatrix
 ```
+
+行列の減算を行う
+
+**Parameters**
+- `other`: 減算する行列またはスカラー
+
+**Returns**: 減算後の新しい行列
 
 #### `hadamard`
 
@@ -4618,17 +4793,38 @@ sub(other: string | number | bigint | BigFloat | BigFloatComplex | BigFloatCompl
 hadamard(other: BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>): BigFloatComplexMatrix
 ```
 
+アダマール積（要素ごとの積）を計算する
+
+**Parameters**
+- `other`: 乗算する行列
+
+**Returns**: アダマール積の結果の行列
+
 #### `mul`
 
 ```ts
 mul(scalar: string | number | bigint | BigFloat | BigFloatComplex): BigFloatComplexMatrix
 ```
 
+スカラー倍を行う
+
+**Parameters**
+- `scalar`: 乗算するスカラー
+
+**Returns**: 乗算後の新しい行列
+
 #### `div`
 
 ```ts
 div(scalar: string | number | bigint | BigFloat | BigFloatComplex): BigFloatComplexMatrix
 ```
+
+スカラー除算を行う
+
+**Parameters**
+- `scalar`: 除算するスカラー
+
+**Returns**: 除算後の新しい行列
 
 #### `matmul`
 
@@ -4641,7 +4837,7 @@ matmul(other: BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLi
 **Parameters**
 - `other`: 乗算する行列
 
-**Returns**: 計算結果の行列
+**Returns**: 行列の積
 
 **Throws**: 行列の次元が一致しない場合
 
@@ -4651,11 +4847,19 @@ matmul(other: BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLi
 transpose(): BigFloatComplexMatrix
 ```
 
+転置行列を生成する
+
+**Returns**: 転置された新しい行列
+
 #### `rowSums`
 
 ```ts
 rowSums(): BigFloatComplexVector
 ```
+
+各行の和を計算する
+
+**Returns**: 各行の和を持つベクトル
 
 #### `columnSums`
 
@@ -4663,13 +4867,17 @@ rowSums(): BigFloatComplexVector
 columnSums(): BigFloatComplexVector
 ```
 
+各列の和を計算する
+
+**Returns**: 各列の和を持つベクトル
+
 #### `trace`
 
 ```ts
 trace(): BigFloatComplex
 ```
 
-正方行列のトレース（対角和）を計算する
+行列のトレース（対角和）を計算する
 
 **Returns**: トレースの値
 
@@ -4681,7 +4889,7 @@ trace(): BigFloatComplex
 determinant(): BigFloatComplex
 ```
 
-正方行列の行列式を計算する
+行列式を計算する
 
 **Returns**: 行列式の値
 
@@ -4699,7 +4907,7 @@ inverse(): BigFloatComplexMatrix
 
 **Throws**: 正方行列でない場合
 
-**Throws**: 行列が特異（逆行列が存在しない）な場合
+**Throws**: 行列が特異な場合
 
 #### `solveVector`
 
@@ -4707,14 +4915,14 @@ inverse(): BigFloatComplexMatrix
 solveVector(rhs: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>): BigFloatComplexVector
 ```
 
-連立一次方程式 Ax = b を解く（bはベクトル）
+連立一次方程式を解く（ベクトル）
 
 **Parameters**
-- `rhs`: 右辺ベクトル b
+- `rhs`: 右辺ベクトル
 
-**Returns**: 解ベクトル x
+**Returns**: 解ベクトル
 
-**Throws**: 行列が正方でない、または次元が一致しない場合
+**Throws**: 次元が一致しない場合
 
 #### `solveMatrix`
 
@@ -4722,14 +4930,14 @@ solveVector(rhs: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVecto
 solveMatrix(rhs: BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>): BigFloatComplexMatrix
 ```
 
-連立一次方程式 AX = B を解く（Bは行列）
+連立一次方程式を解く（行列）
 
 **Parameters**
-- `rhs`: 右辺行列 B
+- `rhs`: 右辺行列
 
-**Returns**: 解行列 X
+**Returns**: 解行列
 
-**Throws**: 行列が正方でない、または次元が一致しない場合
+**Throws**: 次元が一致しない場合
 
 **Throws**: 行列が特異な場合
 
@@ -4744,9 +4952,9 @@ matrixPow(exponent: number): BigFloatComplexMatrix
 **Parameters**
 - `exponent`: 指数
 
-**Returns**: 計算結果の行列
+**Returns**: 行列のべき乗
 
-**Throws**: 行列が正方でない、または指数が整数でない場合
+**Throws**: 指数が整数でない場合、または正方行列でない場合
 
 #### `equals`
 
@@ -4754,7 +4962,7 @@ matrixPow(exponent: number): BigFloatComplexMatrix
 equals(other: BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>): boolean
 ```
 
-他の行列と等しいかどうかを判定する
+行列が等しいかどうかを判定する
 
 **Parameters**
 - `other`: 比較対象の行列
@@ -4767,11 +4975,19 @@ equals(other: BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLi
 sum(): BigFloatComplex
 ```
 
+全要素の合計を計算する
+
+**Returns**: 合計値
+
 #### `product`
 
 ```ts
 product(): BigFloatComplex
 ```
+
+全要素の積を計算する
+
+**Returns**: 積の値
 
 #### `average`
 
@@ -4779,11 +4995,19 @@ product(): BigFloatComplex
 average(): BigFloatComplex
 ```
 
+全要素の平均を計算する
+
+**Returns**: 平均値
+
 #### `frobeniusNorm`
 
 ```ts
 frobeniusNorm(): BigFloat
 ```
+
+フロベニウスノルムを計算する
+
+**Returns**: ノルムの値
 
 #### `mulVector`
 
@@ -4796,9 +5020,9 @@ mulVector(vector: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVect
 **Parameters**
 - `vector`: 乗算するベクトル
 
-**Returns**: 計算結果のベクトル
+**Returns**: ベクトルとの積
 
-**Throws**: 行列の列数とベクトルの次元が一致しない場合
+**Throws**: 次元が一致しない場合
 
 #### `diagonalVector`
 
@@ -4806,7 +5030,7 @@ mulVector(vector: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVect
 diagonalVector(): BigFloatComplexVector
 ```
 
-行列の対角成分をベクトルとして取得する
+対角成分をベクトルとして取得する
 
 **Returns**: 対角成分のベクトル
 
@@ -4818,11 +5042,23 @@ diagonalVector(): BigFloatComplexVector
 flatten(): BigFloatComplexVector
 ```
 
+全要素を一つのベクトルに変換する
+
+**Returns**: 全要素のベクトル
+
 #### `zipMap`
 
 ```ts
 zipMap(other: BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>, fn: (left: BigFloatComplex, right: BigFloatComplex, row: number, column: number): string | number | bigint | BigFloat | BigFloatComplex): BigFloatComplexMatrix
 ```
+
+二つの行列の各要素に対して関数を適用し、新しい行列を生成する
+
+**Parameters**
+- `other`: 比較対象の行列
+- `fn`: 適用する関数
+
+**Returns**: 演算結果の行列
 
 #### `reduce`
 
@@ -4830,11 +5066,26 @@ zipMap(other: BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLi
 reduce<U>(fn: (acc: U, value: BigFloatComplex, row: number, column: number): U, initial: U): U
 ```
 
+各要素を累積して単一の値を計算する
+
+**Parameters**
+- `fn`: 累積関数
+- `initial`: 初期値
+
+**Returns**: 累積された結果
+
 #### `some`
 
 ```ts
 some(fn: (value: BigFloatComplex, row: number, column: number): boolean): boolean
 ```
+
+いずれかの要素が条件を満たすか判定する
+
+**Parameters**
+- `fn`: 判定関数
+
+**Returns**: 条件を満たす要素があれば true、そうでない場合は false
 
 #### `every`
 
@@ -4842,12 +5093,12 @@ some(fn: (value: BigFloatComplex, row: number, column: number): boolean): boolea
 every(fn: (value: BigFloatComplex, row: number, column: number): boolean): boolean
 ```
 
-全ての要素が条件を満たすかどうかを判定する
+すべての要素が条件を満たすか判定する
 
 **Parameters**
 - `fn`: 判定関数
 
-**Returns**: 全ての要素が条件を満たす場合は true、そうでない場合は false
+**Returns**: すべての要素が条件を満たす場合は true、そうでない場合は false
 
 #### `concatRows`
 
@@ -4855,12 +5106,12 @@ every(fn: (value: BigFloatComplex, row: number, column: number): boolean): boole
 concatRows(...others: BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>[]): BigFloatComplexMatrix
 ```
 
-他の行列を行方向に連結する
+行列を行方向に連結する
 
 **Parameters**
 - `others`: 連結する行列
 
-**Returns**: 連結された新しい行列
+**Returns**: 連結された行列
 
 **Throws**: 列数が一致しない場合
 
@@ -4870,11 +5121,28 @@ concatRows(...others: BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloat
 concatColumns(...others: BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>[]): BigFloatComplexMatrix
 ```
 
+行列を列方向に連結する
+
+**Parameters**
+- `others`: 連結する行列
+
+**Returns**: 連結された行列
+
+**Throws**: 行数が一致しない場合
+
 #### `sliceRows`
 
 ```ts
 sliceRows(start?: number, end?: number): BigFloatComplexMatrix
 ```
+
+指定した範囲の行を抽出する
+
+**Parameters**
+- `start`: 開始インデックス
+- `end`: 終了インデックス
+
+**Returns**: 抽出された新しい行列
 
 #### `sliceColumns`
 
@@ -4882,11 +5150,26 @@ sliceRows(start?: number, end?: number): BigFloatComplexMatrix
 sliceColumns(start?: number, end?: number): BigFloatComplexMatrix
 ```
 
+指定した範囲の列を抽出する
+
+**Parameters**
+- `start`: 開始インデックス
+- `end`: 終了インデックス
+
+**Returns**: 抽出された新しい行列
+
 #### `changePrecision`
 
 ```ts
 changePrecision(precision: number | bigint): BigFloatComplexMatrix
 ```
+
+行列の精度を変更する
+
+**Parameters**
+- `precision`: 新しい精度
+
+**Returns**: 精度が変更された新しい行列
 
 #### `mod`
 
@@ -4894,11 +5177,22 @@ changePrecision(precision: number | bigint): BigFloatComplexMatrix
 mod(other: string | number | bigint | BigFloat | BigFloatComplex | BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>): BigFloatComplexMatrix
 ```
 
+各要素の剰余を計算する
+
+**Parameters**
+- `other`: 除数（行列またはスカラー）
+
+**Returns**: 演算後の新しい行列
+
 #### `neg`
 
 ```ts
 neg(): BigFloatComplexMatrix
 ```
+
+各要素の符号を反転する
+
+**Returns**: 符号反転後の新しい行列
 
 #### `abs`
 
@@ -4906,11 +5200,19 @@ neg(): BigFloatComplexMatrix
 abs(): BigFloatMatrix
 ```
 
+各要素の絶対値を計算する
+
+**Returns**: 絶対値適用後の新しい実数行列
+
 #### `sign`
 
 ```ts
 sign(): BigFloatComplexMatrix
 ```
+
+各要素の符号を計算する
+
+**Returns**: 符号行列
 
 #### `reciprocal`
 
@@ -4918,11 +5220,22 @@ sign(): BigFloatComplexMatrix
 reciprocal(): BigFloatComplexMatrix
 ```
 
+各要素の逆数を計算する
+
+**Returns**: 逆数行列
+
 #### `pow`
 
 ```ts
 pow(exponent: string | number | bigint | BigFloat | BigFloatComplex | BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>): BigFloatComplexMatrix
 ```
+
+各要素のべき乗を計算する
+
+**Parameters**
+- `exponent`: 指数（行列またはスカラー）
+
+**Returns**: 冪乗後の新しい行列
 
 #### `sqrt`
 
@@ -4930,11 +5243,19 @@ pow(exponent: string | number | bigint | BigFloat | BigFloatComplex | BigFloatCo
 sqrt(): BigFloatComplexMatrix
 ```
 
+各要素の平方根を計算する
+
+**Returns**: 平方根適用後の新しい行列
+
 #### `cbrt`
 
 ```ts
 cbrt(): BigFloatComplexMatrix
 ```
+
+各要素の立方根を計算する
+
+**Returns**: 立方根適用後の新しい行列
 
 #### `nthRoot`
 
@@ -4942,11 +5263,22 @@ cbrt(): BigFloatComplexMatrix
 nthRoot(n: number | bigint): BigFloatComplexMatrix
 ```
 
+各要素の n 乗根を計算する
+
+**Parameters**
+- `n`: 次数
+
+**Returns**: n 乗根適用後の新しい行列
+
 #### `floor`
 
 ```ts
 floor(): BigFloatComplexMatrix
 ```
+
+各要素の床関数を計算する
+
+**Returns**: 床関数適用後の新しい行列
 
 #### `ceil`
 
@@ -4954,11 +5286,19 @@ floor(): BigFloatComplexMatrix
 ceil(): BigFloatComplexMatrix
 ```
 
+各要素の天井関数を計算する
+
+**Returns**: 天井関数適用後の新しい行列
+
 #### `round`
 
 ```ts
 round(): BigFloatComplexMatrix
 ```
+
+各要素を四捨五入する
+
+**Returns**: 四捨五入後の新しい行列
 
 #### `trunc`
 
@@ -4966,11 +5306,19 @@ round(): BigFloatComplexMatrix
 trunc(): BigFloatComplexMatrix
 ```
 
+各要素を切り捨てる
+
+**Returns**: 切り捨て後の新しい行列
+
 #### `fround`
 
 ```ts
 fround(): BigFloatComplexMatrix
 ```
+
+各要素を最も近い単精度浮動小数点数形式に丸める
+
+**Returns**: 丸め後の新しい行列
 
 #### `clz32`
 
@@ -4978,11 +5326,22 @@ fround(): BigFloatComplexMatrix
 clz32(): BigFloatComplexMatrix
 ```
 
+各要素の 32 ビット整数としての先頭のゼロの個数を計算する
+
+**Returns**: 結果の行列
+
 #### `relativeDiff`
 
 ```ts
 relativeDiff(other: string | number | bigint | BigFloat | BigFloatComplex | BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>): BigFloatComplexMatrix
 ```
+
+各要素の相対差を計算する
+
+**Parameters**
+- `other`: 比較対象（行列またはスカラー）
+
+**Returns**: 相対差の行列
 
 #### `absoluteDiff`
 
@@ -4990,11 +5349,25 @@ relativeDiff(other: string | number | bigint | BigFloat | BigFloatComplex | BigF
 absoluteDiff(other: string | number | bigint | BigFloat | BigFloatComplex | BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>): BigFloatComplexMatrix
 ```
 
+各要素の絶対差を計算する
+
+**Parameters**
+- `other`: 比較対象（行列またはスカラー）
+
+**Returns**: 絶対差の行列
+
 #### `percentDiff`
 
 ```ts
 percentDiff(other: string | number | bigint | BigFloat | BigFloatComplex | BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>): BigFloatComplexMatrix
 ```
+
+各要素の百分率差分を計算する
+
+**Parameters**
+- `other`: 比較対象（行列またはスカラー）
+
+**Returns**: 百分率差分の行列 (%)
 
 #### `sin`
 
@@ -5002,11 +5375,19 @@ percentDiff(other: string | number | bigint | BigFloat | BigFloatComplex | BigFl
 sin(): BigFloatComplexMatrix
 ```
 
+各要素の正弦（sin）を計算する
+
+**Returns**: sin 適用後の行列
+
 #### `cos`
 
 ```ts
 cos(): BigFloatComplexMatrix
 ```
+
+各要素の余弦（cos）を計算する
+
+**Returns**: cos 適用後の行列
 
 #### `tan`
 
@@ -5014,11 +5395,19 @@ cos(): BigFloatComplexMatrix
 tan(): BigFloatComplexMatrix
 ```
 
+各要素の正接（tan）を計算する
+
+**Returns**: tan 適用後の行列
+
 #### `asin`
 
 ```ts
 asin(): BigFloatComplexMatrix
 ```
+
+各要素の逆正弦（asin）を計算する
+
+**Returns**: asin 適用後の行列
 
 #### `acos`
 
@@ -5026,11 +5415,19 @@ asin(): BigFloatComplexMatrix
 acos(): BigFloatComplexMatrix
 ```
 
+各要素の逆余弦（acos）を計算する
+
+**Returns**: acos 適用後の行列
+
 #### `atan`
 
 ```ts
 atan(): BigFloatComplexMatrix
 ```
+
+各要素の逆正接（atan）を計算する
+
+**Returns**: atan 適用後の行列
 
 #### `atan2`
 
@@ -5038,11 +5435,24 @@ atan(): BigFloatComplexMatrix
 atan2(x: string | number | bigint | BigFloat | BigFloatComplex | BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>): BigFloatComplexMatrix
 ```
 
+各要素の atan2 を計算する
+
+**Parameters**
+- `x`: x 座標（行列またはスカラー）
+
+**Returns**: atan2 適用後の行列
+
+**Throws**: 実数でない複素数が含まれる場合
+
 #### `sinh`
 
 ```ts
 sinh(): BigFloatComplexMatrix
 ```
+
+各要素の双曲線正弦（sinh）を計算する
+
+**Returns**: sinh 適用後の行列
 
 #### `cosh`
 
@@ -5050,11 +5460,19 @@ sinh(): BigFloatComplexMatrix
 cosh(): BigFloatComplexMatrix
 ```
 
+各要素の双曲線余弦（cosh）を計算する
+
+**Returns**: cosh 適用後の行列
+
 #### `tanh`
 
 ```ts
 tanh(): BigFloatComplexMatrix
 ```
+
+各要素の双曲線正接（tanh）を計算する
+
+**Returns**: tanh 適用後の行列
 
 #### `asinh`
 
@@ -5062,9 +5480,9 @@ tanh(): BigFloatComplexMatrix
 asinh(): BigFloatComplexMatrix
 ```
 
-各要素の逆双曲線正弦 (asinh) を計算する
+各要素の逆双曲線正弦を計算する
 
-**Returns**: 各要素に asinh を適用した行列
+**Returns**: asinh を適用した行列
 
 #### `acosh`
 
@@ -5072,11 +5490,19 @@ asinh(): BigFloatComplexMatrix
 acosh(): BigFloatComplexMatrix
 ```
 
+各要素の逆双曲線余弦（acosh）を計算する
+
+**Returns**: acosh 適用後の行列
+
 #### `atanh`
 
 ```ts
 atanh(): BigFloatComplexMatrix
 ```
+
+各要素の逆双曲線正接（atanh）を計算する
+
+**Returns**: atanh 適用後の行列
 
 #### `exp`
 
@@ -5084,11 +5510,19 @@ atanh(): BigFloatComplexMatrix
 exp(): BigFloatComplexMatrix
 ```
 
+各要素の指数関数（exp）を計算する
+
+**Returns**: exp 適用後の行列
+
 #### `exp2`
 
 ```ts
 exp2(): BigFloatComplexMatrix
 ```
+
+各要素の 2 のべき乗を計算する
+
+**Returns**: exp2 適用後の行列
 
 #### `expm1`
 
@@ -5096,11 +5530,19 @@ exp2(): BigFloatComplexMatrix
 expm1(): BigFloatComplexMatrix
 ```
 
+各要素の exp(x) - 1 を計算する
+
+**Returns**: expm1 適用後の行列
+
 #### `ln`
 
 ```ts
 ln(): BigFloatComplexMatrix
 ```
+
+各要素の自然対数（ln）を計算する
+
+**Returns**: ln 適用後の行列
 
 #### `log`
 
@@ -5108,11 +5550,22 @@ ln(): BigFloatComplexMatrix
 log(base: string | number | bigint | BigFloat | BigFloatComplex | BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>): BigFloatComplexMatrix
 ```
 
+各要素の任意の底の対数を計算する
+
+**Parameters**
+- `base`: 対数の底（行列またはスカラー）
+
+**Returns**: 対数計算後の行列
+
 #### `log2`
 
 ```ts
 log2(): BigFloatComplexMatrix
 ```
+
+各要素の 2 を底とする対数を計算する
+
+**Returns**: log2 適用後の行列
 
 #### `log10`
 
@@ -5120,11 +5573,19 @@ log2(): BigFloatComplexMatrix
 log10(): BigFloatComplexMatrix
 ```
 
+各要素の 10 を底とする対数を計算する
+
+**Returns**: log10 適用後の行列
+
 #### `log1p`
 
 ```ts
 log1p(): BigFloatComplexMatrix
 ```
+
+各要素の ln(1 + x) を計算する
+
+**Returns**: log1p 適用後の行列
 
 #### `gamma`
 
@@ -5132,9 +5593,9 @@ log1p(): BigFloatComplexMatrix
 gamma(): BigFloatComplexMatrix
 ```
 
-gamma
+各要素のガンマ関数を計算する
 
-**Throws**: 例外が発生した場合
+**Returns**: ガンマ関数を適用した行列
 
 #### `zeta`
 
@@ -5142,17 +5603,33 @@ gamma
 zeta(): BigFloatComplexMatrix
 ```
 
+各要素のゼータ関数を計算する
+
+**Returns**: ゼータ関数を適用した行列
+
+**Throws**: 実数でない複素数が含まれる場合
+
 #### `factorial`
 
 ```ts
 factorial(): BigFloatComplexMatrix
 ```
 
+各要素の階乗を計算する
+
+**Returns**: 階乗適用後の行列
+
+**Throws**: 実数でない複素数が含まれる場合
+
 #### `rank`
 
 ```ts
 rank(): number
 ```
+
+行列のランクを計算する
+
+**Returns**: ランク
 
 <a id="bigfloatcomplexvector"></a>
 
@@ -5178,6 +5655,8 @@ BigFloatComplex を要素とする固定長ベクトルクラス
 - `values`: 要素のソース
 - `precision`: 精度
 
+**Returns**: BigFloatComplexVector インスタンス
+
 ### Static Methods
 
 #### `empty`
@@ -5196,6 +5675,12 @@ from(values: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | 
 
 要素の反復可能オブジェクトから BigFloatComplexVector を生成する
 
+**Parameters**
+- `values`: 要素のソース
+- `precision`: 精度
+
+**Returns**: 生成されたベクトル
+
 #### `fromStream`
 
 ```ts
@@ -5203,6 +5688,11 @@ fromStream(stream: BigFloatStream): BigFloatComplexVector
 ```
 
 BigFloatStream からベクトルを生成する
+
+**Parameters**
+- `stream`: 要素のストリーム
+
+**Returns**: 生成されたベクトル
 
 #### `of`
 
@@ -5212,6 +5702,11 @@ of(...values: string | number | bigint | BigFloat | BigFloatComplex[]): BigFloat
 
 引数リストからベクトルを生成する
 
+**Parameters**
+- `values`: 要素のリスト
+
+**Returns**: 生成されたベクトル
+
 #### `fill`
 
 ```ts
@@ -5219,6 +5714,13 @@ fill(length: number, value: string | number | bigint | BigFloat | BigFloatComple
 ```
 
 指定された値で埋められたベクトルを生成する
+
+**Parameters**
+- `length`: ベクトルの長さ
+- `value`: 埋める値
+- `precision`: 精度
+
+**Returns**: 生成されたベクトル
 
 #### `zeros`
 
@@ -5228,6 +5730,12 @@ zeros(length: number, precision?: number | bigint): BigFloatComplexVector
 
 零ベクトルを生成する
 
+**Parameters**
+- `length`: ベクトルの長さ
+- `precision`: 精度
+
+**Returns**: 生成された零ベクトル
+
 #### `ones`
 
 ```ts
@@ -5235,6 +5743,12 @@ ones(length: number, precision?: number | bigint): BigFloatComplexVector
 ```
 
 すべての要素が 1 のベクトルを生成する
+
+**Parameters**
+- `length`: ベクトルの長さ
+- `precision`: 精度
+
+**Returns**: 生成されたベクトル
 
 #### `basis`
 
@@ -5261,6 +5775,14 @@ linspace(start: string | number | bigint | BigFloat | BigFloatComplex, end: stri
 
 指定した範囲を等分割する数値ベクトルを生成する
 
+**Parameters**
+- `start`: 開始値
+- `end`: 終了値
+- `count`: 分割数
+- `precision`: 精度
+
+**Returns**: 生成されたベクトル
+
 #### `random`
 
 ```ts
@@ -5268,6 +5790,12 @@ random(length: number, options?: { min?: string | number | bigint | BigFloat | B
 ```
 
 乱数ベクトルを生成する
+
+**Parameters**
+- `length`: ベクトルの長さ
+- `options`: 乱数生成オプション
+
+**Returns**: 生成された乱数ベクトル
 
 ### Instance Properties
 
@@ -5277,6 +5805,8 @@ random(length: number, options?: { min?: string | number | bigint | BigFloat | B
 length: number
 ```
 
+ベクトルの長さ（要素数）
+
 ### Instance Methods
 
 #### `dimension`
@@ -5285,11 +5815,19 @@ length: number
 dimension(): number
 ```
 
+ベクトルの次元数を取得する
+
+**Returns**: 次元数 (length と同じ)
+
 #### `isEmpty`
 
 ```ts
 isEmpty(): boolean
 ```
+
+ベクトルが空であるか判定する
+
+**Returns**: 空なら true
 
 #### `at`
 
@@ -5297,17 +5835,32 @@ isEmpty(): boolean
 at(index: number): undefined | BigFloatComplex
 ```
 
+指定したインデックスの要素を取得する
+
+**Parameters**
+- `index`: インデックス
+
+**Returns**: 要素の値、インデックスが範囲外の場合は undefined
+
 #### `clone`
 
 ```ts
 clone(): BigFloatComplexVector
 ```
 
+ベクトルを複製する
+
+**Returns**: 複製された BigFloatComplexVector
+
 #### `toArray`
 
 ```ts
 toArray(): BigFloatComplex[]
 ```
+
+配列に変換する
+
+**Returns**: BigFloatComplex の配列
 
 #### `toStream`
 
@@ -5317,7 +5870,7 @@ toStream(): BigFloatStream
 
 要素を流すストリームへ変換する
 
-**Throws**: 例外が発生した場合
+**Returns**: 要素のストリーム
 
 #### `[Symbol.iterator]`
 
@@ -5325,11 +5878,20 @@ toStream(): BigFloatStream
 [Symbol.iterator](): Iterator<BigFloatComplex, void, undefined>
 ```
 
+ベクトルのイテレータを取得する
+
+**Returns**: 要素のイテレータ
+
 #### `forEach`
 
 ```ts
 forEach(fn: (value: BigFloatComplex, index: number): void): void
 ```
+
+各要素に対して処理を実行する
+
+**Parameters**
+- `fn`: 実行する関数
 
 #### `map`
 
@@ -5337,11 +5899,26 @@ forEach(fn: (value: BigFloatComplex, index: number): void): void
 map(fn: (value: BigFloatComplex, index: number): string | number | bigint | BigFloat | BigFloatComplex): BigFloatComplexVector
 ```
 
+各要素に関数を適用して新しいベクトルを生成する
+
+**Parameters**
+- `fn`: 適用する関数
+
+**Returns**: 変換後の新しいベクトル
+
 #### `zipMap`
 
 ```ts
 zipMap(other: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>, fn: (left: BigFloatComplex, right: BigFloatComplex, index: number): string | number | bigint | BigFloat | BigFloatComplex): BigFloatComplexVector
 ```
+
+二つのベクトルの各要素に対して関数を適用し、新しいベクトルを生成する
+
+**Parameters**
+- `other`: 比較対象のベクトル
+- `fn`: 適用する関数
+
+**Returns**: 演算結果のベクトル
 
 #### `reduce`
 
@@ -5349,11 +5926,26 @@ zipMap(other: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector |
 reduce<U>(fn: (acc: U, value: BigFloatComplex, index: number): U, initial: U): U
 ```
 
+各要素を累積して単一の値を計算する
+
+**Parameters**
+- `fn`: 累積関数
+- `initial`: 初期値
+
+**Returns**: 累積された結果
+
 #### `some`
 
 ```ts
 some(fn: (value: BigFloatComplex, index: number): boolean): boolean
 ```
+
+いずれかの要素が条件を満たすか判定する
+
+**Parameters**
+- `fn`: 判定関数
+
+**Returns**: 条件を満たす要素があれば true
 
 #### `every`
 
@@ -5361,11 +5953,25 @@ some(fn: (value: BigFloatComplex, index: number): boolean): boolean
 every(fn: (value: BigFloatComplex, index: number): boolean): boolean
 ```
 
+すべての要素が条件を満たすか判定する
+
+**Parameters**
+- `fn`: 判定関数
+
+**Returns**: すべての要素が条件を満たせば true
+
 #### `concat`
 
 ```ts
 concat(...others: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>[]): BigFloatComplexVector
 ```
+
+ベクトルを連結する
+
+**Parameters**
+- `others`: 連結するベクトル
+
+**Returns**: 連結後の新しいベクトル
 
 #### `slice`
 
@@ -5373,11 +5979,23 @@ concat(...others: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVect
 slice(start?: number, end?: number): BigFloatComplexVector
 ```
 
+指定した範囲の要素を抽出する
+
+**Parameters**
+- `start`: 開始インデックス
+- `end`: 終了インデックス
+
+**Returns**: 抽出された新しいベクトル
+
 #### `reverse`
 
 ```ts
 reverse(): BigFloatComplexVector
 ```
+
+要素の順序を反転させる
+
+**Returns**: 反転した新しいベクトル
 
 #### `changePrecision`
 
@@ -5385,11 +6003,25 @@ reverse(): BigFloatComplexVector
 changePrecision(precision: number | bigint): BigFloatComplexVector
 ```
 
+ベクトルの精度を変更する
+
+**Parameters**
+- `precision`: 新しい精度
+
+**Returns**: 精度が変更された新しいベクトル
+
 #### `equals`
 
 ```ts
 equals(other: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>): boolean
 ```
+
+ベクトルが等しいか判定する
+
+**Parameters**
+- `other`: 比較対象のベクトル
+
+**Returns**: 等しい場合は true
 
 #### `add`
 
@@ -5397,11 +6029,25 @@ equals(other: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector |
 add(other: string | number | bigint | BigFloat | BigFloatComplex | BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>): BigFloatComplexVector
 ```
 
+ベクトルの加算を行う
+
+**Parameters**
+- `other`: 加算するベクトルまたはスカラ
+
+**Returns**: 加算後の新しいベクトル
+
 #### `sub`
 
 ```ts
 sub(other: string | number | bigint | BigFloat | BigFloatComplex | BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>): BigFloatComplexVector
 ```
+
+ベクトルの減算を行う
+
+**Parameters**
+- `other`: 減算するベクトルまたはスカラ
+
+**Returns**: 減算後の新しいベクトル
 
 #### `mul`
 
@@ -5409,11 +6055,25 @@ sub(other: string | number | bigint | BigFloat | BigFloatComplex | BigFloatVecto
 mul(scalar: string | number | bigint | BigFloat | BigFloatComplex): BigFloatComplexVector
 ```
 
+スカラー倍を行う
+
+**Parameters**
+- `scalar`: 乗算するスカラー
+
+**Returns**: 乗算後の新しいベクトル
+
 #### `div`
 
 ```ts
 div(scalar: string | number | bigint | BigFloat | BigFloatComplex): BigFloatComplexVector
 ```
+
+スカラー除算を行う
+
+**Parameters**
+- `scalar`: 除算するスカラー
+
+**Returns**: 除算後の新しいベクトル
 
 #### `mod`
 
@@ -5421,11 +6081,25 @@ div(scalar: string | number | bigint | BigFloat | BigFloatComplex): BigFloatComp
 mod(other: string | number | bigint | BigFloat | BigFloatComplex | BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>): BigFloatComplexVector
 ```
 
+各要素の剰余を計算する
+
+**Parameters**
+- `other`: 除数（ベクトルまたはスカラ）
+
+**Returns**: 演算後の新しいベクトル
+
 #### `hadamard`
 
 ```ts
 hadamard(other: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>): BigFloatComplexVector
 ```
+
+アダマール積（要素ごとの積）を計算する
+
+**Parameters**
+- `other`: 乗算するベクトル
+
+**Returns**: Hadamard積の結果のベクトル
 
 #### `neg`
 
@@ -5433,11 +6107,19 @@ hadamard(other: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector
 neg(): BigFloatComplexVector
 ```
 
+各要素の符号を反転する
+
+**Returns**: 符号反転後の新しいベクトル
+
 #### `abs`
 
 ```ts
 abs(): BigFloatVector
 ```
+
+各要素の絶対値を計算する
+
+**Returns**: 絶対値適用後の新しい実数ベクトル
 
 #### `sign`
 
@@ -5445,11 +6127,19 @@ abs(): BigFloatVector
 sign(): BigFloatComplexVector
 ```
 
+各要素の符号を計算する
+
+**Returns**: 符号ベクトル
+
 #### `reciprocal`
 
 ```ts
 reciprocal(): BigFloatComplexVector
 ```
+
+各要素の逆数を計算する
+
+**Returns**: 逆数ベクトル
 
 #### `pow`
 
@@ -5457,11 +6147,22 @@ reciprocal(): BigFloatComplexVector
 pow(exponent: string | number | bigint | BigFloat | BigFloatComplex | BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>): BigFloatComplexVector
 ```
 
+各要素のべき乗を計算する
+
+**Parameters**
+- `exponent`: 指数（ベクトルまたはスカラ）
+
+**Returns**: 冪乗後の新しいベクトル
+
 #### `sqrt`
 
 ```ts
 sqrt(): BigFloatComplexVector
 ```
+
+各要素の平方根を計算する
+
+**Returns**: 平方根適用後の新しいベクトル
 
 #### `cbrt`
 
@@ -5469,11 +6170,22 @@ sqrt(): BigFloatComplexVector
 cbrt(): BigFloatComplexVector
 ```
 
+各要素の立方根を計算する
+
+**Returns**: 立方根適用後の新しいベクトル
+
 #### `nthRoot`
 
 ```ts
 nthRoot(n: number | bigint): BigFloatComplexVector
 ```
+
+各要素の n 乗根を計算する
+
+**Parameters**
+- `n`: 次数
+
+**Returns**: n 乗根適用後の新しいベクトル
 
 #### `floor`
 
@@ -5481,11 +6193,19 @@ nthRoot(n: number | bigint): BigFloatComplexVector
 floor(): BigFloatComplexVector
 ```
 
+各要素の床関数を計算する
+
+**Returns**: 床関数適用後の新しいベクトル
+
 #### `ceil`
 
 ```ts
 ceil(): BigFloatComplexVector
 ```
+
+各要素の天井関数を計算する
+
+**Returns**: 天井関数適用後の新しいベクトル
 
 #### `round`
 
@@ -5493,11 +6213,19 @@ ceil(): BigFloatComplexVector
 round(): BigFloatComplexVector
 ```
 
+各要素を四捨五入する
+
+**Returns**: 四捨五入後の新しいベクトル
+
 #### `trunc`
 
 ```ts
 trunc(): BigFloatComplexVector
 ```
+
+各要素を切り捨てる
+
+**Returns**: 切り捨て後の新しいベクトル
 
 #### `fround`
 
@@ -5505,11 +6233,19 @@ trunc(): BigFloatComplexVector
 fround(): BigFloatComplexVector
 ```
 
+各要素を最も近い単精度浮動小数点数形式に丸める
+
+**Returns**: 丸め後の新しいベクトル
+
 #### `clz32`
 
 ```ts
 clz32(): BigFloatComplexVector
 ```
+
+各要素の 32 ビット整数としての先頭のゼロの個数を計算する
+
+**Returns**: 結果のベクトル
 
 #### `relativeDiff`
 
@@ -5517,11 +6253,25 @@ clz32(): BigFloatComplexVector
 relativeDiff(other: string | number | bigint | BigFloat | BigFloatComplex | BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>): BigFloatComplexVector
 ```
 
+各要素の相対差を計算する
+
+**Parameters**
+- `other`: 比較対象（ベクトルまたはスカラ）
+
+**Returns**: 相対差のベクトル
+
 #### `absoluteDiff`
 
 ```ts
 absoluteDiff(other: string | number | bigint | BigFloat | BigFloatComplex | BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>): BigFloatComplexVector
 ```
+
+各要素の絶対差を計算する
+
+**Parameters**
+- `other`: 比較対象（ベクトルまたはスカラ）
+
+**Returns**: 絶対差のベクトル
 
 #### `percentDiff`
 
@@ -5529,11 +6279,22 @@ absoluteDiff(other: string | number | bigint | BigFloat | BigFloatComplex | BigF
 percentDiff(other: string | number | bigint | BigFloat | BigFloatComplex | BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>): BigFloatComplexVector
 ```
 
+各要素の百分率差分を計算する
+
+**Parameters**
+- `other`: 比較対象（ベクトルまたはスカラ）
+
+**Returns**: 百分率差分のベクトル (%)
+
 #### `sin`
 
 ```ts
 sin(): BigFloatComplexVector
 ```
+
+各要素の正弦（sin）を計算する
+
+**Returns**: sin 適用後のベクトル
 
 #### `cos`
 
@@ -5541,11 +6302,19 @@ sin(): BigFloatComplexVector
 cos(): BigFloatComplexVector
 ```
 
+各要素の余弦（cos）を計算する
+
+**Returns**: cos 適用後のベクトル
+
 #### `tan`
 
 ```ts
 tan(): BigFloatComplexVector
 ```
+
+各要素の正接（tan）を計算する
+
+**Returns**: tan 適用後のベクトル
 
 #### `asin`
 
@@ -5553,11 +6322,19 @@ tan(): BigFloatComplexVector
 asin(): BigFloatComplexVector
 ```
 
+各要素の逆正弦（asin）を計算する
+
+**Returns**: asin 適用後のベクトル
+
 #### `acos`
 
 ```ts
 acos(): BigFloatComplexVector
 ```
+
+各要素の逆余弦（acos）を計算する
+
+**Returns**: acos 適用後のベクトル
 
 #### `atan`
 
@@ -5565,11 +6342,19 @@ acos(): BigFloatComplexVector
 atan(): BigFloatComplexVector
 ```
 
+各要素の逆正接（atan）を計算する
+
+**Returns**: atan 適用後のベクトル
+
 #### `sinh`
 
 ```ts
 sinh(): BigFloatComplexVector
 ```
+
+各要素の双曲線正弦（sinh）を計算する
+
+**Returns**: sinh 適用後のベクトル
 
 #### `cosh`
 
@@ -5577,11 +6362,19 @@ sinh(): BigFloatComplexVector
 cosh(): BigFloatComplexVector
 ```
 
+各要素の双曲線余弦（cosh）を計算する
+
+**Returns**: cosh 適用後のベクトル
+
 #### `tanh`
 
 ```ts
 tanh(): BigFloatComplexVector
 ```
+
+各要素の双曲線正接（tanh）を計算する
+
+**Returns**: tanh 適用後のベクトル
 
 #### `asinh`
 
@@ -5589,11 +6382,19 @@ tanh(): BigFloatComplexVector
 asinh(): BigFloatComplexVector
 ```
 
+各要素の逆双曲線正弦（asinh）を計算する
+
+**Returns**: asinh 適用後のベクトル
+
 #### `acosh`
 
 ```ts
 acosh(): BigFloatComplexVector
 ```
+
+各要素の逆双曲線余弦（acosh）を計算する
+
+**Returns**: acosh 適用後のベクトル
 
 #### `atanh`
 
@@ -5601,11 +6402,19 @@ acosh(): BigFloatComplexVector
 atanh(): BigFloatComplexVector
 ```
 
+各要素の逆双曲線正接（atanh）を計算する
+
+**Returns**: atanh 適用後のベクトル
+
 #### `exp`
 
 ```ts
 exp(): BigFloatComplexVector
 ```
+
+各要素の指数関数（exp）を計算する
+
+**Returns**: exp 適用後のベクトル
 
 #### `expm1`
 
@@ -5613,11 +6422,19 @@ exp(): BigFloatComplexVector
 expm1(): BigFloatComplexVector
 ```
 
+各要素の exp(x) - 1 を計算する
+
+**Returns**: expm1 適用後のベクトル
+
 #### `ln`
 
 ```ts
 ln(): BigFloatComplexVector
 ```
+
+各要素の自然対数（ln）を計算する
+
+**Returns**: ln 適用後のベクトル
 
 #### `log`
 
@@ -5625,11 +6442,22 @@ ln(): BigFloatComplexVector
 log(base: string | number | bigint | BigFloat | BigFloatComplex | BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>): BigFloatComplexVector
 ```
 
+各要素の任意の底の対数を計算する
+
+**Parameters**
+- `base`: 対数の底（ベクトルまたはスカラ）
+
+**Returns**: 対数計算後のベクトル
+
 #### `log2`
 
 ```ts
 log2(): BigFloatComplexVector
 ```
+
+各要素の 2 を底とする対数を計算する
+
+**Returns**: log2 適用後のベクトル
 
 #### `log10`
 
@@ -5637,15 +6465,21 @@ log2(): BigFloatComplexVector
 log10(): BigFloatComplexVector
 ```
 
+各要素の 10 を底とする対数を計算する
+
+**Returns**: log10 適用後のベクトル
+
 #### `max`
 
 ```ts
 max(): BigFloatComplex
 ```
 
-max
+最大値を取得する（複素数では未サポート）
 
-**Throws**: max() is not supported for complex vectors
+**Returns**: 最大値
+
+**Throws**: 複素数ベクトルではサポートされていないため
 
 #### `min`
 
@@ -5653,9 +6487,11 @@ max
 min(): BigFloatComplex
 ```
 
-min
+最小値を取得する（複素数では未サポート）
 
-**Throws**: min() is not supported for complex vectors
+**Returns**: 最小値
+
+**Throws**: 複素数ベクトルではサポートされていないため
 
 #### `sum`
 
@@ -5663,11 +6499,19 @@ min
 sum(): BigFloatComplex
 ```
 
+要素の合計を計算する
+
+**Returns**: 合計値
+
 #### `product`
 
 ```ts
 product(): BigFloatComplex
 ```
+
+要素の総乗を計算する
+
+**Returns**: 総乗の値
 
 #### `average`
 
@@ -5675,11 +6519,22 @@ product(): BigFloatComplex
 average(): BigFloatComplex
 ```
 
+要素の平均を計算する
+
+**Returns**: 平均値
+
 #### `dot`
 
 ```ts
 dot(other: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>): BigFloatComplex
 ```
+
+他のベクトルとの内積を計算する
+
+**Parameters**
+- `other`: 対象のベクトル
+
+**Returns**: 内積の値
 
 #### `squaredNorm`
 
@@ -5687,11 +6542,19 @@ dot(other: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | It
 squaredNorm(): BigFloat
 ```
 
+二乗ノルムを計算する
+
+**Returns**: 二乗ノルム
+
 #### `norm`
 
 ```ts
 norm(): BigFloat
 ```
+
+ノルム（ベクトルの長さ）を計算する
+
+**Returns**: ノルム
 
 #### `normalize`
 
@@ -5699,9 +6562,11 @@ norm(): BigFloat
 normalize(): BigFloatComplexVector
 ```
 
-normalize
+ベクトルを正規化する
 
-**Throws**: Cannot normalize zero vector
+**Returns**: 正規化されたベクトル
+
+**Throws**: ゼロベクトルを正規化しようとした場合
 
 #### `distanceTo`
 
@@ -5709,21 +6574,40 @@ normalize
 distanceTo(other: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>): BigFloat
 ```
 
+他のベクトルとの距離を計算する
+
+**Parameters**
+- `other`: 対象のベクトル
+
+**Returns**: 距離
+
 #### `cross`
 
 ```ts
 cross(other: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>): BigFloatComplexVector
 ```
 
-cross
+外積を計算する
 
-**Throws**: Cross product is only defined for 3-dimensional vectors
+**Parameters**
+- `other`: 相手のベクトル
+
+**Returns**: 外積の結果
+
+**Throws**: 3次元ベクトルでない場合
 
 #### `squaredDistanceTo`
 
 ```ts
 squaredDistanceTo(other: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector | Iterable<BigFloatComplex> | Iterable<BigFloatInputValue>): BigFloat
 ```
+
+他のベクトルとの二乗距離を計算する
+
+**Parameters**
+- `other`: 対象のベクトル
+
+**Returns**: 二乗距離
 
 #### `projectOnto`
 
@@ -5733,7 +6617,12 @@ projectOnto(other: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVec
 
 別のベクトルへの正射影ベクトルを計算する
 
-**Throws**: 例外が発生した場合
+**Parameters**
+- `other`: 射影先のベクトル
+
+**Returns**: 射影された新しいベクトル
+
+**Throws**: ゼロベクトルに射影しようとした場合
 
 <a id="bigfloatmatrix"></a>
 
@@ -5759,6 +6648,8 @@ BigFloat を固定長行列として扱うクラス
 - `rows`: 行列要素の反復可能オブジェクト
 - `precision`: 変換時の精度
 
+**Returns**: BigFloatMatrix インスタンス
+
 **Throws**: 行列の行が同じ長さを持たない場合
 
 ### Static Methods
@@ -5780,15 +6671,16 @@ from(rows: BigFloatMatrix | Iterable<BigFloatVectorLike>, precision?: number | b
 from(rows: BigFloatComplexMatrix | Iterable<BigFloatComplexVectorLike>, precision?: number | bigint): BigFloatComplexMatrix
 ```
 
-行列要素の反復可能オブジェクトから BigFloatMatrix を生成する
+二次元配列から実数行列を生成する
+二次元配列から複素行列を生成する
 
 **Parameters**
-- `rows`: 要素
+- `rows`: 二次元配列
 - `precision`: 精度
 
 **Returns**: BigFloatMatrix インスタンス
 
-**Throws**: 例外が発生した場合
+**Throws**: デフォルトでは複素数を受け入れない場合
 
 #### `fromRows`
 
@@ -5811,6 +6703,12 @@ fromColumns(columns: BigFloatMatrix | Iterable<BigFloatVectorLike>, precision?: 
 ```
 
 列ベクトル群から生成する
+
+**Parameters**
+- `columns`: 列ベクトルのリスト
+- `precision`: 精度
+
+**Returns**: BigFloatMatrix インスタンス
 
 **Throws**: 列ベクトルの長さが異なる場合
 

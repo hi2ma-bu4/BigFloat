@@ -13,6 +13,7 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * BigFloatMatrix コンストラクタ
 	 * @param rows - 行列要素の反復可能オブジェクト
 	 * @param precision - 変換時の精度
+	 * @returns BigFloatMatrix インスタンス
 	 * @throws {RangeError} 行列の行が同じ長さを持たない場合
 	 */
 	constructor(rows?: BigFloatMatrixLike, precision?: PrecisionValue);
@@ -20,20 +21,33 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * 内部配列から行列を生成する (内部用)
 	 * @param values - BigFloat の二次元配列
 	 * @returns BigFloatMatrix インスタンス
-	 * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _fromBigFloatGrid(values: BigFloat[][]): BigFloatMatrix;
+	/**
+	 * 内部配列から複素行列を生成する (内部用)
+	 * @param values - BigFloatComplex の二次元配列
+	 * @returns BigFloatComplexMatrix インスタンス
+	 */
 	protected static _fromBigFloatGrid(values: BigFloatComplex[][]): BigFloatComplexMatrix;
+	/**
+	 * 内部配列から行列を生成する (内部用)
+	 * @param values - 値の二次元配列
+	 * @returns 行列インスタンス
+	 */
 	protected static _fromBigFloatGrid(values: BigFloatLike[][]): BigFloatAnyMatrix;
 	/**
 	 * 値を BigFloat へ変換する (内部用)
 	 * @param value - 変換対象の値
 	 * @param precision - 精度
 	 * @returns BigFloat インスタンス
-	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _toBigFloat(value: BigFloatValue, precision?: bigint): BigFloat;
+	/**
+	 * 値を BigFloatComplex へ変換する (内部用)
+	 * @param value - 変換対象の複素数
+	 * @param precision - 精度
+	 * @returns BigFloatComplex インスタンス
+	 */
 	protected static _toBigFloat(value: BigFloatComplex, precision?: bigint): BigFloatComplex;
 	/**
 	 * 与えられた値リストから適切な精度を解決する (内部用)
@@ -45,8 +59,10 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	protected static _resolvePrecision(values: BigFloatVectorLike, precision?: PrecisionValue): bigint;
 	/**
 	 * 次元を正規化する
+	 * @param size - 元のサイズ
+	 * @param name - パラメータ名
+	 * @returns 正規化されたサイズ
 	 * @throws {RangeError} size が負または非有限の場合
-	 * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
 	 */
 	protected static _normalizeSize(size: number, name: string): number;
 	/**
@@ -106,24 +122,44 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 */
 	protected _flattenValues(): BigFloat[];
 	/**
-	 * 全要素に対して変換関数を適用した新しい行列を返す (内部用)
-	 * @param fn - 変換関数
-	 * @returns 変換後の新しい行列
-	 * @throws {TypeError} BigFloatMatrix.from does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
+	 * 各要素に関数を適用して新しい実数行列を生成する
+	 * @param fn - 適用する関数
+	 * @returns 変換後の新しい実数行列
 	 */
 	protected _mapValues(fn: (value: BigFloat, row: number, column: number) => BigFloatValue): this | BigFloatMatrix;
+	/**
+	 * 各要素に関数を適用して新しい複素行列を生成する
+	 * @param fn - 適用する関数
+	 * @returns 変換後の新しい複素行列
+	 */
 	protected _mapValues(fn: (value: BigFloatLike, row: number, column: number) => BigFloatInputValue): BigFloatComplexMatrix;
+	/**
+	 * 各要素に関数を適用して新しい行列を生成する
+	 * @param fn - 適用する関数
+	 * @returns 変換後の新しい行列
+	 */
 	protected _mapValues(fn: ((value: BigFloat, row: number, column: number) => BigFloatValue) | ((value: BigFloatLike, row: number, column: number) => BigFloatInputValue)): this | BigFloatAnyMatrix;
 	/**
-	 * オペランドとの二項演算を全要素に対して行う (内部用)
-	 * @param other - 行列またはスカラ値
-	 * @param fn - 二項演算関数
-	 * @returns 演算後の新しい行列
-	 * @throws {RangeError} 行列形状が一致しない場合
-	 * @throws {TypeError} BigFloatMatrix operation does not accept BigFloatComplex by default. Enable config.allowComplexNumbers to allow complex results.
+	 * オペランドを用いて各要素に関数を適用し、新しい実数行列を生成する
+	 * @param other - オペランド（行列またはスカラー）
+	 * @param fn - 適用する関数
+	 * @returns 演算後の新しい実数行列
 	 */
 	protected _mapWithOperand(other: BigFloatMatrixLike | BigFloatValue, fn: (left: BigFloat, right: BigFloat, row: number, column: number) => BigFloatValue): this | BigFloatMatrix;
+	/**
+	 * オペランドを用いて各要素に関数を適用し、新しい複素行列を生成する
+	 * @param other - オペランド（行列またはスカラー）
+	 * @param fn - 適用する関数
+	 * @returns 演算後の新しい複素行列
+	 */
 	protected _mapWithOperand(other: BigFloatAnyMatrixLike | BigFloatComplex, fn: (left: BigFloat, right: BigFloatLike, row: number, column: number) => BigFloatInputValue): BigFloatComplexMatrix;
+	/**
+	 * オペランドを用いて各要素に関数を適用し、新しい行列を生成する
+	 * @param other - オペランド（行列またはスカラー）
+	 * @param fn - 適用する関数
+	 * @returns 演算後の新しい行列
+	 */
+	protected _mapWithOperand(other: BigFloatAnyMatrixLike | BigFloatInputValue, fn: ((left: BigFloat, right: BigFloat, row: number, column: number) => BigFloatValue) | ((left: BigFloat, right: BigFloatLike, row: number, column: number) => BigFloatInputValue)): this | BigFloatAnyMatrix;
 	/**
 	 * 行列の簡約階段形式 (RREF) を計算する (内部用)
 	 * @param values - 対象行列の二次元配列
@@ -146,13 +182,18 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 */
 	static empty(): BigFloatMatrix;
 	/**
-	 * 行列要素の反復可能オブジェクトから BigFloatMatrix を生成する
-	 * @param rows - 要素
+	 * 二次元配列から実数行列を生成する
+	 * @param rows - 二次元配列
 	 * @param precision - 精度
 	 * @returns BigFloatMatrix インスタンス
-	 * @throws {TypeError} 例外が発生した場合
 	 */
 	static from(rows: BigFloatMatrixLike, precision?: PrecisionValue): BigFloatMatrix;
+	/**
+	 * 二次元配列から複素行列を生成する
+	 * @param rows - 二次元配列
+	 * @param precision - 精度
+	 * @returns BigFloatComplexMatrix インスタンス
+	 */
 	static from(rows: BigFloatComplexMatrixLike, precision?: PrecisionValue): BigFloatComplexMatrix;
 	/**
 	 * 行ベクトルのリストから行列を生成する
@@ -163,6 +204,9 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	static fromRows(rows: BigFloatMatrixLike, precision?: PrecisionValue): BigFloatMatrix;
 	/**
 	 * 列ベクトル群から生成する
+	 * @param columns - 列ベクトルのリスト
+	 * @param precision - 精度
+	 * @returns BigFloatMatrix インスタンス
 	 * @throws {RangeError} 列ベクトルの長さが異なる場合
 	 */
 	static fromColumns(columns: BigFloatMatrixLike, precision?: PrecisionValue): BigFloatMatrix;
@@ -1047,8 +1091,25 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {RangeError} 各行の長さが一致しない場合
 	 */
 	constructor(rows?: BigFloatAnyMatrixLike, precision?: PrecisionValue);
+	/**
+	 * BigFloatComplex の二次元配列から行列を生成する
+	 * @param values - BigFloatComplex の二次元配列
+	 * @returns BigFloatComplexMatrix インスタンス
+	 */
 	protected static _fromComplexGrid(values: BigFloatComplex[][]): BigFloatComplexMatrix;
+	/**
+	 * 値を BigFloatComplex に変換する
+	 * @param value - 変換する値
+	 * @param precision - 精度
+	 * @returns BigFloatComplex インスタンス
+	 */
 	protected static _toComplex(value: BigFloatInputValue, precision?: bigint): BigFloatComplex;
+	/**
+	 * 精度を解決する
+	 * @param values - 対象の値の配列
+	 * @param precision - 指定された精度
+	 * @returns 解決された精度
+	 */
 	protected static _resolvePrecision(values: BigFloatInputValue[], precision?: PrecisionValue): bigint;
 	/**
 	 * 二次元配列が矩形であることを検証する
@@ -1056,47 +1117,220 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {RangeError} 各行の長さが一致しない場合
 	 */
 	protected static _assertRectangularRaw(rows: BigFloatInputValue[][]): void;
+	/**
+	 * 二つの行列の形状が一致することを検証する
+	 * @param left - 左辺行列
+	 * @param right - 右辺行列
+	 * @throws {RangeError} 行列の形状が一致しない場合
+	 */
 	protected static _assertSameShape(left: BigFloatAnyMatrix, right: BigFloatAnyMatrix): void;
+	/**
+	 * 値を行列に変換する
+	 * @param value - 変換する値
+	 * @param referenceValues - 精度の解決に使用する参照値
+	 * @returns BigFloatComplexMatrix インスタンス
+	 */
 	protected static _coerceMatrix(value: BigFloatAnyMatrixLike, referenceValues?: BigFloatInputValue[]): BigFloatComplexMatrix;
+	/**
+	 * 行列の全要素をフラットな配列として取得する
+	 * @returns 全要素の配列
+	 */
 	protected _flattenValues(): BigFloatComplex[];
+	/**
+	 * 各要素に関数を適用して新しい行列を生成する
+	 * @param fn - 適用する関数
+	 * @returns 変換後の新しい行列
+	 */
 	protected _mapValues(fn: (value: BigFloatComplex, row: number, column: number) => BigFloatInputValue): this;
+	/**
+	 * オペランドを用いて各要素に関数を適用し、新しい行列を生成する
+	 * @param other - オペランド（行列またはスカラー）
+	 * @param fn - 適用する関数
+	 * @returns 演算後の新しい行列
+	 */
 	protected _mapWithOperand(other: BigFloatAnyMatrixLike | BigFloatInputValue, fn: (left: BigFloatComplex, right: BigFloatComplex, row: number, column: number) => BigFloatInputValue): this;
+	/**
+	 * 空の行列を生成する
+	 * @returns 空の行列
+	 */
 	static empty(): BigFloatComplexMatrix;
+	/**
+	 * 二次元配列から行列を生成する
+	 * @param rows - 二次元配列
+	 * @param precision - 精度
+	 * @returns BigFloatComplexMatrix インスタンス
+	 */
 	static from(rows: BigFloatAnyMatrixLike, precision?: PrecisionValue): BigFloatComplexMatrix;
+	/**
+	 * 行の配列から行列を生成する
+	 * @param rows - 行の配列
+	 * @param precision - 精度
+	 * @returns BigFloatComplexMatrix インスタンス
+	 */
 	static fromRows(rows: BigFloatAnyMatrixLike, precision?: PrecisionValue): BigFloatComplexMatrix;
+	/**
+	 * 列の配列から行列を生成する
+	 * @param columns - 列の配列
+	 * @param precision - 精度
+	 * @returns BigFloatComplexMatrix インスタンス
+	 */
 	static fromColumns(columns: BigFloatAnyMatrixLike, precision?: PrecisionValue): BigFloatComplexMatrix;
+	/**
+	 * 可変長引数の行から行列を生成する
+	 * @param rows - 行ベクトルの配列
+	 * @returns BigFloatComplexMatrix インスタンス
+	 */
 	static of(...rows: BigFloatAnyVectorLike[]): BigFloatComplexMatrix;
+	/**
+	 * 指定された値で埋められた行列を生成する
+	 * @param rowCount - 行数
+	 * @param columnCount - 列数
+	 * @param value - 埋める値
+	 * @param precision - 精度
+	 * @returns BigFloatComplexMatrix インスタンス
+	 */
 	static fill(rowCount: number, columnCount: number, value: BigFloatInputValue, precision?: PrecisionValue): BigFloatComplexMatrix;
+	/**
+	 * 零行列を生成する
+	 * @param rowCount - 行数
+	 * @param columnCount - 列数
+	 * @param precision - 精度
+	 * @returns 零行列
+	 */
 	static zeros(rowCount: number, columnCount: number, precision?: PrecisionValue): BigFloatComplexMatrix;
+	/**
+	 * すべての要素が 1 の行列を生成する
+	 * @param rowCount - 行数
+	 * @param columnCount - 列数
+	 * @param precision - 精度
+	 * @returns すべての要素が 1 の行列
+	 */
 	static ones(rowCount: number, columnCount: number, precision?: PrecisionValue): BigFloatComplexMatrix;
+	/**
+	 * 対角行列を生成する
+	 * @param values - 対角成分の配列
+	 * @param precision - 精度
+	 * @returns 対角行列
+	 */
 	static diagonal(values: BigFloatAnyVectorLike, precision?: PrecisionValue): BigFloatComplexMatrix;
+	/**
+	 * ランダムな値を持つ行列を生成する
+	 * @param rowCount - 行数
+	 * @param columnCount - 列数
+	 * @param options - ランダム生成のオプション
+	 * @returns ランダムな行列
+	 */
 	static random(rowCount: number, columnCount: number, options?: BigFloatComplexMatrixRandomOptions): BigFloatComplexMatrix;
+	/**
+	 * 行数
+	 */
 	get rowCount(): number;
+	/**
+	 * 列数
+	 */
 	get columnCount(): number;
+	/**
+	 * 正方行列であるか判定する
+	 * @returns 正方行列なら true
+	 */
 	isSquare(): boolean;
+	/**
+	 * 空の行列であるか判定する
+	 * @returns 空なら true
+	 */
 	isEmpty(): boolean;
+	/**
+	 * 行列の形状を取得する
+	 * @returns [行数, 列数]
+	 */
 	shape(): [
 		number,
 		number
 	];
+	/**
+	 * 指定したインデックスの要素を取得する
+	 * @param row - 行インデックス
+	 * @param column - 列インデックス
+	 * @returns 要素の値、インデックスが範囲外の場合は undefined
+	 */
 	at(row: number, column: number): BigFloatComplex | undefined;
+	/**
+	 * 指定した行のベクトルを取得する
+	 * @param index - 行インデックス
+	 * @returns 指定行のベクトル、インデックスが範囲外の場合は undefined
+	 */
 	row(index: number): BigFloatComplexVector | undefined;
+	/**
+	 * 指定した列のベクトルを取得する
+	 * @param index - 列インデックス
+	 * @returns 指定列のベクトル、インデックスが範囲外の場合は undefined
+	 */
 	column(index: number): BigFloatComplexVector | undefined;
+	/**
+	 * 行列を複製する
+	 * @returns 複製された BigFloatComplexMatrix
+	 */
 	clone(): BigFloatComplexMatrix;
+	/**
+	 * 二次元配列に変換する
+	 * @returns 各要素が BigFloatComplex の二次元配列
+	 */
 	toArray(): BigFloatComplex[][];
+	/**
+	 * 行ベクトルの配列に変換する
+	 * @returns BigFloatComplexVector の配列
+	 */
 	toVectors(): BigFloatComplexVector[];
+	/**
+	 * 行ベクトルのイテレータを取得する
+	 * @returns 行ベクトルのイテレータ
+	 */
 	[Symbol.iterator](): Iterator<BigFloatComplexVector, void, undefined>;
+	/**
+	 * 各要素に対して処理を実行する
+	 * @param fn - 実行する関数
+	 */
 	forEach(fn: (value: BigFloatComplex, row: number, column: number) => void): void;
+	/**
+	 * 各要素に関数を適用して新しい行列を生成する
+	 * @param fn - 適用する関数
+	 * @returns 変換後の新しい行列
+	 */
 	map(fn: (value: BigFloatComplex, row: number, column: number) => BigFloatInputValue): this;
 	/**
 	 * 要素を流すストリームへ変換する
 	 * @returns 要素のストリーム
 	 */
 	toStream(): BigFloatStream;
+	/**
+	 * 行列の加算を行う
+	 * @param other - 加算する行列またはスカラー
+	 * @returns 加算後の新しい行列
+	 */
 	add(other: BigFloatInputValue | BigFloatAnyMatrixLike): this;
+	/**
+	 * 行列の減算を行う
+	 * @param other - 減算する行列またはスカラー
+	 * @returns 減算後の新しい行列
+	 */
 	sub(other: BigFloatInputValue | BigFloatAnyMatrixLike): this;
+	/**
+	 * アダマール積（要素ごとの積）を計算する
+	 * @param other - 乗算する行列
+	 * @returns アダマール積の結果の行列
+	 */
 	hadamard(other: BigFloatAnyMatrixLike): this;
+	/**
+	 * スカラー倍を行う
+	 * @param scalar - 乗算するスカラー
+	 * @returns 乗算後の新しい行列
+	 */
 	mul(scalar: BigFloatInputValue): this;
+	/**
+	 * スカラー除算を行う
+	 * @param scalar - 除算するスカラー
+	 * @returns 除算後の新しい行列
+	 */
 	div(scalar: BigFloatInputValue): this;
 	/**
 	 * 行列の積を計算する
@@ -1105,8 +1339,20 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {RangeError} 行列の次元が一致しない場合
 	 */
 	matmul(other: BigFloatAnyMatrixLike): this;
+	/**
+	 * 転置行列を生成する
+	 * @returns 転置された新しい行列
+	 */
 	transpose(): this;
+	/**
+	 * 各行の和を計算する
+	 * @returns 各行の和を持つベクトル
+	 */
 	rowSums(): BigFloatComplexVector;
+	/**
+	 * 各列の和を計算する
+	 * @returns 各列の和を持つベクトル
+	 */
 	columnSums(): BigFloatComplexVector;
 	/**
 	 * 行列のトレース（対角和）を計算する
@@ -1142,6 +1388,12 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {SingularMatrixError} 行列が特異な場合
 	 */
 	solveMatrix(rhs: BigFloatAnyMatrixLike): this;
+	/**
+	 * 行階段形（簡約行階段形）を計算する
+	 * @param values - 対象の行列データ
+	 * @param leftColumnCount - 左側の列数
+	 * @returns 簡約行階段形行列とそのピボット列のインデックス
+	 */
 	protected static _reducedRowEchelon(values: BigFloatComplex[][], leftColumnCount?: number): {
 		values: BigFloatComplex[][];
 		pivotColumns: number[];
@@ -1166,9 +1418,25 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @returns 等しい場合は true、そうでない場合は false
 	 */
 	equals(other: BigFloatAnyMatrixLike): boolean;
+	/**
+	 * 全要素の合計を計算する
+	 * @returns 合計値
+	 */
 	sum(): BigFloatComplex;
+	/**
+	 * 全要素の積を計算する
+	 * @returns 積の値
+	 */
 	product(): BigFloatComplex;
+	/**
+	 * 全要素の平均を計算する
+	 * @returns 平均値
+	 */
 	average(): BigFloatComplex;
+	/**
+	 * フロベニウスノルムを計算する
+	 * @returns ノルムの値
+	 */
 	frobeniusNorm(): BigFloat;
 	/**
 	 * 行列とベクトルの積を計算する
@@ -1182,10 +1450,36 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @returns 対角成分のベクトル
 	 * @throws {RangeError} 正方行列でない場合
 	 */
+	/**
+	 * 対角成分をベクトルとして取得する
+	 * @returns 対角成分のベクトル
+	 * @throws {RangeError} 正方行列でない場合
+	 */
 	diagonalVector(): BigFloatComplexVector;
+	/**
+	 * 全要素を一つのベクトルに変換する
+	 * @returns 全要素のベクトル
+	 */
 	flatten(): BigFloatComplexVector;
+	/**
+	 * 二つの行列の各要素に対して関数を適用し、新しい行列を生成する
+	 * @param other - 比較対象の行列
+	 * @param fn - 適用する関数
+	 * @returns 演算結果の行列
+	 */
 	zipMap(other: BigFloatAnyMatrixLike, fn: (left: BigFloatComplex, right: BigFloatComplex, row: number, column: number) => BigFloatInputValue): this;
+	/**
+	 * 各要素を累積して単一の値を計算する
+	 * @param fn - 累積関数
+	 * @param initial - 初期値
+	 * @returns 累積された結果
+	 */
 	reduce<U>(fn: (acc: U, value: BigFloatComplex, row: number, column: number) => U, initial: U): U;
+	/**
+	 * いずれかの要素が条件を満たすか判定する
+	 * @param fn - 判定関数
+	 * @returns 条件を満たす要素があれば true、そうでない場合は false
+	 */
 	some(fn: (value: BigFloatComplex, row: number, column: number) => boolean): boolean;
 	/**
 	 * すべての要素が条件を満たすか判定する
@@ -1200,60 +1494,258 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {RangeError} 列数が一致しない場合
 	 */
 	concatRows(...others: BigFloatAnyMatrixLike[]): this;
+	/**
+	 * 行列を列方向に連結する
+	 * @param others - 連結する行列
+	 * @returns 連結された行列
+	 * @throws {RangeError} 行数が一致しない場合
+	 */
 	concatColumns(...others: BigFloatAnyMatrixLike[]): this;
+	/**
+	 * 指定した範囲の行を抽出する
+	 * @param start - 開始インデックス
+	 * @param end - 終了インデックス
+	 * @returns 抽出された新しい行列
+	 */
 	sliceRows(start?: number, end?: number): this;
+	/**
+	 * 指定した範囲の列を抽出する
+	 * @param start - 開始インデックス
+	 * @param end - 終了インデックス
+	 * @returns 抽出された新しい行列
+	 */
 	sliceColumns(start?: number, end?: number): this;
+	/**
+	 * 行列の精度を変更する
+	 * @param precision - 新しい精度
+	 * @returns 精度が変更された新しい行列
+	 */
 	changePrecision(precision: PrecisionValue): this;
+	/**
+	 * 各要素の剰余を計算する
+	 * @param other - 除数（行列またはスカラー）
+	 * @returns 演算後の新しい行列
+	 */
 	mod(other: BigFloatInputValue | BigFloatAnyMatrixLike): this;
+	/**
+	 * 各要素の符号を反転する
+	 * @returns 符号反転後の新しい行列
+	 */
 	neg(): this;
+	/**
+	 * 各要素の絶対値を計算する
+	 * @returns 絶対値適用後の新しい実数行列
+	 */
 	abs(): BigFloatMatrix;
+	/**
+	 * 各要素の符号を計算する
+	 * @returns 符号行列
+	 */
 	sign(): this;
+	/**
+	 * 各要素の逆数を計算する
+	 * @returns 逆数行列
+	 */
 	reciprocal(): this;
+	/**
+	 * 各要素のべき乗を計算する
+	 * @param exponent - 指数（行列またはスカラー）
+	 * @returns 冪乗後の新しい行列
+	 */
 	pow(exponent: BigFloatInputValue | BigFloatAnyMatrixLike): this;
+	/**
+	 * 各要素の平方根を計算する
+	 * @returns 平方根適用後の新しい行列
+	 */
 	sqrt(): this;
+	/**
+	 * 各要素の立方根を計算する
+	 * @returns 立方根適用後の新しい行列
+	 */
 	cbrt(): this;
+	/**
+	 * 各要素の n 乗根を計算する
+	 * @param n - 次数
+	 * @returns n 乗根適用後の新しい行列
+	 */
 	nthRoot(n: number | bigint): this;
+	/**
+	 * 各要素の床関数を計算する
+	 * @returns 床関数適用後の新しい行列
+	 */
 	floor(): this;
+	/**
+	 * 各要素の天井関数を計算する
+	 * @returns 天井関数適用後の新しい行列
+	 */
 	ceil(): this;
+	/**
+	 * 各要素を四捨五入する
+	 * @returns 四捨五入後の新しい行列
+	 */
 	round(): this;
+	/**
+	 * 各要素を切り捨てる
+	 * @returns 切り捨て後の新しい行列
+	 */
 	trunc(): this;
+	/**
+	 * 各要素を最も近い単精度浮動小数点数形式に丸める
+	 * @returns 丸め後の新しい行列
+	 */
 	fround(): this;
+	/**
+	 * 各要素の 32 ビット整数としての先頭のゼロの個数を計算する
+	 * @returns 結果の行列
+	 */
 	clz32(): this;
+	/**
+	 * 各要素の相対差を計算する
+	 * @param other - 比較対象（行列またはスカラー）
+	 * @returns 相対差の行列
+	 */
 	relativeDiff(other: BigFloatInputValue | BigFloatAnyMatrixLike): this;
+	/**
+	 * 各要素の絶対差を計算する
+	 * @param other - 比較対象（行列またはスカラー）
+	 * @returns 絶対差の行列
+	 */
 	absoluteDiff(other: BigFloatInputValue | BigFloatAnyMatrixLike): this;
+	/**
+	 * 各要素の百分率差分を計算する
+	 * @param other - 比較対象（行列またはスカラー）
+	 * @returns 百分率差分の行列 (%)
+	 */
 	percentDiff(other: BigFloatInputValue | BigFloatAnyMatrixLike): this;
+	/**
+	 * 各要素の正弦（sin）を計算する
+	 * @returns sin 適用後の行列
+	 */
 	sin(): this;
+	/**
+	 * 各要素の余弦（cos）を計算する
+	 * @returns cos 適用後の行列
+	 */
 	cos(): this;
+	/**
+	 * 各要素の正接（tan）を計算する
+	 * @returns tan 適用後の行列
+	 */
 	tan(): this;
+	/**
+	 * 各要素の逆正弦（asin）を計算する
+	 * @returns asin 適用後の行列
+	 */
 	asin(): this;
+	/**
+	 * 各要素の逆余弦（acos）を計算する
+	 * @returns acos 適用後の行列
+	 */
 	acos(): this;
+	/**
+	 * 各要素の逆正接（atan）を計算する
+	 * @returns atan 適用後の行列
+	 */
 	atan(): this;
+	/**
+	 * 各要素の atan2 を計算する
+	 * @param x - x 座標（行列またはスカラー）
+	 * @returns atan2 適用後の行列
+	 * @throws {TypeError} 実数でない複素数が含まれる場合
+	 */
 	atan2(x: BigFloatInputValue | BigFloatAnyMatrixLike): this;
+	/**
+	 * 各要素の双曲線正弦（sinh）を計算する
+	 * @returns sinh 適用後の行列
+	 */
 	sinh(): this;
+	/**
+	 * 各要素の双曲線余弦（cosh）を計算する
+	 * @returns cosh 適用後の行列
+	 */
 	cosh(): this;
+	/**
+	 * 各要素の双曲線正接（tanh）を計算する
+	 * @returns tanh 適用後の行列
+	 */
 	tanh(): this;
 	/**
 	 * 各要素の逆双曲線正弦を計算する
 	 * @returns asinh を適用した行列
 	 */
 	asinh(): this;
+	/**
+	 * 各要素の逆双曲線余弦（acosh）を計算する
+	 * @returns acosh 適用後の行列
+	 */
 	acosh(): this;
+	/**
+	 * 各要素の逆双曲線正接（atanh）を計算する
+	 * @returns atanh 適用後の行列
+	 */
 	atanh(): this;
+	/**
+	 * 各要素の指数関数（exp）を計算する
+	 * @returns exp 適用後の行列
+	 */
 	exp(): this;
+	/**
+	 * 各要素の 2 のべき乗を計算する
+	 * @returns exp2 適用後の行列
+	 */
 	exp2(): this;
+	/**
+	 * 各要素の exp(x) - 1 を計算する
+	 * @returns expm1 適用後の行列
+	 */
 	expm1(): this;
+	/**
+	 * 各要素の自然対数（ln）を計算する
+	 * @returns ln 適用後の行列
+	 */
 	ln(): this;
+	/**
+	 * 各要素の任意の底の対数を計算する
+	 * @param base - 対数の底（行列またはスカラー）
+	 * @returns 対数計算後の行列
+	 */
 	log(base: BigFloatInputValue | BigFloatAnyMatrixLike): this;
+	/**
+	 * 各要素の 2 を底とする対数を計算する
+	 * @returns log2 適用後の行列
+	 */
 	log2(): this;
+	/**
+	 * 各要素の 10 を底とする対数を計算する
+	 * @returns log10 適用後の行列
+	 */
 	log10(): this;
+	/**
+	 * 各要素の ln(1 + x) を計算する
+	 * @returns log1p 適用後の行列
+	 */
 	log1p(): this;
 	/**
 	 * 各要素のガンマ関数を計算する
 	 * @returns ガンマ関数を適用した行列
 	 */
 	gamma(): this;
+	/**
+	 * 各要素のゼータ関数を計算する
+	 * @returns ゼータ関数を適用した行列
+	 * @throws {TypeError} 実数でない複素数が含まれる場合
+	 */
 	zeta(): this;
+	/**
+	 * 各要素の階乗を計算する
+	 * @returns 階乗適用後の行列
+	 * @throws {TypeError} 実数でない複素数が含まれる場合
+	 */
 	factorial(): this;
+	/**
+	 * 行列のランクを計算する
+	 * @returns ランク
+	 */
 	rank(): number;
 }
 /** 丸めモード */
@@ -2436,69 +2928,329 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @returns 生成された乱数ベクトル
 	 */
 	static random(length: number, options?: BigFloatComplexVectorRandomOptions): BigFloatComplexVector;
+	/**
+	 * ベクトルの長さ（要素数）
+	 */
 	get length(): number;
+	/**
+	 * ベクトルの次元数を取得する
+	 * @returns 次元数 (length と同じ)
+	 */
 	dimension(): number;
+	/**
+	 * ベクトルが空であるか判定する
+	 * @returns 空なら true
+	 */
 	isEmpty(): boolean;
+	/**
+	 * 指定したインデックスの要素を取得する
+	 * @param index - インデックス
+	 * @returns 要素の値、インデックスが範囲外の場合は undefined
+	 */
 	at(index: number): BigFloatComplex | undefined;
+	/**
+	 * ベクトルを複製する
+	 * @returns 複製された BigFloatComplexVector
+	 */
 	clone(): BigFloatComplexVector;
+	/**
+	 * 配列に変換する
+	 * @returns BigFloatComplex の配列
+	 */
 	toArray(): BigFloatComplex[];
 	/**
 	 * 要素を流すストリームへ変換する
 	 * @returns 要素のストリーム
 	 */
 	toStream(): BigFloatStream;
+	/**
+	 * ベクトルのイテレータを取得する
+	 * @returns 要素のイテレータ
+	 */
 	[Symbol.iterator](): Iterator<BigFloatComplex, void, undefined>;
+	/**
+	 * 各要素に対して処理を実行する
+	 * @param fn - 実行する関数
+	 */
 	forEach(fn: (value: BigFloatComplex, index: number) => void): void;
+	/**
+	 * 各要素に関数を適用して新しいベクトルを生成する
+	 * @param fn - 適用する関数
+	 * @returns 変換後の新しいベクトル
+	 */
 	map(fn: (value: BigFloatComplex, index: number) => BigFloatInputValue): this;
+	/**
+	 * 二つのベクトルの各要素に対して関数を適用し、新しいベクトルを生成する
+	 * @param other - 比較対象のベクトル
+	 * @param fn - 適用する関数
+	 * @returns 演算結果のベクトル
+	 */
 	zipMap(other: BigFloatAnyVectorLike, fn: (left: BigFloatComplex, right: BigFloatComplex, index: number) => BigFloatInputValue): this;
+	/**
+	 * 各要素を累積して単一の値を計算する
+	 * @param fn - 累積関数
+	 * @param initial - 初期値
+	 * @returns 累積された結果
+	 */
 	reduce<U>(fn: (acc: U, value: BigFloatComplex, index: number) => U, initial: U): U;
+	/**
+	 * いずれかの要素が条件を満たすか判定する
+	 * @param fn - 判定関数
+	 * @returns 条件を満たす要素があれば true
+	 */
 	some(fn: (value: BigFloatComplex, index: number) => boolean): boolean;
+	/**
+	 * すべての要素が条件を満たすか判定する
+	 * @param fn - 判定関数
+	 * @returns すべての要素が条件を満たせば true
+	 */
 	every(fn: (value: BigFloatComplex, index: number) => boolean): boolean;
+	/**
+	 * ベクトルを連結する
+	 * @param others - 連結するベクトル
+	 * @returns 連結後の新しいベクトル
+	 */
 	concat(...others: BigFloatAnyVectorLike[]): this;
+	/**
+	 * 指定した範囲の要素を抽出する
+	 * @param start - 開始インデックス
+	 * @param end - 終了インデックス
+	 * @returns 抽出された新しいベクトル
+	 */
 	slice(start?: number, end?: number): this;
+	/**
+	 * 要素の順序を反転させる
+	 * @returns 反転した新しいベクトル
+	 */
 	reverse(): this;
+	/**
+	 * ベクトルの精度を変更する
+	 * @param precision - 新しい精度
+	 * @returns 精度が変更された新しいベクトル
+	 */
 	changePrecision(precision: PrecisionValue): this;
+	/**
+	 * ベクトルが等しいか判定する
+	 * @param other - 比較対象のベクトル
+	 * @returns 等しい場合は true
+	 */
 	equals(other: BigFloatAnyVectorLike): boolean;
+	/**
+	 * ベクトルの加算を行う
+	 * @param other - 加算するベクトルまたはスカラ
+	 * @returns 加算後の新しいベクトル
+	 */
 	add(other: BigFloatInputValue | BigFloatAnyVectorLike): this;
+	/**
+	 * ベクトルの減算を行う
+	 * @param other - 減算するベクトルまたはスカラ
+	 * @returns 減算後の新しいベクトル
+	 */
 	sub(other: BigFloatInputValue | BigFloatAnyVectorLike): this;
+	/**
+	 * スカラー倍を行う
+	 * @param scalar - 乗算するスカラー
+	 * @returns 乗算後の新しいベクトル
+	 */
 	mul(scalar: BigFloatInputValue): this;
+	/**
+	 * スカラー除算を行う
+	 * @param scalar - 除算するスカラー
+	 * @returns 除算後の新しいベクトル
+	 */
 	div(scalar: BigFloatInputValue): this;
+	/**
+	 * 各要素の剰余を計算する
+	 * @param other - 除数（ベクトルまたはスカラ）
+	 * @returns 演算後の新しいベクトル
+	 */
 	mod(other: BigFloatInputValue | BigFloatAnyVectorLike): this;
+	/**
+	 * アダマール積（要素ごとの積）を計算する
+	 * @param other - 乗算するベクトル
+	 * @returns Hadamard積の結果のベクトル
+	 */
 	hadamard(other: BigFloatAnyVectorLike): this;
+	/**
+	 * 各要素の符号を反転する
+	 * @returns 符号反転後の新しいベクトル
+	 */
 	neg(): this;
+	/**
+	 * 各要素の絶対値を計算する
+	 * @returns 絶対値適用後の新しい実数ベクトル
+	 */
 	abs(): BigFloatVector;
+	/**
+	 * 各要素の符号を計算する
+	 * @returns 符号ベクトル
+	 */
 	sign(): this;
+	/**
+	 * 各要素の逆数を計算する
+	 * @returns 逆数ベクトル
+	 */
 	reciprocal(): this;
+	/**
+	 * 各要素のべき乗を計算する
+	 * @param exponent - 指数（ベクトルまたはスカラ）
+	 * @returns 冪乗後の新しいベクトル
+	 */
 	pow(exponent: BigFloatInputValue | BigFloatAnyVectorLike): this;
+	/**
+	 * 各要素の平方根を計算する
+	 * @returns 平方根適用後の新しいベクトル
+	 */
 	sqrt(): this;
+	/**
+	 * 各要素の立方根を計算する
+	 * @returns 立方根適用後の新しいベクトル
+	 */
 	cbrt(): this;
+	/**
+	 * 各要素の n 乗根を計算する
+	 * @param n - 次数
+	 * @returns n 乗根適用後の新しいベクトル
+	 */
 	nthRoot(n: number | bigint): this;
+	/**
+	 * 各要素の床関数を計算する
+	 * @returns 床関数適用後の新しいベクトル
+	 */
 	floor(): this;
+	/**
+	 * 各要素の天井関数を計算する
+	 * @returns 天井関数適用後の新しいベクトル
+	 */
 	ceil(): this;
+	/**
+	 * 各要素を四捨五入する
+	 * @returns 四捨五入後の新しいベクトル
+	 */
 	round(): this;
+	/**
+	 * 各要素を切り捨てる
+	 * @returns 切り捨て後の新しいベクトル
+	 */
 	trunc(): this;
+	/**
+	 * 各要素を最も近い単精度浮動小数点数形式に丸める
+	 * @returns 丸め後の新しいベクトル
+	 */
 	fround(): this;
+	/**
+	 * 各要素の 32 ビット整数としての先頭のゼロの個数を計算する
+	 * @returns 結果のベクトル
+	 */
 	clz32(): this;
+	/**
+	 * 各要素の相対差を計算する
+	 * @param other - 比較対象（ベクトルまたはスカラ）
+	 * @returns 相対差のベクトル
+	 */
 	relativeDiff(other: BigFloatInputValue | BigFloatAnyVectorLike): this;
+	/**
+	 * 各要素の絶対差を計算する
+	 * @param other - 比較対象（ベクトルまたはスカラ）
+	 * @returns 絶対差のベクトル
+	 */
 	absoluteDiff(other: BigFloatInputValue | BigFloatAnyVectorLike): this;
+	/**
+	 * 各要素の百分率差分を計算する
+	 * @param other - 比較対象（ベクトルまたはスカラ）
+	 * @returns 百分率差分のベクトル (%)
+	 */
 	percentDiff(other: BigFloatInputValue | BigFloatAnyVectorLike): this;
+	/**
+	 * 各要素の正弦（sin）を計算する
+	 * @returns sin 適用後のベクトル
+	 */
 	sin(): this;
+	/**
+	 * 各要素の余弦（cos）を計算する
+	 * @returns cos 適用後のベクトル
+	 */
 	cos(): this;
+	/**
+	 * 各要素の正接（tan）を計算する
+	 * @returns tan 適用後のベクトル
+	 */
 	tan(): this;
+	/**
+	 * 各要素の逆正弦（asin）を計算する
+	 * @returns asin 適用後のベクトル
+	 */
 	asin(): this;
+	/**
+	 * 各要素の逆余弦（acos）を計算する
+	 * @returns acos 適用後のベクトル
+	 */
 	acos(): this;
+	/**
+	 * 各要素の逆正接（atan）を計算する
+	 * @returns atan 適用後のベクトル
+	 */
 	atan(): this;
+	/**
+	 * 各要素の双曲線正弦（sinh）を計算する
+	 * @returns sinh 適用後のベクトル
+	 */
 	sinh(): this;
+	/**
+	 * 各要素の双曲線余弦（cosh）を計算する
+	 * @returns cosh 適用後のベクトル
+	 */
 	cosh(): this;
+	/**
+	 * 各要素の双曲線正接（tanh）を計算する
+	 * @returns tanh 適用後のベクトル
+	 */
 	tanh(): this;
+	/**
+	 * 各要素の逆双曲線正弦（asinh）を計算する
+	 * @returns asinh 適用後のベクトル
+	 */
 	asinh(): this;
+	/**
+	 * 各要素の逆双曲線余弦（acosh）を計算する
+	 * @returns acosh 適用後のベクトル
+	 */
 	acosh(): this;
+	/**
+	 * 各要素の逆双曲線正接（atanh）を計算する
+	 * @returns atanh 適用後のベクトル
+	 */
 	atanh(): this;
+	/**
+	 * 各要素の指数関数（exp）を計算する
+	 * @returns exp 適用後のベクトル
+	 */
 	exp(): this;
+	/**
+	 * 各要素の exp(x) - 1 を計算する
+	 * @returns expm1 適用後のベクトル
+	 */
 	expm1(): this;
+	/**
+	 * 各要素の自然対数（ln）を計算する
+	 * @returns ln 適用後のベクトル
+	 */
 	ln(): this;
+	/**
+	 * 各要素の任意の底の対数を計算する
+	 * @param base - 対数の底（ベクトルまたはスカラ）
+	 * @returns 対数計算後のベクトル
+	 */
 	log(base: BigFloatInputValue | BigFloatAnyVectorLike): this;
+	/**
+	 * 各要素の 2 を底とする対数を計算する
+	 * @returns log2 適用後のベクトル
+	 */
 	log2(): this;
+	/**
+	 * 各要素の 10 を底とする対数を計算する
+	 * @returns log10 適用後のベクトル
+	 */
 	log10(): this;
 	/**
 	 * 最大値を取得する（複素数では未サポート）
@@ -2512,11 +3264,36 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {TypeError} 複素数ベクトルではサポートされていないため
 	 */
 	min(): BigFloatComplex;
+	/**
+	 * 要素の合計を計算する
+	 * @returns 合計値
+	 */
 	sum(): BigFloatComplex;
+	/**
+	 * 要素の総乗を計算する
+	 * @returns 総乗の値
+	 */
 	product(): BigFloatComplex;
+	/**
+	 * 要素の平均を計算する
+	 * @returns 平均値
+	 */
 	average(): BigFloatComplex;
+	/**
+	 * 他のベクトルとの内積を計算する
+	 * @param other - 対象のベクトル
+	 * @returns 内積の値
+	 */
 	dot(other: BigFloatAnyVectorLike): BigFloatComplex;
+	/**
+	 * 二乗ノルムを計算する
+	 * @returns 二乗ノルム
+	 */
 	squaredNorm(): BigFloat;
+	/**
+	 * ノルム（ベクトルの長さ）を計算する
+	 * @returns ノルム
+	 */
 	norm(): BigFloat;
 	/**
 	 * ベクトルを正規化する
@@ -2524,6 +3301,11 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {RangeError} ゼロベクトルを正規化しようとした場合
 	 */
 	normalize(): this;
+	/**
+	 * 他のベクトルとの距離を計算する
+	 * @param other - 対象のベクトル
+	 * @returns 距離
+	 */
 	distanceTo(other: BigFloatAnyVectorLike): BigFloat;
 	/**
 	 * 外積を計算する
@@ -2532,10 +3314,17 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {RangeError} 3次元ベクトルでない場合
 	 */
 	cross(other: BigFloatAnyVectorLike): this;
+	/**
+	 * 他のベクトルとの二乗距離を計算する
+	 * @param other - 対象のベクトル
+	 * @returns 二乗距離
+	 */
 	squaredDistanceTo(other: BigFloatAnyVectorLike): BigFloat;
 	/**
 	 * 別のベクトルへの正射影ベクトルを計算する
-	 * @throws {RangeError} 例外が発生した場合
+	 * @param other - 射影先のベクトル
+	 * @returns 射影された新しいベクトル
+	 * @throws {RangeError} ゼロベクトルに射影しようとした場合
 	 */
 	projectOnto(other: BigFloatAnyVectorLike): this;
 }
