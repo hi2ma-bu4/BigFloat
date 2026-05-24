@@ -14,7 +14,6 @@ type BigFloatComplexMatrixRandomOptions = {
 
 /**
  * BigFloatComplex を要素とする固定長行列クラス
- * @throws {RangeError} 例外が発生した場合
  */
 export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	/** 内部要素 (行ごとの配列) */
@@ -897,10 +896,6 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	 */
 	public concatRows(...others: BigFloatAnyMatrixLike[]): this {
 		const values = this.toArray();
-		/**
-		 * for
-		 * @throws {RangeError} Column counts must match
-		 */
 		for (const other of others) {
 			const matrix = BigFloatComplexMatrix._coerceMatrix(other, this._flattenValues());
 			if (this.columnCount !== 0 && matrix.columnCount !== this.columnCount) throw new RangeError("Column counts must match");

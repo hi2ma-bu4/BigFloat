@@ -11178,7 +11178,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * 各要素に対して剰余演算を行った新しい行列を取得する
    * @param other - 法
    * @returns 演算後の新しい行列
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
+   * @throws {TypeError} BigFloat.mod が複素数オペランドをサポートしていない場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    * @throws {RangeError} 行列形状が一致しない場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
