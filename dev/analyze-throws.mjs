@@ -73,6 +73,16 @@ export function analyzeThrows(config) {
 
 			for (let i = 1; i < lines.length; i++) {
 				const line = lines[i];
+
+				// 0文字の空行チェック
+				if (line.length === 0) {
+					result.push({
+						file: relPath,
+						line: startLine + i,
+						message: "JSDoc内に0文字の空行が含まれています。' *' を含めてください",
+					});
+				}
+
 				if (i === lines.length - 1) {
 					// 最終行 ( */ )
 					if (line.trim() === "*/") {
@@ -171,6 +181,16 @@ export function analyzeThrows(config) {
 						line: tagLine,
 						message: "@return ではなく @returns を使用してください",
 					});
+				}
+
+				if (tagName === "overload") {
+					if (!hasOverloads(parent)) {
+						result.push({
+							file: relPath,
+							line: tagLine,
+							message: "冗長な @overload タグです。オーバーロードが存在しません",
+						});
+					}
 				}
 
 				if (["param", "returns", "throws"].includes(tagName)) {
@@ -274,6 +294,18 @@ export function analyzeThrows(config) {
 				// オーバーロード定義
 				if (jsDocs.length > 0) {
 					const hasOverloadTag = jsDocs.some((doc) => doc.getTags().some((tag) => tag.getTagName() === "overload"));
+
+					// オーバーロードに @throws があるかチェック
+					for (const jsDoc of jsDocs) {
+						if (jsDoc.getTags().some((t) => t.getTagName() === "throws")) {
+							result.push({
+								file: relPath,
+								line: jsDoc.getStartLineNumber(),
+								message: "オーバーロードには @throws を記述できません。実態(実装)側に集約してください",
+							});
+						}
+					}
+
 					if (!hasOverloadTag) {
 						const currentParams = decl.getParameters().map((p) => p.getType().getText());
 						const sameSignatureDecls = group.filter((d) => d !== decl && d !== implementation && d.getParameters().length === decl.getParameters().length && d.getParameters().every((p, i) => p.getType().getText() === currentParams[i]));
@@ -393,10 +425,6 @@ function isDocumentable(node) {
 	if (Node.isClassDeclaration(parent) || Node.isInterfaceDeclaration(parent) || Node.isEnumDeclaration(parent)) {
 		// 親がドキュメント化対象（Exportされているなど）であれば、そのメンバも対象
 		if (isDocumentable(parent)) {
-			// ただし、明示的に private なものは除く（#name または private キーワード）
-			if (typeof node.getModifiers === "function" && node.getModifiers().some((m) => m.getKind() === SyntaxKind.PrivateKeyword)) {
-				return false;
-			}
 			return true;
 		}
 	}
@@ -409,6 +437,18 @@ function isDocumentable(node) {
 		}
 	}
 
+	return false;
+}
+
+function hasOverloads(node) {
+	if (Node.isFunctionDeclaration(node) || Node.isMethodDeclaration(node) || Node.isConstructorDeclaration(node)) {
+		const nameNode = getFunctionNameNode(node);
+		const name = nameNode ? nameNode.getText() : Node.isConstructorDeclaration(node) ? "constructor" : null;
+		if (!name) return false;
+		const parent = node.getParent();
+		const all = parent.getDescendants().filter((n) => (Node.isFunctionDeclaration(n) || Node.isMethodDeclaration(n) || Node.isConstructorDeclaration(n)) && (getFunctionNameNode(n)?.getText() === name || (Node.isConstructorDeclaration(n) && name === "constructor")));
+		return all.length > 1;
+	}
 	return false;
 }
 

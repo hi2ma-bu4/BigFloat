@@ -4905,7 +4905,6 @@ var BigFloat = class _BigFloat {
   /**
    * 厳密な整数値を取得する
    * @returns 整数値、整数でない場合はnull
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   _getExactInteger() {
     if (this.mantissa === 0n) return 0n;
@@ -4922,7 +4921,6 @@ var BigFloat = class _BigFloat {
   /**
    * 厳密な2の冪指数を取得する
    * @returns 2の冪指数、該当しない場合はnull
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   _getExactPowerOf2Exponent() {
     if (this.mantissa <= 0n) return null;
@@ -4938,7 +4936,6 @@ var BigFloat = class _BigFloat {
   /**
    * 厳密な10の冪指数を取得する
    * @returns 10の冪指数、該当しない場合はnull
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   _getExactPowerOf10Exponent() {
     if (this.mantissa <= 0n) return null;
@@ -4953,7 +4950,6 @@ var BigFloat = class _BigFloat {
   }
   /**
    * ソフト正規化 (2の累乗を外に出す)
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   softNormalize() {
     if (!this._isFiniteState()) return;
@@ -4976,7 +4972,6 @@ var BigFloat = class _BigFloat {
   }
   /**
    * レイジー正規化 (5の累乗を外に出す)
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   lazyNormalize() {
     if (!this._isFiniteState()) return;
@@ -5015,7 +5010,6 @@ var BigFloat = class _BigFloat {
   /**
    * 指定された精度に丸める
    * @param precision - 精度 (省略時は自身の _precision)
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   _applyPrecision(precision = this._precision) {
     if (!this._isFiniteState()) return;
@@ -5058,7 +5052,6 @@ var BigFloat = class _BigFloat {
    * @param mantissa - 値
    * @param divisor - 除数
    * @returns 丸められた値
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _roundManual(mantissa, divisor) {
     const mode = this.config.roundingMode;
@@ -5181,7 +5174,6 @@ var BigFloat = class _BigFloat {
    * 集計関数の単一配列引数かどうかを判定する
    * @param args - 引数リスト
    * @returns 単一配列引数の場合はtrue
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _hasAggregateArrayArg(args) {
     return args.length === 1 && Array.isArray(args[0]);
@@ -5190,7 +5182,6 @@ var BigFloat = class _BigFloat {
    * 引数を正規化する
    * @param args - 引数リスト
    * @returns 正規化された引数リスト
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _normalizeArgs(args) {
     if (this._hasAggregateArrayArg(args)) {
@@ -5204,7 +5195,6 @@ var BigFloat = class _BigFloat {
    * @param fallback - デフォルト精度
    * @returns 解決済み精度
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _resolvePrecisionFromValues(values, fallback = this.DEFAULT_PRECISION) {
     let resolved = BigInt(fallback);
@@ -5234,7 +5224,6 @@ var BigFloat = class _BigFloat {
    * @param value - 10^precision倍された整数値
    * @param precision - 精度
    * @returns 生の内部表現
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _fromInternalValue(value, precision) {
     const result = { mantissa: value, exp2: -precision, exp5: -precision };
@@ -5245,7 +5234,6 @@ var BigFloat = class _BigFloat {
    * @param value - 生の内部表現
    * @param precision - 精度
    * @returns 10^precision倍された整数値
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _toInternalValue(value, precision) {
     let mantissa = value.mantissa;
@@ -5261,7 +5249,6 @@ var BigFloat = class _BigFloat {
    * 生の内部表現をソフト正規化する
    * @param value - 対象
    * @returns 正規化後の内部表現
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _softNormalizeRaw(value) {
     if (value.mantissa === 0n) {
@@ -5287,7 +5274,6 @@ var BigFloat = class _BigFloat {
    * @param value - 対象
    * @param precision - 精度
    * @returns 丸め後の内部表現
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _applyRawPrecision(value, precision) {
     if (value.mantissa === 0n) {
@@ -5321,7 +5307,6 @@ var BigFloat = class _BigFloat {
    * 生の内部表現をレイジー正規化する
    * @param value - 対象
    * @returns 正規化後の内部表現
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _lazyNormalizeRaw(value) {
     this._softNormalizeRaw(value);
@@ -5388,7 +5373,6 @@ var BigFloat = class _BigFloat {
    * @param a - 値A
    * @param b - 値B
    * @returns 最大公約数
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _gcd(a, b) {
     let x = a < 0n ? -a : a;
@@ -5407,7 +5391,6 @@ var BigFloat = class _BigFloat {
    * @returns [BigFloatA, BigFloatB] (アラインメント済みのインスタンス)
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   _align(other, mutateA = false) {
     const construct = this.constructor;
@@ -5450,7 +5433,6 @@ var BigFloat = class _BigFloat {
    * @param precision - 保持する精度 (小数点以下の最大桁数)
    * @param valPrecision - 入力値の現在の精度 (省略時は precision)
    * @returns 作成されたBigFloatインスタンス
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _makeResult(val, precision, valPrecision = precision) {
     const result = new this();
@@ -5469,7 +5451,6 @@ var BigFloat = class _BigFloat {
    * @param valPrecision - 入力値の現在の精度 (省略時は precision)
    * @param okMutate - 破壊的な変更を許可するかどうか
    * @returns 作成または更新されたBigFloatインスタンス
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   _makeResult(val, precision, valPrecision = precision, okMutate = true) {
     const res = this.constructor._makeResult(val, precision, valPrecision);
@@ -5482,7 +5463,6 @@ var BigFloat = class _BigFloat {
    * @param decimalShift - 値に追加で掛かっている 10 の指数
    * @returns ニュートン法用の初期値
    * @throws {RangeError} degree が正の整数でない場合
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _estimatePositiveRoot(value, degree, decimalShift = 0n) {
     if (degree <= 0n) throw new RangeError("degree must be a positive integer");
@@ -5522,7 +5502,6 @@ var BigFloat = class _BigFloat {
    * @param precision - 新しい精度
    * @returns 精度が変更されたインスタンス
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   changePrecision(precision) {
     const precisionBig = BigInt(precision);
@@ -5599,6 +5578,7 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {TypeError} 複素数と比較しようとした場合
    */
   eq(other) {
     return this.compare(other) === 0;
@@ -5610,6 +5590,7 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {TypeError} 複素数と比較しようとした場合
    */
   equals(other) {
     return this.compare(other) === 0;
@@ -5621,6 +5602,7 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {TypeError} 複素数と比較しようとした場合
    */
   ne(other) {
     return this.compare(other) !== 0;
@@ -5632,6 +5614,7 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {TypeError} 複素数と比較しようとした場合
    */
   lt(other) {
     return this.compare(other) === -1;
@@ -5643,6 +5626,7 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {TypeError} 複素数と比較しようとした場合
    */
   lte(other) {
     return this.compare(other) <= 0;
@@ -5654,6 +5638,7 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {TypeError} 複素数と比較しようとした場合
    */
   gt(other) {
     return this.compare(other) === 1;
@@ -5665,6 +5650,7 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {TypeError} 複素数と比較しようとした場合
    */
   gte(other) {
     return this.compare(other) >= 0;
@@ -5907,6 +5893,13 @@ var BigFloat = class _BigFloat {
     const expStr = exp >= 0 ? `e+${exp}` : `e${exp}`;
     return `${signStr}${formattedMantissa}${expStr}`;
   }
+  /**
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合、または対象に特殊値が含まれる場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
   add(other) {
     const complex = this._complexOperand(other, "add");
     if (complex) return complex.add(this);
@@ -5930,6 +5923,13 @@ var BigFloat = class _BigFloat {
     a._applyPrecision();
     return a;
   }
+  /**
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合、または対象に特殊値が含まれる場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
   sub(other) {
     const complex = this._complexOperand(other, "sub");
     if (complex) return this._toComplexLike(complex).sub(complex);
@@ -5954,6 +5954,13 @@ var BigFloat = class _BigFloat {
     a._applyPrecision();
     return a;
   }
+  /**
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合、または対象に特殊値が含まれる場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
   mul(other) {
     const complex = this._complexOperand(other, "mul");
     if (complex) return complex.mul(this);
@@ -5986,6 +5993,14 @@ var BigFloat = class _BigFloat {
     res._applyPrecision();
     return res;
   }
+  /**
+   * @throws {DivisionByZeroError} Division by zero
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合、または対象に特殊値が含まれる場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
   div(other) {
     const complex = this._complexOperand(other, "div");
     if (complex) return this._toComplexLike(complex).div(complex);
@@ -6094,12 +6109,17 @@ var BigFloat = class _BigFloat {
    * @param x - 被除数
    * @param m - 法
    * @returns 剰余
-   * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
    */
   static _mod(x, m) {
     const r = x % m;
     return r < 0n ? r + m : r;
   }
+  /**
+   * @throws {TypeError} 複素数モードが無効な場合、または対象が複素数の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合、または対象に特殊値が含まれる場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   */
   mod(other) {
     const construct = this.constructor;
     const complex = construct._isComplexValue(other) ? other : null;
@@ -6333,9 +6353,6 @@ var BigFloat = class _BigFloat {
     return this._exp(mul, precision);
   }
   /**
-   * 冪乗を計算する
-   * @param exponent - 指数
-   * @returns 冪乗の結果
    * @throws {RangeError} Fractional power of negative number is not real
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    * @throws {TypeError} 複素数モードが無効な場合
@@ -6344,7 +6361,6 @@ var BigFloat = class _BigFloat {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    * @throws {NumericalComputationError} 数値的に不安定な点の場合
-   * @overload
    */
   pow(exponent) {
     const complex = this._complexOperand(exponent, "pow");
@@ -7588,6 +7604,7 @@ var BigFloat = class _BigFloat {
    * @throws {RangeError} 底が1または0の場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数と比較しようとした場合
    */
   log(base) {
     const construct = this.constructor;
@@ -7736,6 +7753,7 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数と比較しようとした場合
    */
   log1p() {
     const construct = this.constructor;
@@ -8293,6 +8311,7 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {TypeError} 複素数と比較しようとした場合
    */
   static log1p(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -8318,6 +8337,7 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値を含む引数が渡されたとき
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数と比較しようとした場合
    */
   static max(...args) {
     const values = this._normalizeArgs(args);
@@ -8345,6 +8365,7 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な場合に特殊値を含む引数が渡されたとき
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数と比較しようとした場合
    */
   static min(...args) {
     const values = this._normalizeArgs(args);
