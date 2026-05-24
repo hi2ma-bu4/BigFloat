@@ -3,6 +3,7 @@ import { BigFloatComplex } from "./bigFloatComplex";
 import { BigFloatComplexVector } from "./bigFloatComplexVector";
 import { BigFloatMatrix } from "./bigFloatMatrix";
 import { BigFloatStream } from "./bigFloatStream";
+import { SingularMatrixError } from "./error";
 import type { BigFloatAnyMatrix, BigFloatAnyMatrixLike, BigFloatAnyVectorLike, BigFloatComplexMatrixLike, BigFloatInputValue, PrecisionValue } from "./types";
 
 type BigFloatComplexMatrixRandomOptions = {
@@ -81,10 +82,6 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	protected static _assertRectangularRaw(rows: BigFloatInputValue[][]): void {
 		if (rows.length === 0) return;
 		const columnCount = rows[0].length;
-		/**
-		 * for
-		 * @throws {RangeError} Matrix rows must have the same length
-		 */
 		for (const row of rows) {
 			if (row.length !== columnCount) throw new RangeError("Matrix rows must have the same length");
 		}
@@ -596,10 +593,6 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		const totalColumns = 2 * size;
 		let pivotRow = 0;
 
-		/**
-		 * for
-		 * @throws {RangeError} Matrix is singular
-		 */
 		for (let column = 0; column < size && pivotRow < rowCount; column++) {
 			let bestRow = -1;
 			let bestValue: BigFloat | null = null;
@@ -611,7 +604,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 					bestRow = candidate;
 				}
 			}
-			if (bestRow === -1) throw new RangeError("Matrix is singular");
+			if (bestRow === -1) throw new SingularMatrixError("Matrix is singular");
 			if (bestRow !== pivotRow) {
 				[augmented[pivotRow], augmented[bestRow]] = [augmented[bestRow], augmented[pivotRow]];
 			}
@@ -663,7 +656,7 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		const size = this.rowCount;
 		const augmented = this._values.map((row, i) => [...row.map((v) => v.clone()), ...right._values[i].map((v) => v.clone())]);
 		const { values, pivotColumns } = BigFloatComplexMatrix._reducedRowEchelon(augmented, size);
-		if (pivotColumns.length !== size) throw new RangeError("Matrix is singular");
+		if (pivotColumns.length !== size) throw new SingularMatrixError("Matrix is singular");
 		return BigFloatComplexMatrix._fromComplexGrid(values.map((row) => row.slice(size))) as this;
 	}
 
@@ -1232,6 +1225,14 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	/**
 	 * 各要素の 2 のべき乗を計算する
 	 * @returns exp2 適用後の行列
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+	 * @throws {RangeError} ゼロ複素数を非正の実数以外の指数で冪乗しようとした場合
 	 */
 	public exp2(): this {
 		return this._mapValues((v) => v.pow(2));
@@ -1240,6 +1241,12 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	/**
 	 * 各要素の exp(x) - 1 を計算する
 	 * @returns expm1 適用後の行列
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 */
 	public expm1(): this {
 		return this._mapValues((v) => v.expm1());
@@ -1248,6 +1255,14 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	/**
 	 * 各要素の自然対数（ln）を計算する
 	 * @returns ln 適用後の行列
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
 	 */
 	public ln(): this {
 		return this._mapValues((v) => v.ln());
@@ -1257,6 +1272,14 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	 * 各要素の任意の底の対数を計算する
 	 * @param base - 対数の底（行列またはスカラー）
 	 * @returns 対数計算後の行列
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 */
 	public log(base: BigFloatInputValue | BigFloatAnyMatrixLike): this {
 		return this._mapWithOperand(base, (l, r) => l.log(r));
@@ -1265,6 +1288,14 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	/**
 	 * 各要素の 2 を底とする対数を計算する
 	 * @returns log2 適用後の行列
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 */
 	public log2(): this {
 		return this._mapValues((v) => v.log(2));
@@ -1273,6 +1304,14 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	/**
 	 * 各要素の 10 を底とする対数を計算する
 	 * @returns log10 適用後の行列
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 */
 	public log10(): this {
 		return this._mapValues((v) => v.log(10));
@@ -1281,6 +1320,14 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	/**
 	 * 各要素の ln(1 + x) を計算する
 	 * @returns log1p 適用後の行列
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
 	public log1p(): this {
 		return this._mapValues((v) => v.add(1).ln());
@@ -1289,13 +1336,14 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	/**
 	 * 各要素のガンマ関数を計算する
 	 * @returns ガンマ関数を適用した行列
+	 * @throws {TypeError} 実数でない複素数が含まれる場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 負の整数の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 */
 	public gamma(): this {
 		// Not implemented in BigFloatComplex
-		/**
-		 * _mapValues
-		 * @throws {TypeError} gamma is not supported for non-real complex numbers
-		 */
 		return this._mapValues((v) => {
 			if (!v.isReal()) throw new TypeError("gamma is not supported for non-real complex numbers");
 			return new BigFloatComplex(v.real.gamma(), 0, v.precision);
@@ -1306,6 +1354,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	 * 各要素のゼータ関数を計算する
 	 * @returns ゼータ関数を適用した行列
 	 * @throws {TypeError} 実数でない複素数が含まれる場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 特殊値が無効な設定で this = 1 の場合
 	 */
 	public zeta(): this {
 		return this._mapValues((v) => {
@@ -1318,6 +1370,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	 * 各要素の階乗を計算する
 	 * @returns 階乗適用後の行列
 	 * @throws {TypeError} 実数でない複素数が含まれる場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 負の整数の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 */
 	public factorial(): this {
 		return this._mapValues((v) => {

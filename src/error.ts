@@ -6,6 +6,7 @@ export class BigFloatError extends Error {
 	 * BigFloatError コンストラクタ
 	 * @param message - エラーメッセージ
 	 * @param options - エラーオプション
+	 * @returns BigFloatError インスタンス
 	 */
 	public constructor(message?: string, options?: ErrorOptions) {
 		super(message, options);

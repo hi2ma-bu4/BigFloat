@@ -55,49 +55,41 @@ export interface BigFloatOptions {
 	lnMaxSteps?: bigint;
 }
 
-/**
- * 精度を表す値
- */
+/** 精度を表す値 */
 export type PrecisionValue = number | bigint;
 
-/**
- * BigFloatに変換可能な値
- */
+/** BigFloatに変換可能な値 */
 export type BigFloatValue = BigFloat | number | string | bigint;
 
-/**
- * BigFloat の可変引数または単一配列引数
- */
+/** BigFloat の可変引数または単一配列引数 */
 export type BigFloatAggregateArgs = BigFloatValue[] | [readonly BigFloatValue[]];
 
-/**
- * BigFloat または BigFloatComplex のインスタンス
- */
+/** BigFloat または BigFloatComplex のインスタンス */
 export type BigFloatLike = BigFloat | BigFloatComplex;
 
-/**
- * BigFloatとBigFloatComplexで共通利用可能で変換可能な値
- */
+/** BigFloatとBigFloatComplexで共通利用可能で変換可能な値 */
 export type BigFloatInputValue = BigFloatValue | BigFloatComplex;
 
+/** BigFloatVector に変換可能な型 */
 export type BigFloatVectorLike = BigFloatVector | Iterable<BigFloatValue>;
 
+/** BigFloatComplexVector に変換可能な型 */
 export type BigFloatComplexVectorLike = BigFloatComplexVector | Iterable<BigFloatComplex>;
 
-/**
- * BigFloatVector または BigFloatComplexVector のインスタンス
- */
+/** BigFloatVector または BigFloatComplexVector のインスタンス */
 export type BigFloatAnyVector = BigFloatVector | BigFloatComplexVector;
 
+/** BigFloatAnyVector に変換可能な型 */
 export type BigFloatAnyVectorLike = BigFloatVectorLike | BigFloatComplexVectorLike | Iterable<BigFloatInputValue>;
 
+/** BigFloatMatrix に変換可能な型 */
 export type BigFloatMatrixLike = BigFloatMatrix | Iterable<BigFloatVectorLike>;
 
+/** BigFloatComplexMatrix に変換可能な型 */
 export type BigFloatComplexMatrixLike = BigFloatComplexMatrix | Iterable<BigFloatComplexVectorLike>;
 
-/**
- * BigFloatMatrix または BigFloatComplexMatrix のインスタンス
- */
+/** BigFloatMatrix または BigFloatComplexMatrix のインスタンス */
 export type BigFloatAnyMatrix = BigFloatMatrix | BigFloatComplexMatrix;
 
+/** BigFloatAnyMatrix に変換可能な型 */
 export type BigFloatAnyMatrixLike = BigFloatMatrixLike | BigFloatComplexMatrixLike;
