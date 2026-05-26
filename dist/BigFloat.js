@@ -4683,7 +4683,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   normalize() {
-    if (this.isZero()) throw new RangeError("Cannot normalize zero complex");
+    if (this.isZero()) throw new DivisionByZeroError("Cannot normalize zero complex");
     return this.div(this.abs());
   }
   /**
@@ -4807,7 +4807,7 @@ var BigFloatComplex = class _BigFloatComplex {
   div(other) {
     const rhs = _BigFloatComplex._toComplex(other, this._precision);
     const denominator = rhs.absSquared();
-    if (denominator.isZero()) throw new RangeError("Division by zero complex");
+    if (denominator.isZero()) throw new DivisionByZeroError("Division by zero complex");
     return this.mul(rhs.conjugate()).divByReal(denominator);
   }
   /**

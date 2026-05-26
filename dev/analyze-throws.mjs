@@ -552,67 +552,77 @@ function collectActualThrowsRecursive(func, funcToTags, project, visited = new S
 	visited.add(func);
 
 	const types = new Set();
+	const roots = [];
 	const body = (func.getBody && func.getBody()) || (Node.isArrowFunction(func) && func.getExpressionBody());
-	if (!body) return types;
+	if (body) roots.push(body);
 
-	// 明示的な throw
-	body.getDescendantsOfKind(SyntaxKind.ThrowStatement).forEach((throwStmt) => {
-		if (isThrowStatementHandled(throwStmt)) return;
-
-		let temp = throwStmt.getParent();
-		let belongsToFunc = false;
-		while (temp && temp !== func) {
-			if (Node.isFunctionLikeDeclaration(temp) || Node.isMethodDeclaration(temp)) {
-				if (isDocumentable(temp)) {
-					belongsToFunc = false;
-					break;
-				}
-			}
-			temp = temp.getParent();
+	if (func.getParameters) {
+		for (const param of func.getParameters()) {
+			const init = param.getInitializer();
+			if (init) roots.push(init);
 		}
-		if (temp === func) belongsToFunc = true;
+	}
 
-		if (belongsToFunc) types.add(getThrowType(throwStmt));
-	});
+	for (const root of roots) {
+		// 明示的な throw
+		root.getDescendantsOfKind(SyntaxKind.ThrowStatement).forEach((throwStmt) => {
+			if (isThrowStatementHandled(throwStmt)) return;
 
-	// 関数呼び出し
-	const callNodes = [...body.getDescendantsOfKind(SyntaxKind.CallExpression), ...body.getDescendantsOfKind(SyntaxKind.NewExpression)];
-	callNodes.forEach((callExpr) => {
-		if (isCallHandledByTryCatch(callExpr) || isCallHandledByPromise(callExpr)) return;
-
-		let temp = callExpr.getParent();
-		let belongsToFunc = false;
-		while (temp && temp !== func) {
-			if (Node.isFunctionLikeDeclaration(temp) || Node.isMethodDeclaration(temp)) {
-				if (isDocumentable(temp)) {
-					belongsToFunc = false;
-					break;
-				}
-			}
-			temp = temp.getParent();
-		}
-		if (temp === func) belongsToFunc = true;
-		if (!belongsToFunc) return;
-
-		const calledDecls = getCalledDeclarations(callExpr, project);
-		for (const decl of calledDecls) {
-			if (Node.isClassDeclaration(decl)) {
-				decl.getConstructors().forEach((ctor) => {
-					const tags = funcToTags.get(ctor) || [];
-					tags.forEach((t) => types.add(t.type));
-					if (!isDocumentable(ctor)) {
-						collectActualThrowsRecursive(ctor, funcToTags, project, visited).forEach((t) => types.add(t));
+			let temp = throwStmt.getParent();
+			let belongsToFunc = false;
+			while (temp && temp !== func) {
+				if (Node.isFunctionLikeDeclaration(temp) || Node.isMethodDeclaration(temp)) {
+					if (isDocumentable(temp)) {
+						belongsToFunc = false;
+						break;
 					}
-				});
-			} else {
-				const tags = funcToTags.get(decl) || [];
-				tags.forEach((t) => types.add(t.type));
-				if (!isDocumentable(decl) && (Node.isFunctionLikeDeclaration(decl) || Node.isMethodDeclaration(decl))) {
-					collectActualThrowsRecursive(decl, funcToTags, project, visited).forEach((t) => types.add(t));
+				}
+				temp = temp.getParent();
+			}
+			if (temp === func) belongsToFunc = true;
+
+			if (belongsToFunc) types.add(getThrowType(throwStmt));
+		});
+
+		// 関数呼び出し
+		const callNodes = [...root.getDescendantsOfKind(SyntaxKind.CallExpression), ...root.getDescendantsOfKind(SyntaxKind.NewExpression)];
+		callNodes.forEach((callExpr) => {
+			if (isCallHandledByTryCatch(callExpr) || isCallHandledByPromise(callExpr)) return;
+
+			let temp = callExpr.getParent();
+			let belongsToFunc = false;
+			while (temp && temp !== func) {
+				if (Node.isFunctionLikeDeclaration(temp) || Node.isMethodDeclaration(temp)) {
+					if (isDocumentable(temp)) {
+						belongsToFunc = false;
+						break;
+					}
+				}
+				temp = temp.getParent();
+			}
+			if (temp === func) belongsToFunc = true;
+			if (!belongsToFunc) return;
+
+			const calledDecls = getCalledDeclarations(callExpr, project);
+			for (const decl of calledDecls) {
+				if (Node.isClassDeclaration(decl)) {
+					decl.getConstructors().forEach((ctor) => {
+						const tags = funcToTags.get(ctor) || [];
+						tags.forEach((t) => types.add(t.type));
+						if (!isDocumentable(ctor)) {
+							collectActualThrowsRecursive(ctor, funcToTags, project, visited).forEach((t) => types.add(t));
+						}
+					});
+				} else {
+					const tags = funcToTags.get(decl) || [];
+					tags.forEach((t) => types.add(t.type));
+					if (!isDocumentable(decl) && (Node.isFunctionLikeDeclaration(decl) || Node.isMethodDeclaration(decl))) {
+						collectActualThrowsRecursive(decl, funcToTags, project, visited).forEach((t) => types.add(t));
+					}
 				}
 			}
-		}
-	});
+		});
+	}
 
 	return types;
 }

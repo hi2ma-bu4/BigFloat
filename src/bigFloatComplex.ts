@@ -1,5 +1,6 @@
 import { BigFloat } from "./bigFloat";
 import { BigFloatVector } from "./bigFloatVector";
+import { CacheNotInitializedError, DivisionByZeroError, NumericalComputationError, PrecisionMismatchError, SpecialValuesDisabledError } from "./error";
 import type { BigFloatInputValue, BigFloatValue, PrecisionValue } from "./types";
 
 type BigFloatComplexObject = {
@@ -680,7 +681,7 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public normalize(): BigFloatComplex {
-		if (this.isZero()) throw new RangeError("Cannot normalize zero complex");
+		if (this.isZero()) throw new DivisionByZeroError("Cannot normalize zero complex");
 		return this.div(this.abs());
 	}
 
@@ -812,7 +813,7 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	public div(other: BigFloatComplexValue): BigFloatComplex {
 		const rhs = BigFloatComplex._toComplex(other, this._precision);
 		const denominator = rhs.absSquared();
-		if (denominator.isZero()) throw new RangeError("Division by zero complex");
+		if (denominator.isZero()) throw new DivisionByZeroError("Division by zero complex");
 		return this.mul(rhs.conjugate()).divByReal(denominator);
 	}
 
