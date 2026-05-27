@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.4.1
+ * BigFloat 1.4.2
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -2098,6 +2098,45 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
     return this._mapValues((v) => v.changePrecision(p));
   }
   /**
+   * 複素数ベクトルとして未サポートの実数専用演算であることを通知する
+   * @param operation - 演算名
+   * @throws {TypeError} 常に送出
+   */
+  static _throwNonRealVectorOperation(operation) {
+    throw new TypeError(`${operation} is not supported for vectors containing non-real complex numbers`);
+  }
+  /**
+   * 全要素が実数であることを確認し、実ベクトルへ変換する
+   * @param operation - 演算名
+   * @returns 実ベクトル
+   * @throws {TypeError} 非実数複素数要素を含む場合
+   */
+  _toRealVector(operation) {
+    return BigFloatVector.from(
+      this._values.map((value) => {
+        if (!value.isReal()) _BigFloatComplexVector._throwNonRealVectorOperation(operation);
+        return value.real;
+      })
+    );
+  }
+  /**
+   * 任意の入力を実ベクトルへ変換する
+   * @param value - 対象のベクトル
+   * @param referenceValues - 精度解決のための参照値
+   * @param operation - 演算名
+   * @returns 実ベクトル
+   * @throws {TypeError} 非実数複素数要素を含む場合
+   */
+  static _coerceRealVector(value, referenceValues, operation) {
+    const vector = _BigFloatComplexVector._coerceVector(value, referenceValues);
+    return BigFloatVector.from(
+      vector._values.map((entry) => {
+        if (!entry.isReal()) _BigFloatComplexVector._throwNonRealVectorOperation(operation);
+        return entry.real;
+      })
+    );
+  }
+  /**
    * ベクトルが等しいか判定する
    * @param other - 比較対象のベクトル
    * @returns 等しい場合は true
@@ -2503,6 +2542,23 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
     return this._mapValues((v) => v.atan());
   }
   /**
+   * 各要素の atan2 を計算する
+   * @param x - x 座標のベクトルまたはスカラ
+   * @returns atan2 適用後のベクトル
+   * @throws {TypeError} 非実数複素数要素を含む場合
+   * @throws {DimensionMismatchError} 次元が一致しない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
+  atan2(x) {
+    return this._mapWithOperand(x, (left, right) => left.atan2(right));
+  }
+  /**
    * 各要素の双曲線正弦（sinh）を計算する
    * @returns sinh 適用後のベクトル
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
@@ -2603,6 +2659,19 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
     return this._mapValues((v) => v.exp());
   }
   /**
+   * 各要素の 2 を底とする指数関数を計算する
+   * @returns exp2 適用後のベクトル
+   * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
+  exp2() {
+    return this._mapValues((v) => v.exp2());
+  }
+  /**
    * 各要素の exp(x) - 1 を計算する
    * @returns expm1 適用後のベクトル
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
@@ -2678,22 +2747,81 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
     return this._mapValues((v) => v.log(10));
   }
   /**
+   * 各要素の ln(1 + x) を計算する
+   * @returns log1p 適用後のベクトル
+   * @throws {DivisionByZeroError} ゼロ複素数の対数を計算しようとした場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
+  log1p() {
+    return this._mapValues((v) => v.log1p());
+  }
+  /**
+   * 各要素にガンマ関数を適用する
+   * @returns gamma 適用後のベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 負の整数の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {TypeError} 非実数複素数の場合
+   */
+  gamma() {
+    return this._mapValues((v) => v.gamma());
+  }
+  /**
+   * 各要素にリーマンゼータ関数を適用する
+   * @returns zeta 適用後のベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 負の整数の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {TypeError} 非実数複素数の場合
+   */
+  zeta() {
+    return this._mapValues((v) => v.zeta());
+  }
+  /**
+   * 各要素に階乗を適用する
+   * @returns factorial 適用後のベクトル
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 負の整数の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {TypeError} 非実数複素数の場合
+   */
+  factorial() {
+    return this._mapValues((v) => v.factorial());
+  }
+  /**
    * 最大値を取得する（複素数では未サポート）
    * @returns 最大値
    * @throws {TypeError} 複素数ベクトルではサポートされていないため
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    */
   max() {
     if (this.isEmpty()) throw new TypeError("No elements");
-    throw new TypeError("max() is not supported for complex vectors");
+    const realMax = this._toRealVector("max").max();
+    return new BigFloatComplex(realMax, 0, realMax._precision);
   }
   /**
    * 最小値を取得する（複素数では未サポート）
    * @returns 最小値
    * @throws {TypeError} 複素数ベクトルではサポートされていないため
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    */
   min() {
     if (this.isEmpty()) throw new TypeError("No elements");
-    throw new TypeError("min() is not supported for complex vectors");
+    const realMin = this._toRealVector("min").min();
+    return new BigFloatComplex(realMin, 0, realMin._precision);
   }
   /**
    * 要素の合計を計算する
@@ -2807,6 +2935,25 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
    */
   distanceTo(other) {
     return this.sub(other).norm();
+  }
+  /**
+   * 別のベクトルとのなす角を計算する
+   * @param other - 対象ベクトル
+   * @returns 角度 (ラジアン)
+   * @throws {TypeError} 非実数複素数要素を含む場合
+   * @throws {DivisionByZeroError} ゼロベクトルが含まれる場合
+   * @throws {DimensionMismatchError} 次元が一致しない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {NumericalComputationError} 導関数がゼロになった場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   */
+  angleTo(other) {
+    const left = this._toRealVector("angleTo");
+    const right = _BigFloatComplexVector._coerceRealVector(other, this._values, "angleTo");
+    return left.angleTo(right);
   }
   /**
    * 外積を計算する
@@ -4480,6 +4627,66 @@ var BigFloatComplex = class _BigFloatComplex {
     return _BigFloatComplex._fromBigFloats(this._real.clone().changePrecision(precisionBig), this._imag.clone().changePrecision(precisionBig));
   }
   /**
+   * 値を上書きコピーする
+   * @param other - コピー元
+   * @returns 自身
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
+  copyFrom(other) {
+    const rhs = _BigFloatComplex._toComplex(other, this._precision);
+    this._real = rhs._real.clone();
+    this._imag = rhs._imag.clone();
+    this._precision = rhs._precision;
+    return this;
+  }
+  /**
+   * 内部表現を正規化する
+   */
+  softNormalize() {
+    this._real.softNormalize();
+    this._imag.softNormalize();
+  }
+  /**
+   * 内部表現を遅延正規化する
+   */
+  lazyNormalize() {
+    this._real.lazyNormalize();
+    this._imag.lazyNormalize();
+  }
+  /**
+   * 2 の指数部を取得する
+   * @returns 2 の指数部
+   * @throws {TypeError} 虚部が 0 でない場合
+   */
+  exponent2() {
+    return this._requireRealPart("exponent2").exponent2();
+  }
+  /**
+   * 5 の指数部を取得する
+   * @returns 5 の指数部
+   * @throws {TypeError} 虚部が 0 でない場合
+   */
+  exponent5() {
+    return this._requireRealPart("exponent5").exponent5();
+  }
+  /**
+   * どこまで精度が一致しているかを判定する
+   * @param other - 比較対象
+   * @returns 一致している桁数
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   */
+  matchingPrecision(other) {
+    const rhs = _BigFloatComplex._toComplex(other, this._precision);
+    const realPrecision = this._real.matchingPrecision(rhs._real);
+    const imagPrecision = this._imag.matchingPrecision(rhs._imag);
+    return realPrecision < imagPrecision ? realPrecision : imagPrecision;
+  }
+  /**
    * 実部と虚部を配列として取得する
    * @returns [実部, 虚部]
    */
@@ -4546,11 +4753,140 @@ var BigFloatComplex = class _BigFloatComplex {
     return this._imag.isNegative() ? `${real} - ${imagLabel}` : `${real} + ${imagLabel}`;
   }
   /**
+   * number へ変換する
+   * @returns 変換後の number
+   * @throws {TypeError} 虚部が 0 でない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な場合
+   */
+  toNumber() {
+    return this._requireRealPart("toNumber").toNumber();
+  }
+  /**
+   * 固定小数点表記へ変換する
+   * @param digits - 小数点以下桁数
+   * @returns 固定小数点表記文字列
+   * @throws {TypeError} 虚部が 0 でない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   */
+  toFixed(digits) {
+    return this._requireRealPart("toFixed").toFixed(digits);
+  }
+  /**
+   * 指数表記へ変換する
+   * @param digits - 小数点以下桁数
+   * @returns 指数表記文字列
+   * @throws {TypeError} 虚部が 0 でない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効で対象に特殊値が含まれる場合
+   * @throws {RangeError} 基数が2から36の範囲外の場合
+   */
+  toExponential(digits = Number(this._precision)) {
+    return this._requireRealPart("toExponential").toExponential(digits);
+  }
+  /**
    * 実部と虚部を順に反復するイテレータを取得する
    * @returns BigFloat のイテレータ
    */
   [Symbol.iterator]() {
     return this.toArray()[Symbol.iterator]();
+  }
+  /**
+   * 複素数として未サポートの実数専用演算であることを通知する
+   * @param operation - 演算名
+   * @throws {TypeError} 常に送出
+   */
+  static _throwNonRealOperation(operation) {
+    throw new TypeError(`${operation} is not supported for non-real complex numbers`);
+  }
+  /**
+   * 実数結果を複素数へ持ち上げる
+   * @param real - 実数結果
+   * @returns 虚部 0 の複素数
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   */
+  static _fromRealResult(real) {
+    return _BigFloatComplex._fromBigFloats(real, new BigFloat(0, real._precision));
+  }
+  /**
+   * 実数専用演算のために純実数であることを確認し、実部を返す
+   * @param operation - 演算名
+   * @returns 複製された実部
+   * @throws {TypeError} 虚部が 0 でない場合
+   */
+  _requireRealPart(operation) {
+    if (!this.isReal()) _BigFloatComplex._throwNonRealOperation(operation);
+    return this._real.clone();
+  }
+  /**
+   * 実数専用演算のためにオペランドを純実数へ正規化する
+   * @param other - 対象の値
+   * @param operation - 演算名
+   * @returns 正規化された実部
+   * @throws {TypeError} 虚部が 0 でない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   */
+  _coerceRealOperand(other, operation) {
+    const rhs = _BigFloatComplex._toComplex(other, this._precision);
+    if (!rhs.isReal()) _BigFloatComplex._throwNonRealOperation(operation);
+    return rhs._real.clone();
+  }
+  /**
+   * 実数専用の単項演算を適用し、複素数結果へ持ち上げる
+   * @param operation - 演算名
+   * @param fn - 実数演算
+   * @returns 虚部 0 の複素数結果
+   * @throws {TypeError} 虚部が 0 でない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   */
+  _applyRealUnaryComplex(operation, fn) {
+    return _BigFloatComplex._fromRealResult(fn(this._requireRealPart(operation)));
+  }
+  /**
+   * 実数専用の二項演算を適用し、複素数結果へ持ち上げる
+   * @param other - 対象の値
+   * @param operation - 演算名
+   * @param fn - 実数演算
+   * @returns 虚部 0 の複素数結果
+   * @throws {TypeError} 虚部が 0 でない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
+  _applyRealBinaryComplex(other, operation, fn) {
+    return _BigFloatComplex._fromRealResult(fn(this._requireRealPart(operation), this._coerceRealOperand(other, operation)));
+  }
+  /**
+   * 実数専用の二項演算を適用する
+   * @param other - 対象の値
+   * @param operation - 演算名
+   * @param fn - 実数演算
+   * @returns 実数演算結果
+   * @throws {TypeError} 虚部が 0 でない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
+  _applyRealBinary(other, operation, fn) {
+    return fn(this._requireRealPart(operation), this._coerceRealOperand(other, operation));
+  }
+  /**
+   * 実数順序に従って比較する
+   * @param other - 比較対象
+   * @returns 比較結果 (-1, 0, 1、NaN 比較時は NaN)
+   * @throws {TypeError} いずれかが非実数複素数の場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
+  compare(other) {
+    return this._applyRealBinary(other, "compare", (left, right) => left.compare(right));
   }
   /**
    * 別の複素数と等しいかどうかを判定する
@@ -4594,6 +4930,58 @@ var BigFloatComplex = class _BigFloatComplex {
     return !this.eq(other);
   }
   /**
+   * より小さいかどうかを判定する
+   * @param other - 比較対象
+   * @returns より小さい場合は true
+   * @throws {TypeError} いずれかが非実数複素数の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
+  lt(other) {
+    return this.compare(other) === -1;
+  }
+  /**
+   * 以下かどうかを判定する
+   * @param other - 比較対象
+   * @returns 以下の場合は true
+   * @throws {TypeError} いずれかが非実数複素数の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
+  lte(other) {
+    return this.compare(other) <= 0;
+  }
+  /**
+   * より大きいかどうかを判定する
+   * @param other - 比較対象
+   * @returns より大きい場合は true
+   * @throws {TypeError} いずれかが非実数複素数の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
+  gt(other) {
+    return this.compare(other) === 1;
+  }
+  /**
+   * 以上かどうかを判定する
+   * @param other - 比較対象
+   * @returns 以上の場合は true
+   * @throws {TypeError} いずれかが非実数複素数の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
+  gte(other) {
+    return this.compare(other) >= 0;
+  }
+  /**
    * 複素数 0 (0 + 0i) かどうかを判定する
    * @returns 0 なら true
    */
@@ -4613,6 +5001,22 @@ var BigFloatComplex = class _BigFloatComplex {
    */
   isImaginary() {
     return this._real.isZero() && !this._imag.isZero();
+  }
+  /**
+   * 正の数かどうかを判定する
+   * @returns 正の数なら true
+   * @throws {TypeError} 虚部が 0 でない場合
+   */
+  isPositive() {
+    return this._requireRealPart("isPositive").isPositive();
+  }
+  /**
+   * 負の数かどうかを判定する
+   * @returns 負の数なら true
+   * @throws {TypeError} 虚部が 0 でない場合
+   */
+  isNegative() {
+    return this._requireRealPart("isNegative").isNegative();
   }
   /**
    * 共役複素数 (a - bi) を取得する
@@ -4893,6 +5297,19 @@ var BigFloatComplex = class _BigFloatComplex {
     return this.exp().sub(1);
   }
   /**
+   * 2 を底とする指数関数を計算する
+   * @returns 2^z
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+   */
+  exp2() {
+    return this.mul(BigFloat.two(this._precision).ln()).exp();
+  }
+  /**
    * 複素数の自然対数 ln(z) を計算する
    * @returns ln(z)
    * @throws {DivisionByZeroError} ゼロ複素数の対数を計算しようとした場合
@@ -4923,6 +5340,51 @@ var BigFloatComplex = class _BigFloatComplex {
    */
   log(base) {
     return this.ln().div(_BigFloatComplex._toComplex(base, this._precision).ln());
+  }
+  /**
+   * 2 を底とする対数を計算する
+   * @returns log2(z)
+   * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   */
+  log2() {
+    return this.log(2);
+  }
+  /**
+   * 10 を底とする対数を計算する
+   * @returns log10(z)
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+   */
+  log10() {
+    return this.log(10);
+  }
+  /**
+   * ln(1 + z) を計算する
+   * @returns log1p(z)
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {DivisionByZeroError} ゼロ複素数の対数を計算しようとした場合
+   */
+  log1p() {
+    return this.add(1).ln();
   }
   /**
    * 複素数の冪乗 z^exponent を計算する
@@ -5160,6 +5622,22 @@ var BigFloatComplex = class _BigFloatComplex {
     ).div(2);
   }
   /**
+   * 実数順序における atan2 を計算する
+   * @param x - x 座標
+   * @returns 偏角
+   * @throws {TypeError} いずれかが非実数複素数の場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {RangeError} ゼロ複素数で除算しようとした場合
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   */
+  atan2(x) {
+    return this._applyRealBinaryComplex(x, "atan2", (left, right) => left.atan2(right));
+  }
+  /**
    * 複素数の逆双曲線正弦 (asinh) を計算する
    * @returns asinh(z)
    * @throws {DivisionByZeroError} ゼロ複素数の対数を計算しようとした場合
@@ -5207,6 +5685,42 @@ var BigFloatComplex = class _BigFloatComplex {
     return one.add(this).ln().sub(one.sub(this).ln()).div(2);
   }
   /**
+   * ガンマ関数を計算する
+   * @returns gamma(z)
+   * @throws {TypeError} 非実数複素数の場合
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {RangeError} 負の整数の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   */
+  gamma() {
+    return this._applyRealUnaryComplex("gamma", (value) => value.gamma());
+  }
+  /**
+   * リーマンゼータ関数を計算する
+   * @returns zeta(z)
+   * @throws {TypeError} 非実数複素数の場合
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {RangeError} 負の整数の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   */
+  zeta() {
+    return this._applyRealUnaryComplex("zeta", (value) => value.zeta());
+  }
+  /**
+   * 階乗を計算する
+   * @returns factorial(z)
+   * @throws {TypeError} 非実数複素数の場合
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {RangeError} 負の整数の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   */
+  factorial() {
+    return this._applyRealUnaryComplex("factorial", (value) => value.factorial());
+  }
+  /**
    * 床関数 (負の無限大方向への丸め)
    * @returns 丸められた結果
    * @throws {TypeError} 虚部が 0 でない場合
@@ -5214,8 +5728,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   floor() {
-    if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part cannot be floored");
-    return _BigFloatComplex._fromBigFloats(this._real.floor(), this._imag.clone());
+    return this._applyRealUnaryComplex("floor", (value) => value.floor());
   }
   /**
    * 天井関数 (正の無限大方向への丸め)
@@ -5225,8 +5738,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   ceil() {
-    if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part cannot be ceiled");
-    return _BigFloatComplex._fromBigFloats(this._real.ceil(), this._imag.clone());
+    return this._applyRealUnaryComplex("ceil", (value) => value.ceil());
   }
   /**
    * 0に近い方向へ切り捨てる
@@ -5236,8 +5748,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   trunc() {
-    if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part cannot be truncated");
-    return _BigFloatComplex._fromBigFloats(this._real.trunc(), this._imag.clone());
+    return this._applyRealUnaryComplex("trunc", (value) => value.trunc());
   }
   /**
    * 四捨五入する
@@ -5249,8 +5760,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   round() {
-    if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part cannot be rounded");
-    return _BigFloatComplex._fromBigFloats(this._real.round(), this._imag.clone());
+    return this._applyRealUnaryComplex("round", (value) => value.round());
   }
   /**
    * 剰余を計算する (%)
@@ -5264,8 +5774,7 @@ var BigFloatComplex = class _BigFloatComplex {
    */
   mod(other) {
     const rhs = _BigFloatComplex._toComplex(other, this._precision);
-    if (!this._imag.isZero() || !rhs._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part does not support mod");
-    return _BigFloatComplex._fromBigFloats(this._real.mod(rhs._real), this._imag.clone());
+    return _BigFloatComplex._fromBigFloats(this._requireRealPart("mod").mod(rhs._requireRealPart("mod")), this._imag.clone());
   }
   /**
    * Float32 精度へ丸める
@@ -5277,8 +5786,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   fround() {
-    if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part does not support fround");
-    return _BigFloatComplex._fromBigFloats(this._real.fround(), this._imag.clone());
+    return this._applyRealUnaryComplex("fround", (value) => value.fround());
   }
   /**
    * 32bit整数として見たときの先頭ゼロビット数を返す
@@ -5290,8 +5798,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   clz32() {
-    if (!this._imag.isZero()) throw new TypeError("Complex number with non-zero imaginary part does not support clz32");
-    return _BigFloatComplex._fromBigFloats(this._real.clz32(), this._imag.clone());
+    return this._applyRealUnaryComplex("clz32", (value) => value.clz32());
   }
 };
 function bigFloatComplex(real = 0, imagOrPrecision, precision) {

@@ -35,3 +35,34 @@ test("BigFloatComplexVector real-only operations on complex with imag=0", () => 
 	const vNonReal = BigFloatComplexVector.of(new BigFloatComplex(1.5, 1));
 	assert.throws(() => vNonReal.floor(), TypeError);
 });
+
+test("BigFloatComplexVector compatibility methods work for real-valued complex vectors", () => {
+	const v = BigFloatComplexVector.of(new BigFloatComplex(1, 0, 40), new BigFloatComplex(4, 0, 40));
+	const w = BigFloatComplexVector.of(new BigFloatComplex(2, 0, 40), new BigFloatComplex(8, 0, 40));
+	const epsilon = new BigFloat("0.000000000000000001", 40);
+
+	assert.ok(v.atan2(BigFloatComplexVector.of(1, 1)).at(0)?.sub(BigFloat.pi(40).div(4)).abs().lt(epsilon));
+	assert.ok(v.exp2().at(0)?.sub(BigFloatComplex.of(2, 0, 40)).abs().lt(epsilon));
+	assert.ok(w.log1p().at(1)?.sub(BigFloatComplex.of(new BigFloat(8, 40).log1p(), 0, 40)).abs().lt(epsilon));
+	assert.ok(BigFloatComplexVector.of(BigFloatComplex.of(5, 0, 40), BigFloatComplex.of(6, 0, 40)).gamma().at(0)?.sub(BigFloatComplex.of(24, 0, 40)).abs().lt(epsilon));
+	assert.ok(BigFloatComplexVector.of(BigFloatComplex.of(5, 0, 40), BigFloatComplex.of(6, 0, 40)).factorial().at(0)?.sub(BigFloatComplex.of(120, 0, 40)).abs().lt(epsilon));
+	assert.strictEqual(v.max().toString(), "4");
+	assert.strictEqual(v.min().toString(), "1");
+	assert.ok(
+		BigFloatComplexVector
+			.of(BigFloatComplex.of(1, 0, 40), BigFloatComplex.of(0, 0, 40))
+			.angleTo(BigFloatComplexVector.of(BigFloatComplex.of(0, 0, 40), BigFloatComplex.of(1, 0, 40)))
+			.sub(BigFloat.pi(40).div(2))
+			.abs()
+			.lt(epsilon),
+	);
+});
+
+test("BigFloatComplexVector compatibility methods reject non-real complex entries", () => {
+	const v = BigFloatComplexVector.of("1+i", 2);
+
+	assert.throws(() => v.atan2(1), /not supported for non-real complex numbers/);
+	assert.throws(() => v.gamma(), /not supported for non-real complex numbers/);
+	assert.throws(() => v.max(), /not supported for vectors containing non-real complex numbers/);
+	assert.throws(() => v.angleTo(BigFloatComplexVector.of(1, 0)), /not supported for vectors containing non-real complex numbers/);
+});

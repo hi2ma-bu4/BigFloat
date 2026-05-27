@@ -161,3 +161,41 @@ test("BigFloatComplex aggregate helpers combine values correctly", () => {
 		new BigFloat("0.000000000000000001", 20),
 	);
 });
+
+test("BigFloatComplex real-only compatibility methods delegate when imaginary part is zero", () => {
+	const z = BigFloatComplex.of("1.5", 0, 40);
+	const w = BigFloatComplex.of("2.5", 0, 40);
+	const epsilon = new BigFloat("0.000000000000000001", 40);
+
+	assert.equal(z.compare(w), -1);
+	assert.equal(z.lt(w), true);
+	assert.equal(z.lte(w), true);
+	assert.equal(w.gt(z), true);
+	assert.equal(w.gte(z), true);
+	assert.equal(z.isPositive(), true);
+	assert.equal(BigFloatComplex.of(-1, 0, 40).isNegative(), true);
+	assert.equal(z.toNumber(), 1.5);
+	assert.equal(z.toFixed(2), "1.50");
+	assert.equal(BigFloatComplex.of(12, 0, 40).toExponential(1), "1.2e+1");
+	assert.equal(BigFloatComplex.of("1.2345", "0.0045", 40).matchingPrecision("1.2345+0.0045i"), 40n);
+	assertComplexClose(BigFloatComplex.of(1, 0, 40).atan2(1), BigFloatComplex.of(BigFloat.pi(40).div(4), 0, 40), epsilon);
+	assertComplexClose(z.exp2(), BigFloatComplex.of(new BigFloat("1.5", 40).exp2(), 0, 40), epsilon);
+	assertComplexClose(BigFloatComplex.of(8, 0, 40).log2(), BigFloatComplex.of(3, 0, 40), epsilon);
+	assertComplexClose(BigFloatComplex.of(1000, 0, 40).log10(), BigFloatComplex.of(3, 0, 40), epsilon);
+	assertComplexClose(BigFloatComplex.of("0.5", 0, 40).log1p(), BigFloatComplex.of(new BigFloat("0.5", 40).log1p(), 0, 40), epsilon);
+	assertComplexClose(BigFloatComplex.of(5, 0, 40).gamma(), BigFloatComplex.of(24, 0, 40), epsilon);
+	assertComplexClose(BigFloatComplex.of(2, 0, 40).zeta(), BigFloatComplex.of(new BigFloat(2, 40).zeta(), 0, 40), epsilon);
+	assertComplexClose(BigFloatComplex.of(5, 0, 40).factorial(), BigFloatComplex.of(120, 0, 40), epsilon);
+});
+
+test("BigFloatComplex throws on real-only compatibility methods for non-real values", () => {
+	const z = BigFloatComplex.of(1, 1, 40);
+
+	assert.throws(() => z.compare(1), /not supported for non-real complex numbers/);
+	assert.throws(() => z.isPositive(), /not supported for non-real complex numbers/);
+	assert.throws(() => z.toNumber(), /not supported for non-real complex numbers/);
+	assert.throws(() => z.atan2(1), /not supported for non-real complex numbers/);
+	assert.throws(() => z.gamma(), /not supported for non-real complex numbers/);
+	assert.throws(() => z.zeta(), /not supported for non-real complex numbers/);
+	assert.throws(() => z.factorial(), /not supported for non-real complex numbers/);
+});
