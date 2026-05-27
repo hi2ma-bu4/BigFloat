@@ -14,7 +14,8 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param rows - 行列要素の反復可能オブジェクト
 	 * @param precision - 変換時の精度
 	 * @returns BigFloatMatrix インスタンス
-	 * @throws {RangeError} 行列の行が同じ長さを持たない場合
+	 * @throws {DimensionMismatchError} 行列の行が同じ長さを持たない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	constructor(rows?: BigFloatMatrixLike, precision?: PrecisionValue);
 	/**
@@ -66,22 +67,22 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	protected static _normalizeSize(size: number, name: string): number;
 	/**
 	 * 生配列が長方形か検証する
-	 * @throws {RangeError} 行列の行が同じ長さを持たない場合
+	 * @throws {DimensionMismatchError} 行列の行が同じ長さを持たない場合
 	 */
 	protected static _assertRectangularRaw(rows: BigFloatInputValue[][]): void;
 	/**
 	 * 同形状か検証する
-	 * @throws {RangeError} 行列の形状が異なる場合
+	 * @throws {DimensionMismatchError} 行列の形状が異なる場合
 	 */
 	protected static _assertSameShape(left: BigFloatMatrix, right: BigFloatMatrix): void;
 	/**
 	 * 正方行列か検証する
-	 * @throws {RangeError} 行列が正方行列でない場合
+	 * @throws {DimensionMismatchError} 行列が正方行列でない場合
 	 */
 	protected static _assertSquare(matrix: BigFloatMatrix): void;
 	/**
 	 * 行列積可能か検証する
-	 * @throws {RangeError} 行列の内積次元が一致しない場合
+	 * @throws {DimensionMismatchError} 行列の内積次元が一致しない場合
 	 */
 	protected static _assertMultipliable(left: BigFloatMatrix, right: BigFloatMatrix): void;
 	/**
@@ -90,10 +91,10 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns 微小値
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 */
 	protected static _epsilon(precision: bigint): BigFloat;
 	/**
@@ -165,8 +166,8 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	protected static _reducedRowEchelon(values: BigFloat[][], leftColumnCount?: number): {
 		values: BigFloat[][];
@@ -205,7 +206,7 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param columns - 列ベクトルのリスト
 	 * @param precision - 精度
 	 * @returns BigFloatMatrix インスタンス
-	 * @throws {RangeError} 列ベクトルの長さが異なる場合
+	 * @throws {DimensionMismatchError} 列ベクトルの長さが異なる場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
@@ -329,7 +330,7 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	/**
 	 * 対角成分を取得する
 	 * @returns 対角成分のベクトル
-	 * @throws {RangeError} 正方行列でない場合
+	 * @throws {DimensionMismatchError} 正方行列でない場合
 	 * @throws {TypeError} 複素数モードが無効な場合に複素数が含まれる要素列を渡した場合
 	 */
 	diagonalVector(): BigFloatVector;
@@ -387,9 +388,10 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param other - 対象行列
 	 * @param fn - 変換関数
 	 * @returns 変換後の新しい行列
-	 * @throws {RangeError} 行列形状が一致しない場合
+	 * @throws {DimensionMismatchError} 行列形状が一致しない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	zipMap(other: BigFloatAnyMatrixLike, fn: (left: BigFloat, right: BigFloatLike, row: number, column: number) => BigFloatValue): this | BigFloatAnyMatrix;
 	/**
@@ -415,7 +417,7 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * 行方向に連結する
 	 * @param others - 連結する行列のリスト
 	 * @returns 連結された新しい行列
-	 * @throws {RangeError} 列数が一致しない場合
+	 * @throws {DimensionMismatchError} 列数が一致しない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
@@ -424,7 +426,7 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * 列方向に連結する
 	 * @param others - 連結する行列のリスト
 	 * @returns 連結された新しい行列
-	 * @throws {RangeError} 行数が一致しない場合
+	 * @throws {DimensionMismatchError} 行数が一致しない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
@@ -473,22 +475,24 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * 各要素に別の行列またはスカラ値を加算した新しい行列を取得する
 	 * @param other - 加算する行列または数値
 	 * @returns 加算後の新しい行列
-	 * @throws {RangeError} 行列形状が一致しない場合
+	 * @throws {DimensionMismatchError} 行列形状が一致しない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	add(other: BigFloatInputValue | BigFloatAnyMatrixLike): this | BigFloatAnyMatrix;
 	/**
 	 * 各要素から別の行列またはスカラ値を減算した新しい行列を取得する
 	 * @param other - 減算する行列または数値
 	 * @returns 減算後の新しい行列
-	 * @throws {RangeError} 行列形状が一致しない場合
+	 * @throws {DimensionMismatchError} 行列形状が一致しない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	sub(other: BigFloatInputValue | BigFloatAnyMatrixLike): this | BigFloatAnyMatrix;
 	/**
@@ -508,10 +512,10 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns 除算後の新しい行列
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	div(scalar: BigFloatValue): this | BigFloatMatrix;
 	/**
@@ -520,20 +524,22 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns 演算後の新しい行列
 	 * @throws {TypeError} BigFloat.mod が複素数オペランドをサポートしていない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} 行列形状が一致しない場合
+	 * @throws {DimensionMismatchError} 行列形状が一致しない場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	mod(other: BigFloatValue | BigFloatMatrixLike): this | BigFloatMatrix;
 	/**
 	 * 別の行列とのアダマール積 (要素ごとの積) を計算する
 	 * @param other - 対象行列
 	 * @returns アダマール積の結果の行列
-	 * @throws {RangeError} 行列形状が一致しない場合
+	 * @throws {DimensionMismatchError} 行列形状が一致しない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	hadamard(other: BigFloatMatrixLike): this | BigFloatMatrix;
 	/**
@@ -565,10 +571,10 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns 逆数行列
 	 * @throws {DivisionByZeroError} ゼロの場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	reciprocal(): this | BigFloatMatrix;
 	/**
@@ -583,6 +589,7 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {DimensionMismatchError} 行列の形状が一致しない場合
 	 */
 	pow(exponent: BigFloatValue | BigFloatMatrixLike): this | BigFloatMatrix;
 	/**
@@ -670,12 +677,13 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * 別の行列または数値との相対差を各要素ごとに計算した行列を取得する
 	 * @param other - 比較対象
 	 * @returns 相対差の行列
-	 * @throws {RangeError} 行列形状が一致しない場合
+	 * @throws {DimensionMismatchError} 行列形状が一致しない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	relativeDiff(other: BigFloatValue | BigFloatMatrixLike): this | BigFloatMatrix;
 	/**
@@ -684,21 +692,23 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns 絶対差の行列
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 * @throws {RangeError} 行列形状が一致しない場合
+	 * @throws {DimensionMismatchError} 行列形状が一致しない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	absoluteDiff(other: BigFloatValue | BigFloatMatrixLike): this | BigFloatMatrix;
 	/**
 	 * 別の行列または数値との百分率差分を各要素ごとに計算した行列を取得する
 	 * @param other - 比較対象
 	 * @returns 百分率差分の行列 (%)
-	 * @throws {RangeError} 行列形状が一致しない場合
+	 * @throws {DimensionMismatchError} 行列形状が一致しない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	percentDiff(other: BigFloatValue | BigFloatMatrixLike): this | BigFloatMatrix;
 	/**
@@ -764,11 +774,11 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	atan(): this | BigFloatMatrix;
 	/**
@@ -776,13 +786,14 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @param x - x 座標の行列または数値
 	 * @returns atan2 適用後の行列
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} 行列形状が一致しない場合
+	 * @throws {DimensionMismatchError} 行列形状が一致しない場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	atan2(x: BigFloatValue | BigFloatMatrixLike): this | BigFloatMatrix;
 	/**
@@ -790,10 +801,10 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns sinh 適用後の行列
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	sinh(): this | BigFloatMatrix;
 	/**
@@ -814,8 +825,8 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	tanh(): this | BigFloatMatrix;
 	/**
@@ -894,12 +905,13 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * 各要素の任意の底による対数を計算した行列を取得する
 	 * @param base - 底
 	 * @returns 対数計算後の行列
-	 * @throws {RangeError} 行列形状が一致しない場合
+	 * @throws {DimensionMismatchError} 行列形状が一致しない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	log(base: BigFloatValue | BigFloatMatrixLike): this | BigFloatMatrix;
 	/**
@@ -1004,10 +1016,10 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @returns 平均
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 */
 	average(): BigFloat;
 	/**
@@ -1033,56 +1045,59 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	/**
 	 * 行列のトレース (対角成分の和) を計算する
 	 * @returns トレース
-	 * @throws {RangeError} 正方行列でない場合
+	 * @throws {DimensionMismatchError} 正方行列でない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	trace(): BigFloat;
 	/**
 	 * フロベニウスノルムを計算する
 	 * @returns フロベニウスノルム
-	 * @throws {RangeError} ベクトルの次元が一致しない場合
+	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 */
 	frobeniusNorm(): BigFloat;
 	/**
 	 * 別の行列との行列積を計算する
 	 * @param other - 乗じる行列
 	 * @returns 行列積の結果
-	 * @throws {RangeError} 内積次元が一致しない場合
+	 * @throws {DimensionMismatchError} 内積次元が一致しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合、または対象に特殊値が含まれる場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	matmul(other: BigFloatMatrixLike): this;
 	/**
 	 * ベクトル積を計算する
 	 * @param vector - 乗算するベクトル
 	 * @returns 演算結果のベクトル
-	 * @throws {RangeError} 内部次元が一致しない場合
+	 * @throws {DimensionMismatchError} 内部次元が一致しない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	mulVector(vector: BigFloatVectorLike): BigFloatVector;
 	/**
 	 * 行列式を計算する
 	 * @returns 行列式の値
-	 * @throws {RangeError} 正方行列でない場合
+	 * @throws {DimensionMismatchError} 正方行列でない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 */
 	determinant(): BigFloat;
 	/**
@@ -1092,55 +1107,63 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	rank(): number;
 	/**
 	 * 逆行列を計算する
 	 * @returns 逆行列
-	 * @throws {RangeError} 正方行列でない場合、または行列が特異な場合
+	 * @throws {DimensionMismatchError} 正方行列でない場合、または行列が特異な場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} size が負または非有限の場合
+	 * @throws {SingularMatrixError} 例外が発生した場合
 	 */
 	inverse(): this;
 	/**
 	 * 連立方程式 Ax = b を解く
 	 * @param rhs - 右辺ベクトル b
 	 * @returns 解ベクトル x
-	 * @throws {RangeError} 行列が正方でない場合、ベクトル長が不一致な場合、または行列が特異な場合
+	 * @throws {DimensionMismatchError} 行列が正方でない場合、ベクトル長が不一致な場合、または行列が特異な場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {SingularMatrixError} 例外が発生した場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	solveVector(rhs: BigFloatVectorLike): BigFloatVector;
 	/**
 	 * 連立方程式 AX = B を解く
 	 * @param rhs - 右辺行列 B
 	 * @returns 解行列 X
-	 * @throws {RangeError} 行列が正方でない場合、行数が不一致な場合、または行列が特異な場合
+	 * @throws {DimensionMismatchError} 行列が正方でない場合、行数が不一致な場合、または行列が特異な場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {SingularMatrixError} 例外が発生した場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	solveMatrix(rhs: BigFloatMatrixLike): this;
 	/**
 	 * 行列の累乗 A^exponent を計算する
 	 * @param exponent - 指数 (整数)
 	 * @returns 演算結果
-	 * @throws {RangeError} 正方行列でない場合、または指数が整数でない場合
+	 * @throws {DimensionMismatchError} 正方行列でない場合、または指数が整数でない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} size が負または非有限の場合
+	 * @throws {SingularMatrixError} 例外が発生した場合
 	 */
 	matrixPow(exponent: number): this;
 }
@@ -1160,7 +1183,8 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @param rows - 行列要素の反復可能オブジェクト
 	 * @param precision - 精度
 	 * @returns BigFloatComplexMatrix インスタンス
-	 * @throws {RangeError} 各行の長さが一致しない場合
+	 * @throws {DimensionMismatchError} 各行の長さが一致しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	constructor(rows?: BigFloatAnyMatrixLike, precision?: PrecisionValue);
 	/**
@@ -1187,14 +1211,14 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	/**
 	 * 二次元配列が矩形であることを検証する
 	 * @param rows - 検証対象の二次元配列
-	 * @throws {RangeError} 各行の長さが一致しない場合
+	 * @throws {DimensionMismatchError} 各行の長さが一致しない場合
 	 */
 	protected static _assertRectangularRaw(rows: BigFloatInputValue[][]): void;
 	/**
 	 * 二つの行列の形状が一致することを検証する
 	 * @param left - 左辺行列
 	 * @param right - 右辺行列
-	 * @throws {RangeError} 行列の形状が一致しない場合
+	 * @throws {DimensionMismatchError} 行列の形状が一致しない場合
 	 */
 	protected static _assertSameShape(left: BigFloatAnyMatrix, right: BigFloatAnyMatrix): void;
 	/**
@@ -1222,6 +1246,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @param fn - 適用する関数
 	 * @returns 演算後の新しい行列
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {DimensionMismatchError} 行列の形状が一致しない場合
 	 */
 	protected _mapWithOperand(other: BigFloatAnyMatrixLike | BigFloatInputValue, fn: (left: BigFloatComplex, right: BigFloatComplex, row: number, column: number) => BigFloatInputValue): this;
 	/**
@@ -1400,67 +1425,71 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * 行列の加算を行う
 	 * @param other - 加算する行列またはスカラー
 	 * @returns 加算後の新しい行列
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {DimensionMismatchError} 行列の形状が一致しない場合
 	 */
 	add(other: BigFloatInputValue | BigFloatAnyMatrixLike): this;
 	/**
 	 * 行列の減算を行う
 	 * @param other - 減算する行列またはスカラー
 	 * @returns 減算後の新しい行列
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {DimensionMismatchError} 行列の形状が一致しない場合
 	 */
 	sub(other: BigFloatInputValue | BigFloatAnyMatrixLike): this;
 	/**
 	 * アダマール積（要素ごとの積）を計算する
 	 * @param other - 乗算する行列
 	 * @returns アダマール積の結果の行列
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {DimensionMismatchError} 行列の形状が一致しない場合
 	 */
 	hadamard(other: BigFloatAnyMatrixLike): this;
 	/**
 	 * スカラー倍を行う
 	 * @param scalar - 乗算するスカラー
 	 * @returns 乗算後の新しい行列
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	mul(scalar: BigFloatInputValue): this;
 	/**
 	 * スカラー除算を行う
 	 * @param scalar - 除算するスカラー
 	 * @returns 除算後の新しい行列
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	div(scalar: BigFloatInputValue): this;
 	/**
 	 * 行列の積を計算する
 	 * @param other - 乗算する行列
 	 * @returns 行列の積
-	 * @throws {RangeError} 行列の次元が一致しない場合
+	 * @throws {DimensionMismatchError} 行列の次元が一致しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	matmul(other: BigFloatAnyMatrixLike): this;
 	/**
@@ -1492,62 +1521,65 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	/**
 	 * 行列のトレース（対角和）を計算する
 	 * @returns トレースの値
-	 * @throws {RangeError} 正方行列でない場合
+	 * @throws {DimensionMismatchError} 正方行列でない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	trace(): BigFloatComplex;
 	/**
 	 * 行列式を計算する
 	 * @returns 行列式の値
-	 * @throws {RangeError} 正方行列でない場合
+	 * @throws {DimensionMismatchError} 正方行列でない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	determinant(): BigFloatComplex;
 	/**
 	 * 逆行列を計算する
 	 * @returns 逆行列
-	 * @throws {RangeError} 正方行列でない場合
+	 * @throws {DimensionMismatchError} 正方行列でない場合
 	 * @throws {SingularMatrixError} 行列が特異な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	inverse(): this;
 	/**
 	 * 連立一次方程式を解く（ベクトル）
 	 * @param rhs - 右辺ベクトル
 	 * @returns 解ベクトル
-	 * @throws {RangeError} 次元が正方でない場合
+	 * @throws {DimensionMismatchError} 次元が正方でない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SingularMatrixError} 行列が特異な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {DimensionMismatchError} 行列の次元が一致しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	solveVector(rhs: BigFloatAnyVectorLike): BigFloatComplexVector;
 	/**
 	 * 連立一次方程式を解く（行列）
 	 * @param rhs - 右辺行列
 	 * @returns 解行列
-	 * @throws {RangeError} 次元が正方でない場合
+	 * @throws {DimensionMismatchError} 次元が正方でない場合
 	 * @throws {SingularMatrixError} 行列が特異な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
-	 * @throws {DimensionMismatchError} 行列の次元が一致しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	solveMatrix(rhs: BigFloatAnyMatrixLike): this;
 	/**
@@ -1570,13 +1602,14 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * 行列のべき乗を計算する
 	 * @param exponent - 指数
 	 * @returns 行列のべき乗
-	 * @throws {RangeError} 指数が整数でない場合、または正方行列でない場合
+	 * @throws {DimensionMismatchError} 指数が整数でない場合、または正方行列でない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {SingularMatrixError} 行列が特異な場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {RangeError} 例外が発生した場合
 	 */
 	matrixPow(exponent: number): this;
 	/**
@@ -1590,69 +1623,71 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * 行列が等しいかどうかを判定する
 	 * @param other - 比較対象の行列
 	 * @returns 等しい場合は true、そうでない場合は false
-	 * @throws {RangeError} 次元が一致しない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	equals(other: BigFloatAnyMatrixLike): boolean;
 	/**
 	 * 全要素の合計を計算する
 	 * @returns 合計値
-	 * @throws {RangeError} 次元が一致しない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	sum(): BigFloatComplex;
 	/**
 	 * 全要素の積を計算する
 	 * @returns 積の値
-	 * @throws {RangeError} 次元が一致しない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	product(): BigFloatComplex;
 	/**
 	 * 全要素の平均を計算する
 	 * @returns 平均値
-	 * @throws {RangeError} 次元が一致しない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	average(): BigFloatComplex;
 	/**
 	 * フロベニウスノルムを計算する
 	 * @returns ノルムの値
-	 * @throws {RangeError} 次元が一致しない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	frobeniusNorm(): BigFloat;
 	/**
 	 * 行列とベクトルの積を計算する
 	 * @param vector - 乗算するベクトル
 	 * @returns ベクトルとの積
-	 * @throws {RangeError} 次元が一致しない場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	mulVector(vector: BigFloatAnyVectorLike): BigFloatComplexVector;
 	/**
 	 * 対角成分をベクトルとして取得する
 	 * @returns 対角成分のベクトル
-	 * @throws {RangeError} 正方行列でない場合
+	 * @throws {DimensionMismatchError} 正方行列でない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	diagonalVector(): BigFloatComplexVector;
 	/**
@@ -1667,6 +1702,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @param fn - 適用する関数
 	 * @returns 演算結果の行列
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {DimensionMismatchError} 行列の形状が一致しない場合
 	 */
 	zipMap(other: BigFloatAnyMatrixLike, fn: (left: BigFloatComplex, right: BigFloatComplex, row: number, column: number) => BigFloatInputValue): this;
 	/**
@@ -1695,14 +1731,16 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * 行列を行方向に連結する
 	 * @param others - 連結する行列
 	 * @returns 連結された行列
-	 * @throws {RangeError} 列数が一致しない場合
+	 * @throws {DimensionMismatchError} 列数が一致しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	concatRows(...others: BigFloatAnyMatrixLike[]): this;
 	/**
 	 * 行列を列方向に連結する
 	 * @param others - 連結する行列
 	 * @returns 連結された行列
-	 * @throws {RangeError} 行数が一致しない場合
+	 * @throws {DimensionMismatchError} 行数が一致しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	concatColumns(...others: BigFloatAnyMatrixLike[]): this;
 	/**
@@ -1737,6 +1775,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {DimensionMismatchError} 行列の形状が一致しない場合
 	 */
 	mod(other: BigFloatInputValue | BigFloatAnyMatrixLike): this;
 	/**
@@ -1790,6 +1829,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {DimensionMismatchError} 行列の形状が一致しない場合
 	 */
 	pow(exponent: BigFloatInputValue | BigFloatAnyMatrixLike): this;
 	/**
@@ -1894,6 +1934,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {DimensionMismatchError} 行列の形状が一致しない場合
 	 */
 	relativeDiff(other: BigFloatInputValue | BigFloatAnyMatrixLike): this;
 	/**
@@ -1905,6 +1946,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {DimensionMismatchError} 行列の形状が一致しない場合
 	 */
 	absoluteDiff(other: BigFloatInputValue | BigFloatAnyMatrixLike): this;
 	/**
@@ -1917,6 +1959,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {DimensionMismatchError} 行列の形状が一致しない場合
 	 */
 	percentDiff(other: BigFloatInputValue | BigFloatAnyMatrixLike): this;
 	/**
@@ -1998,7 +2041,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * 各要素の atan2 を計算する
 	 * @param x - x 座標（行列またはスカラー）
 	 * @returns atan2 適用後の行列
-	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {TypeError} 実数でない複素数が含まれる場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
@@ -2006,6 +2049,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {DimensionMismatchError} 行列の形状が一致しない場合
 	 */
 	atan2(x: BigFloatInputValue | BigFloatAnyMatrixLike): this;
 	/**
@@ -2041,7 +2085,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	tanh(): this;
 	/**
@@ -2054,7 +2098,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	asinh(): this;
 	/**
@@ -2067,7 +2111,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	acosh(): this;
 	/**
@@ -2080,7 +2124,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	atanh(): this;
 	/**
@@ -2104,7 +2148,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
-	 * @throws {RangeError} ゼロ複素数を非正の実数以外の指数で冪乗しようとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	exp2(): this;
 	/**
@@ -2128,7 +2172,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	ln(): this;
 	/**
@@ -2142,7 +2186,8 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {DimensionMismatchError} 行列の形状が一致しない場合
 	 */
 	log(base: BigFloatInputValue | BigFloatAnyMatrixLike): this;
 	/**
@@ -2155,7 +2200,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	log2(): this;
 	/**
@@ -2168,7 +2213,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	log10(): this;
 	/**
@@ -3382,7 +3427,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	protected static _resolvePrecision(values: BigFloatInputValue[], precision?: PrecisionValue): bigint;
 	/**
 	 * 次元一致を検証する
-	 * @throws {RangeError} 次元が一致しない場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
 	 */
 	protected static _assertSameLength(left: BigFloatAnyVector, right: BigFloatAnyVector): void;
 	/**
@@ -3405,6 +3450,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @param fn - 二項演算関数
 	 * @returns 演算後の新しいベクトル
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
 	 */
 	protected _mapWithOperand(other: BigFloatAnyVectorLike | BigFloatInputValue, fn: (left: BigFloatComplex, right: BigFloatComplex, index: number) => BigFloatInputValue): this;
 	/**
@@ -3556,6 +3602,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @param fn - 適用する関数
 	 * @returns 演算結果のベクトル
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
 	 */
 	zipMap(other: BigFloatAnyVectorLike, fn: (left: BigFloatComplex, right: BigFloatComplex, index: number) => BigFloatInputValue): this;
 	/**
@@ -3628,6 +3675,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
 	 */
 	add(other: BigFloatInputValue | BigFloatAnyVectorLike): this;
 	/**
@@ -3639,6 +3687,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
 	 */
 	sub(other: BigFloatInputValue | BigFloatAnyVectorLike): this;
 	/**
@@ -3661,7 +3710,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	div(scalar: BigFloatInputValue): this;
 	/**
@@ -3673,6 +3722,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
 	 */
 	mod(other: BigFloatInputValue | BigFloatAnyVectorLike): this;
 	/**
@@ -3684,6 +3734,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
 	 */
 	hadamard(other: BigFloatAnyVectorLike): this;
 	/**
@@ -3698,7 +3749,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @returns 絶対値適用後の新しい実数ベクトル
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 * @throws {TypeError} 複素数モードが無効な場合に複素数が含まれる要素列を渡した場合
+	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 */
@@ -3711,7 +3762,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	sign(): this;
 	/**
@@ -3722,7 +3773,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	reciprocal(): this;
 	/**
@@ -3734,9 +3785,10 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数を非正の実数以外の指数で冪乗しようとした場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
 	 */
 	pow(exponent: BigFloatInputValue | BigFloatAnyVectorLike): this;
 	/**
@@ -3841,6 +3893,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
 	 */
 	relativeDiff(other: BigFloatInputValue | BigFloatAnyVectorLike): this;
 	/**
@@ -3852,6 +3905,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
 	 */
 	absoluteDiff(other: BigFloatInputValue | BigFloatAnyVectorLike): this;
 	/**
@@ -3864,6 +3918,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
 	 */
 	percentDiff(other: BigFloatInputValue | BigFloatAnyVectorLike): this;
 	/**
@@ -4063,6 +4118,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
 	 */
 	log(base: BigFloatInputValue | BigFloatAnyVectorLike): this;
 	/**
@@ -4143,6 +4199,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
 	 */
 	dot(other: BigFloatAnyVectorLike): BigFloatComplex;
 	/**
@@ -4168,12 +4225,12 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	/**
 	 * ベクトルを正規化する
 	 * @returns 正規化されたベクトル
-	 * @throws {RangeError} ゼロベクトルを正規化しようとした場合
+	 * @throws {DivisionByZeroError} ゼロベクトルを正規化しようとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	normalize(): this;
 	/**
@@ -4185,40 +4242,44 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
 	 */
 	distanceTo(other: BigFloatAnyVectorLike): BigFloat;
 	/**
 	 * 外積を計算する
 	 * @param other - 相手のベクトル
 	 * @returns 外積の結果
-	 * @throws {RangeError} 3次元ベクトルでない場合
+	 * @throws {DimensionMismatchError} 3次元ベクトルでない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	cross(other: BigFloatAnyVectorLike): this;
 	/**
 	 * 他のベクトルとの二乗距離を計算する
 	 * @param other - 対象のベクトル
 	 * @returns 二乗距離
-	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
 	 */
 	squaredDistanceTo(other: BigFloatAnyVectorLike): BigFloat;
 	/**
 	 * 別のベクトルへの正射影ベクトルを計算する
 	 * @param other - 射影先のベクトル
 	 * @returns 射影された新しいベクトル
-	 * @throws {RangeError} ゼロベクトルに射影しようとした場合
+	 * @throws {DivisionByZeroError} ゼロベクトルに射影しようとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
 	 */
 	projectOnto(other: BigFloatAnyVectorLike): this;
 }
@@ -4316,10 +4377,10 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @param other - ベクトルまたはスカラ値
 	 * @param fn - 二項演算関数
 	 * @returns 演算後の新しいベクトル
-	 * @throws {RangeError} ベクトルの次元が一致しない場合
-	 * @throws {TypeError} 複素数モードが無効な場合に複素数オペランドが渡された場合、または演算結果が複素数になった場合
 	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
+	 * @throws {TypeError} 複素数モードが無効な場合に複素数オペランドが渡された場合、または演算結果が複素数になった場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	protected _mapWithOperand(other: BigFloatAnyVectorLike | BigFloatInputValue, fn: (left: BigFloatLike, right: BigFloatLike, index: number) => BigFloatInputValue): this | BigFloatAnyVector;
 	/**
@@ -4400,8 +4461,8 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	static linspace(start: BigFloatValue, end: BigFloatValue, count: number, precision?: PrecisionValue): BigFloatVector;
 	/**
@@ -4617,10 +4678,10 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @returns 演算後の新しいベクトル
 	 * @throws {TypeError} BigFloat.mod does not support BigFloatComplex operands
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ベクトルの次元が一致しない場合
+	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	mod(other: BigFloatValue | BigFloatVectorLike): this | BigFloatAnyVector;
 	/**
@@ -4661,10 +4722,10 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @returns 逆数ベクトル
 	 * @throws {DivisionByZeroError} ゼロの場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	reciprocal(): this;
 	/**
@@ -4860,11 +4921,11 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	atan(): this;
 	/**
@@ -4890,10 +4951,10 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @returns sinh 適用後のベクトル
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	sinh(): this;
 	/**
@@ -4914,8 +4975,8 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	tanh(): this;
 	/**
@@ -5102,10 +5163,10 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @returns 平均
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 */
 	average(): BigFloat;
 	/**
@@ -5123,12 +5184,12 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	/**
 	 * 二乗ノルム (自分自身との内積) を計算する
 	 * @returns 二乗ノルム
-	 * @throws {RangeError} ベクトルの次元が一致しない場合
+	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	squaredNorm(): BigFloat;
 	/**
@@ -5145,25 +5206,25 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	/**
 	 * ベクトルを正規化する (長さを 1 にする)
 	 * @returns 正規化された新しいベクトル
-	 * @throws {RangeError} ベクトルの長さが 0 の場合
+	 * @throws {DimensionMismatchError} ベクトルの長さが 0 の場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 */
 	normalize(): this;
 	/**
 	 * 別のベクトルとの二乗距離を計算する
 	 * @param other - 対象ベクトル
 	 * @returns 二乗距離
-	 * @throws {RangeError} ベクトルの次元が一致しない場合
+	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 */
 	squaredDistanceTo(other: BigFloatVectorLike): BigFloat;
 	/**
@@ -5194,7 +5255,7 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * 別のベクトルとのなす角を計算する
 	 * @param other - 対象ベクトル
 	 * @returns 角度 (ラジアン)
-	 * @throws {RangeError} いずれかのベクトルの長さが 0 の場合
+	 * @throws {DimensionMismatchError} いずれかのベクトルの長さが 0 の場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
@@ -5202,7 +5263,7 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {NumericalComputationError} 導関数がゼロになった場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	angleTo(other: BigFloatVectorLike): BigFloat;
 	/**
@@ -5445,12 +5506,12 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * @param values - 複素数のリスト
 	 * @param precision - 結果の精度
 	 * @returns 平均
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	static average(values: BigFloatComplexAggregateSource, precision?: PrecisionValue): BigFloatComplex;
 	/**
@@ -5629,33 +5690,33 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 */
 	arg(): BigFloat;
 	/**
 	 * 複素数の符号 (z / |z|) を取得する
 	 * @returns 単位円上の複素数、または 0
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 */
 	sign(): BigFloatComplex;
 	/**
 	 * ベクトルとして正規化する (絶対値を 1 にする)
 	 * @returns 正規化された複素数
-	 * @throws {RangeError} ゼロ複素数を正規化しようとした場合
+	 * @throws {DivisionByZeroError} ゼロ複素数を正規化しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 */
 	normalize(): BigFloatComplex;
 	/**
@@ -5675,10 +5736,10 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * @returns 相対差
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 */
 	relativeDiff(other: BigFloatComplexValue): BigFloat;
 	/**
@@ -5741,12 +5802,12 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * 複素数で除算する
 	 * @param other - 除算する値
 	 * @returns 除算結果
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	div(other: BigFloatComplexValue): BigFloatComplex;
 	/**
@@ -5755,21 +5816,21 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * @returns 除算結果
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	protected divByReal(value: BigFloatValue): BigFloatComplex;
 	/**
 	 * 複素数の逆数を計算する
 	 * @returns 逆数
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	reciprocal(): BigFloatComplex;
 	/**
@@ -5809,42 +5870,42 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	/**
 	 * 複素数の自然対数 ln(z) を計算する
 	 * @returns ln(z)
-	 * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+	 * @throws {DivisionByZeroError} ゼロ複素数の対数を計算しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	ln(): BigFloatComplex;
 	/**
 	 * 複素数の任意の底による対数を計算する
 	 * @param base - 底
 	 * @returns 対数結果
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	log(base: BigFloatComplexValue): BigFloatComplex;
 	/**
 	 * 複素数の冪乗 z^exponent を計算する
 	 * @param exponent - 指数
 	 * @returns 冪乗結果
-	 * @throws {RangeError} ゼロ複素数を非正の実数以外の指数で冪乗しようとした場合
+	 * @throws {DivisionByZeroError} ゼロ複素数を非正の実数以外の指数で冪乗しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	pow(exponent: BigFloatComplexValue): BigFloatComplex;
 	/**
@@ -5905,34 +5966,34 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	sin(): BigFloatComplex;
 	/**
 	 * 複素数の余弦 (cos) を計算する
 	 * @returns cos(z)
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	cos(): BigFloatComplex;
 	/**
 	 * 複素数の正接 (tan) を計算する
 	 * @returns tan(z)
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	tan(): BigFloatComplex;
 	/**
@@ -5941,10 +6002,10 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	sinh(): BigFloatComplex;
 	/**
@@ -5962,91 +6023,91 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	/**
 	 * 複素数の双曲線正接 (tanh) を計算する
 	 * @returns tanh(z)
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	tanh(): BigFloatComplex;
 	/**
 	 * 複素数の逆正弦 (asin) を計算する
 	 * @returns asin(z)
-	 * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+	 * @throws {DivisionByZeroError} ゼロ複素数の対数を計算しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	asin(): BigFloatComplex;
 	/**
 	 * 複素数の逆余弦 (acos) を計算する
 	 * @returns acos(z)
-	 * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+	 * @throws {DivisionByZeroError} ゼロ複素数の対数を計算しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 */
 	acos(): BigFloatComplex;
 	/**
 	 * 複素数の逆正接 (atan) を計算する
 	 * @returns atan(z)
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	atan(): BigFloatComplex;
 	/**
 	 * 複素数の逆双曲線正弦 (asinh) を計算する
 	 * @returns asinh(z)
-	 * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+	 * @throws {DivisionByZeroError} ゼロ複素数の対数を計算しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	asinh(): BigFloatComplex;
 	/**
 	 * 複素数の逆双曲線余弦 (acosh) を計算する
 	 * @returns acosh(z)
-	 * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+	 * @throws {DivisionByZeroError} ゼロ複素数の対数を計算しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	acosh(): BigFloatComplex;
 	/**
 	 * 複素数の逆双曲線正接 (atanh) を計算する
 	 * @returns atanh(z)
-	 * @throws {RangeError} ゼロ複素数の対数を計算しようとした場合
+	 * @throws {DivisionByZeroError} ゼロ複素数の対数を計算しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	atanh(): BigFloatComplex;
 	/**
