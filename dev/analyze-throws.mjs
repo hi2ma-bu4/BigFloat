@@ -171,9 +171,24 @@ export function analyzeThrows(config) {
 
 			// タグの個別チェック
 			const tags = jsDoc.getTags();
+			const seenThrows = new Set();
 			for (const tag of tags) {
 				const tagName = tag.getTagName();
 				const tagLine = tag.getStartLineNumber();
+
+				if (tagName === "throws") {
+					const text = tag.getText();
+					const typeMatch = text.match(/\{([^}]*)\}/);
+					const type = typeMatch ? typeMatch[1] : "Error";
+					if (seenThrows.has(type)) {
+						result.push({
+							file: relPath,
+							line: tagLine,
+							message: `@throws {${type}} が重複しています。1つのJSDoc内では型ごとに1つにまとめてください`,
+						});
+					}
+					seenThrows.add(type);
+				}
 
 				if (tagName === "return") {
 					result.push({

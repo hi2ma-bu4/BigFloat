@@ -1383,7 +1383,6 @@ var BigFloatStream = class _BigFloatStream {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {NumericalComputationError} 数値的に不安定な点の場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
-   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {TypeError} 複素数モードが無効な場合
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
@@ -2174,10 +2173,9 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
    * @returns 絶対値適用後の新しい実数ベクトル
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {TypeError} 複素数モードが無効な場合に複素数が含まれる要素列を渡した場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    * @throws {RangeError} 負の数の平方根を計算しようとした場合
-   * @throws {TypeError} 複素数モードが無効な場合に複素数が含まれる要素列を渡した場合
    */
   abs() {
     return BigFloatVector.from(this._values.map((v) => v.abs()));
@@ -12577,10 +12575,7 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {TypeError} 複素数モードが無効な場合
-   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
-   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    */
   determinant() {
     if (!this.isSquare()) throw new RangeError("Matrix must be square");
@@ -12698,7 +12693,6 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
-   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    * @throws {DimensionMismatchError} 行列の次元が一致しない場合
    */
   solveMatrix(rhs) {
@@ -13338,13 +13332,12 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
    * 各要素の atan2 を計算する
    * @param x - x 座標（行列またはスカラー）
    * @returns atan2 適用後の行列
-   * @throws {TypeError} 実数でない複素数が含まれる場合
+   * @throws {TypeError} 複素数モードが無効な場合
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-   * @throws {TypeError} 複素数モードが無効な場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    * @throws {NumericalComputationError} 数値的に不安定な点の場合
    */

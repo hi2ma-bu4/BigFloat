@@ -577,10 +577,9 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	 * @returns 絶対値適用後の新しい実数ベクトル
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {TypeError} 複素数モードが無効な場合に複素数が含まれる要素列を渡した場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
-	 * @throws {TypeError} 複素数モードが無効な場合に複素数が含まれる要素列を渡した場合
 	 */
 	public abs(): BigFloatVector {
 		return BigFloatVector.from(this._values.map((v) => v.abs()));
