@@ -1,4 +1,12 @@
-import { BigFloat, BigFloatComplex, BigFloatMatrix, BigFloatVector, RoundingMode } from "../dist/BigFloat.js";
+import {
+	BigFloat,
+	BigFloatComplex,
+	BigFloatComplexMatrix,
+	BigFloatComplexVector,
+	BigFloatMatrix,
+	BigFloatVector,
+	RoundingMode,
+} from "../dist/BigFloat.js";
 
 export const ROUNDING_MODE_OPTIONS = ["TRUNCATE", "DOWN", "UP", "CEIL", "FLOOR", "HALF_UP", "HALF_DOWN"];
 
@@ -73,8 +81,10 @@ export function formatSerializedValue(serialized, precision) {
 		case "complex":
 			return serialized.text;
 		case "vector":
+		case "complex-vector":
 			return `[${serialized.values.map((entry) => formatSerializedValue(entry, precision)).join(", ")}]`;
 		case "matrix":
+		case "complex-matrix":
 			return `[${serialized.rows.map((row) => `[${row.map((entry) => formatSerializedValue(entry, precision)).join(", ")}]`).join(", ")}]`;
 		default:
 			return String(serialized.text ?? serialized.value ?? "");
@@ -645,13 +655,13 @@ export class Evaluator {
 	evaluateArray(node) {
 		const isMatrix = node.items.every((item) => item.type === "array");
 		if (isMatrix) {
-			const rows = node.items.map((rowNode) => rowNode.items.map((cellNode) => this.expectScalar(this.evaluate(cellNode))));
+			const rows = node.items.map((rowNode) => rowNode.items.map((cellNode) => this.expectScalarOrComplex(this.evaluate(cellNode))));
 			return this.context.createMatrix(rows);
 		}
 		if (node.items.some((item) => item.type === "array")) {
 			throw new TypeError("Nested arrays must be rectangular matrices.");
 		}
-		return this.context.createVector(node.items.map((item) => this.expectScalar(this.evaluate(item))));
+		return this.context.createVector(node.items.map((item) => this.expectScalarOrComplex(this.evaluate(item))));
 	}
 
 	callFunction(name, args) {
@@ -709,53 +719,53 @@ export class Evaluator {
 			case "rotate":
 				return this.toComplex(args[0]).rotate(this.expectScalar(args[1]));
 			case "roots":
-				return this.toComplex(args[0]).nthRoots(this.toInteger(args[1]));
+				return this.context.createVector(this.toComplex(args[0]).nthRoots(this.toInteger(args[1])));
 			// linear
 			case "dot":
-				return this.expectVector(args[0]).dot(this.expectVector(args[1]));
+				return this.expectVector(args[0], true).dot(this.expectVector(args[1], true));
 			case "cross":
-				return this.expectVector(args[0]).cross(this.expectVector(args[1]));
+				return this.expectVector(args[0], true).cross(this.expectVector(args[1], true));
 			case "norm":
 				if (this.isMatrix(args[0])) {
-					return this.expectMatrix(args[0]).frobeniusNorm();
+					return this.expectMatrix(args[0], true).frobeniusNorm();
 				}
 				if (this.isVector(args[0])) {
-					return this.expectVector(args[0]).norm();
+					return this.expectVector(args[0], true).norm();
 				}
 				if (this.isComplex(args[0])) {
 					return this.toComplex(args[0]).abs();
 				}
 				return this.expectScalar(args[0]).abs();
 			case "angle":
-				return this.expectVector(args[0]).angleTo(this.expectVector(args[1]));
+				return this.expectVector(args[0], true).angleTo(this.expectVector(args[1], true));
 			case "project":
-				return this.expectVector(args[0]).projectOnto(this.expectVector(args[1]));
+				return this.expectVector(args[0], true).projectOnto(this.expectVector(args[1], true));
 			case "distance":
 				return this.callDistance(args[0], args[1]);
 			case "det":
-				return this.expectMatrix(args[0]).determinant();
+				return this.expectMatrix(args[0], true).determinant();
 			case "trace":
-				return this.expectMatrix(args[0]).trace();
+				return this.expectMatrix(args[0], true).trace();
 			case "rank":
-				return this.expectMatrix(args[0]).rank();
+				return this.expectMatrix(args[0], true).rank();
 			case "transpose":
-				return this.expectMatrix(args[0]).transpose();
+				return this.expectMatrix(args[0], true).transpose();
 			case "inv":
-				return this.expectMatrix(args[0]).inverse();
+				return this.expectMatrix(args[0], true).inverse();
 			case "matmul":
-				return this.expectMatrix(args[0]).matmul(this.expectMatrix(args[1]));
+				return this.expectMatrix(args[0], true).matmul(this.expectMatrix(args[1], true));
 			case "hadamard":
 				return this.callHadamard(args[0], args[1]);
 			case "solve":
 				return this.callSolve(args[0], args[1]);
 			case "rowS":
 			case "rowSums":
-				return this.expectMatrix(args[0]).rowSums();
+				return this.expectMatrix(args[0], true).rowSums();
 			case "colS":
 			case "columnSums":
-				return this.expectMatrix(args[0]).columnSums();
+				return this.expectMatrix(args[0], true).columnSums();
 			case "frobenius":
-				return this.expectMatrix(args[0]).frobeniusNorm();
+				return this.expectMatrix(args[0], true).frobeniusNorm();
 			// stats
 			case "sum":
 			case "product":
@@ -790,15 +800,31 @@ export class Evaluator {
 		if (args.length === 1 && this.isMatrix(args[0])) {
 			return args[0][name]();
 		}
-		if (args.length === 1 && this.isComplex(args[0])) {
-			throw new TypeError(`${name} is not defined for a single complex value.`);
+		if (args.length === 1) {
+			return this.expectScalarOrComplex(args[0]);
+		}
+		if (args.some((arg) => this.isComplex(arg))) {
+			const values = args.map((arg) => this.toComplex(arg));
+			switch (name) {
+				case "sum":
+					return values.reduce((acc, value) => acc.add(value));
+				case "product":
+					return values.reduce((acc, value) => acc.mul(value));
+				case "average":
+					return values.reduce((acc, value) => acc.add(value)).div(values.length);
+				case "max":
+				case "min":
+					throw new TypeError(`${name} is not supported for complex values.`);
+				default:
+					throw new TypeError(`${name} is not supported for complex values.`);
+			}
 		}
 		return BigFloat[name](...args.map((arg) => this.expectScalar(arg)));
 	}
 
 	callDistance(left, right) {
 		if (this.isVector(left)) {
-			return left.distanceTo(this.expectVector(right));
+			return this.expectVector(left, true).distanceTo(this.expectVector(right, true));
 		}
 		if (this.isComplex(left) || this.isComplex(right)) {
 			return this.toComplex(left).distanceTo(this.toComplex(right));
@@ -808,16 +834,16 @@ export class Evaluator {
 
 	callHadamard(left, right) {
 		if (this.isMatrix(left)) {
-			return left.hadamard(this.expectMatrix(right));
+			return this.expectMatrix(left, true).hadamard(this.expectMatrix(right, true));
 		}
 		if (this.isVector(left)) {
-			return left.hadamard(this.expectVector(right));
+			return this.expectVector(left, true).hadamard(this.expectVector(right, true));
 		}
 		throw new TypeError("hadamard expects vectors or matrices.");
 	}
 
 	callSolve(matrixValue, rhs) {
-		const matrix = this.expectMatrix(matrixValue);
+		const matrix = this.expectMatrix(matrixValue, true);
 		if (this.isMatrix(rhs)) {
 			return matrix.solveMatrix(rhs);
 		}
@@ -826,16 +852,16 @@ export class Evaluator {
 
 	add(left, right) {
 		if (this.isMatrix(left)) {
-			return left.add(this.adaptMatrixOperand(right));
+			return left.add(this.adaptMatrixOperand(right, true));
 		}
 		if (this.isMatrix(right)) {
-			return right.add(this.adaptMatrixOperand(left));
+			return right.add(this.adaptMatrixOperand(left, true));
 		}
 		if (this.isVector(left)) {
-			return left.add(this.adaptVectorOperand(right));
+			return left.add(this.adaptVectorOperand(right, true));
 		}
 		if (this.isVector(right)) {
-			return right.add(this.adaptVectorOperand(left));
+			return right.add(this.adaptVectorOperand(left, true));
 		}
 		if (this.isComplex(left) || this.isComplex(right)) {
 			return this.toComplex(left).add(this.toComplex(right));
@@ -845,10 +871,10 @@ export class Evaluator {
 
 	sub(left, right) {
 		if (this.isMatrix(left)) {
-			return left.sub(this.adaptMatrixOperand(right));
+			return left.sub(this.adaptMatrixOperand(right, true));
 		}
 		if (this.isVector(left)) {
-			return left.sub(this.adaptVectorOperand(right));
+			return left.sub(this.adaptVectorOperand(right, true));
 		}
 		if (this.isComplex(left) || this.isComplex(right)) {
 			return this.toComplex(left).sub(this.toComplex(right));
@@ -858,16 +884,16 @@ export class Evaluator {
 
 	mul(left, right) {
 		if (this.isMatrix(left)) {
-			return left.mul(this.adaptMatrixOperand(right));
+			return left.mul(this.adaptMatrixOperand(right, true));
 		}
 		if (this.isMatrix(right)) {
-			return right.mul(this.adaptMatrixOperand(left));
+			return right.mul(this.adaptMatrixOperand(left, true));
 		}
 		if (this.isVector(left)) {
-			return left.mul(this.adaptVectorOperand(right));
+			return left.mul(this.adaptVectorOperand(right, true));
 		}
 		if (this.isVector(right)) {
-			return right.mul(this.adaptVectorOperand(left));
+			return right.mul(this.adaptVectorOperand(left, true));
 		}
 		if (this.isComplex(left) || this.isComplex(right)) {
 			return this.toComplex(left).mul(this.toComplex(right));
@@ -877,10 +903,10 @@ export class Evaluator {
 
 	div(left, right) {
 		if (this.isMatrix(left)) {
-			return left.div(this.adaptMatrixOperand(right));
+			return left.div(this.adaptMatrixOperand(right, true));
 		}
 		if (this.isVector(left)) {
-			return left.div(this.adaptVectorOperand(right));
+			return left.div(this.adaptVectorOperand(right, true));
 		}
 		if (this.isComplex(left) || this.isComplex(right)) {
 			return this.toComplex(left).div(this.toComplex(right));
@@ -890,10 +916,10 @@ export class Evaluator {
 
 	mod(left, right) {
 		if (this.isMatrix(left)) {
-			return left.mod(this.adaptMatrixOperand(right));
+			return left.mod(this.adaptMatrixOperand(right, true));
 		}
 		if (this.isVector(left)) {
-			return left.mod(this.adaptVectorOperand(right));
+			return left.mod(this.adaptVectorOperand(right, true));
 		}
 		if (this.isComplex(left) || this.isComplex(right)) {
 			throw new TypeError("Complex modulo is not supported.");
@@ -906,7 +932,7 @@ export class Evaluator {
 			return left.matrixPow(this.toInteger(right));
 		}
 		if (this.isVector(left)) {
-			return left.pow(this.expectScalar(right));
+			return left.pow(this.expectScalarOrComplex(right));
 		}
 		if (this.isComplex(left) || this.isComplex(right)) {
 			return this.toComplex(left).pow(this.toComplex(right));
@@ -933,12 +959,19 @@ export class Evaluator {
 		return number;
 	}
 
-	adaptVectorOperand(value) {
-		return value instanceof BigFloatVector ? value : this.expectScalar(value);
+	adaptVectorOperand(value, allowComplex = false) {
+		return this.isVector(value) ? value : this.expectScalarOrComplex(value, allowComplex);
 	}
 
-	adaptMatrixOperand(value) {
-		return value instanceof BigFloatMatrix ? value : this.expectScalar(value);
+	adaptMatrixOperand(value, allowComplex = false) {
+		return this.isMatrix(value) ? value : this.expectScalarOrComplex(value, allowComplex);
+	}
+
+	expectScalarOrComplex(value, allowComplex = true) {
+		if (value instanceof BigFloat || (allowComplex && value instanceof BigFloatComplex)) {
+			return value;
+		}
+		throw new TypeError(allowComplex ? "Expected a scalar BigFloat or BigFloatComplex value." : "Expected a scalar BigFloat value.");
 	}
 
 	expectScalar(value) {
@@ -948,18 +981,18 @@ export class Evaluator {
 		throw new TypeError("Expected a scalar BigFloat value.");
 	}
 
-	expectVector(value) {
-		if (value instanceof BigFloatVector) {
+	expectVector(value, allowComplex = false) {
+		if (value instanceof BigFloatVector || (allowComplex && value instanceof BigFloatComplexVector)) {
 			return value;
 		}
-		throw new TypeError("Expected a BigFloatVector.");
+		throw new TypeError(allowComplex ? "Expected a BigFloatVector or BigFloatComplexVector." : "Expected a BigFloatVector.");
 	}
 
-	expectMatrix(value) {
-		if (value instanceof BigFloatMatrix) {
+	expectMatrix(value, allowComplex = false) {
+		if (value instanceof BigFloatMatrix || (allowComplex && value instanceof BigFloatComplexMatrix)) {
 			return value;
 		}
-		throw new TypeError("Expected a BigFloatMatrix.");
+		throw new TypeError(allowComplex ? "Expected a BigFloatMatrix or BigFloatComplexMatrix." : "Expected a BigFloatMatrix.");
 	}
 
 	isComplex(value) {
@@ -967,11 +1000,11 @@ export class Evaluator {
 	}
 
 	isVector(value) {
-		return value instanceof BigFloatVector;
+		return value instanceof BigFloatVector || value instanceof BigFloatComplexVector;
 	}
 
 	isMatrix(value) {
-		return value instanceof BigFloatMatrix;
+		return value instanceof BigFloatMatrix || value instanceof BigFloatComplexMatrix;
 	}
 }
 
@@ -994,9 +1027,21 @@ export function serializeValue(value, precision) {
 			values: value.toArray().map((entry) => serializeValue(entry, digits)),
 		};
 	}
+	if (value instanceof BigFloatComplexVector) {
+		return {
+			kind: "complex-vector",
+			values: value.toArray().map((entry) => serializeValue(entry, digits)),
+		};
+	}
 	if (value instanceof BigFloatMatrix) {
 		return {
 			kind: "matrix",
+			rows: value.toArray().map((row) => row.map((entry) => serializeValue(entry, digits))),
+		};
+	}
+	if (value instanceof BigFloatComplexMatrix) {
+		return {
+			kind: "complex-matrix",
 			rows: value.toArray().map((row) => row.map((entry) => serializeValue(entry, digits))),
 		};
 	}
@@ -1016,8 +1061,18 @@ export function deserializeValue(serialized, precision) {
 				serialized.values.map((entry) => deserializeValue(entry, digits)),
 				digits,
 			);
+		case "complex-vector":
+			return BigFloatComplexVector.from(
+				serialized.values.map((entry) => deserializeValue(entry, digits)),
+				digits,
+			);
 		case "matrix":
 			return BigFloatMatrix.fromRows(
+				serialized.rows.map((row) => row.map((entry) => deserializeValue(entry, digits))),
+				digits,
+			);
+		case "complex-matrix":
+			return BigFloatComplexMatrix.fromRows(
 				serialized.rows.map((row) => row.map((entry) => deserializeValue(entry, digits))),
 				digits,
 			);

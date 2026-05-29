@@ -600,13 +600,16 @@ class CalculatorApp {
 		this.updateGhostHint();
 		this.previewExpression();
 		this.handleInput(false);
+		for (const type of ["select", "keyup", "click"]) {
+			this.editor.textarea.addEventListener(type, () => this.updateGhostHint());
+		}
 		this.editor.textarea.addEventListener("input", () => {
 			this.handleInput(false);
 		});
 		this.editor.textarea.addEventListener("focus", () => this.updateGhostHint());
 		this.editor.textarea.addEventListener("blur", () => this.updateGhostHint());
 		this.editor.textarea.addEventListener("scroll", () => {
-			this.expressionGhost.scrollTop = this.editor.textarea.scrollTop;
+			this.syncGhostScroll();
 		});
 		this.precisionController.subscribe(() => this.handleInput(false));
 		this.editor.textarea.addEventListener("keydown", (event) => {
@@ -629,8 +632,14 @@ class CalculatorApp {
 			this.editor.backspace(false);
 			this.handleInput(false);
 		});
-		document.getElementById("btn-left").addEventListener("click", () => this.editor.moveCursor(-1));
-		document.getElementById("btn-right").addEventListener("click", () => this.editor.moveCursor(1));
+		document.getElementById("btn-left").addEventListener("click", () => {
+			this.editor.moveCursor(-1);
+			this.updateGhostHint();
+		});
+		document.getElementById("btn-right").addEventListener("click", () => {
+			this.editor.moveCursor(1);
+			this.updateGhostHint();
+		});
 
 		this.keypadGrid.addEventListener("click", (event) => {
 			const button = event.target.closest("button");
@@ -781,6 +790,11 @@ class CalculatorApp {
 		}
 	}
 
+	syncGhostScroll() {
+		this.expressionGhost.scrollTop = this.editor.textarea.scrollTop;
+		this.expressionGhost.scrollLeft = this.editor.textarea.scrollLeft;
+	}
+
 	updateGhostHint() {
 		const value = this.editor.getValue();
 		const isFocused = document.activeElement === this.editor.textarea;
@@ -804,6 +818,7 @@ class CalculatorApp {
 		suffixNode.textContent = suffix;
 		this.expressionGhost.replaceChildren(prefixNode, cursorNode, suffixNode);
 		this.expressionGhost.hidden = false;
+		this.syncGhostScroll();
 	}
 
 	handleInput(commit) {

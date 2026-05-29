@@ -164,6 +164,7 @@ button {
 .editor-box {
 	position: relative;
 	min-height: 0;
+	overflow: hidden;
 }
 
 .expression-input {
@@ -176,11 +177,15 @@ button {
 	overflow: auto;
 	padding: 10px 12px;
 	border: 1px solid rgba(255, 255, 255, 0.12);
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	word-break: break-word;
+	tab-size: 4;
 }
 
 .expression-ghost {
 	position: absolute;
-	inset: 1px 1px auto 1px;
+	inset: 1px;
 	padding: 10px 12px;
 	color: rgba(183, 196, 210, 0.55);
 	font-family: var(--mono);
@@ -189,7 +194,15 @@ button {
 	pointer-events: none;
 	white-space: pre-wrap;
 	overflow-wrap: anywhere;
+	word-break: break-word;
+	tab-size: 4;
+	overflow: auto;
 	border: 1px solid transparent;
+	scrollbar-width: none;
+}
+
+.expression-ghost::-webkit-scrollbar {
+	display: none;
 }
 
 .ghost-prefix {
@@ -510,7 +523,7 @@ button {
 	}
 
 	.expression-ghost {
-		font-size: 0.82rem;
+		font-size: 0.86rem;
 	}
 
 	.math-preview {
