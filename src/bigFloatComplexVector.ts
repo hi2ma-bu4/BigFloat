@@ -18,6 +18,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	/** 内部要素 (BigFloatComplex の配列) */
 	public _values: BigFloatComplex[];
 
+	// ====================================================================================================
+	// * 基本ユーティリティ (クラス生成・変換・クローン)
+	// ====================================================================================================
+
 	/**
 	 * BigFloatComplexVector コンストラクタ
 	 * @param values - 要素のソース
@@ -30,6 +34,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		const resolvedPrecision = BigFloatComplexVector._resolvePrecision(array, precision);
 		this._values = array.map((value) => BigFloatComplexVector._toComplex(value, resolvedPrecision));
 	}
+
+	// ====================================================================================================
+	// * 内部ユーティリティ・補助関数
+	// ====================================================================================================
 
 	/**
 	 * 内部配列からベクトルを生成する (内部用)
@@ -97,6 +105,48 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	}
 
 	/**
+	 * 複素数ベクトルとして未サポートの実数専用演算であることを通知する
+	 * @param operation - 演算名
+	 * @throws {TypeError} 常に送出
+	 */
+	protected static _throwNonRealVectorOperation(operation: string): never {
+		throw new TypeError(`${operation} is not supported for vectors containing non-real complex numbers`);
+	}
+
+	/**
+	 * 任意の入力を実ベクトルへ変換する
+	 * @param value - 対象のベクトル
+	 * @param referenceValues - 精度解決のための参照値
+	 * @param operation - 演算名
+	 * @returns 実ベクトル
+	 * @throws {TypeError} 非実数複素数要素を含む場合
+	 */
+	protected static _coerceRealVector(value: BigFloatAnyVectorLike, referenceValues: BigFloatInputValue[], operation: string): BigFloatVector {
+		const vector = BigFloatComplexVector._coerceVector(value, referenceValues);
+		return BigFloatVector.from(
+			vector._values.map((entry) => {
+				if (!entry.isReal()) BigFloatComplexVector._throwNonRealVectorOperation(operation);
+				return entry.real;
+			}),
+		);
+	}
+
+	/**
+	 * 全要素が実数であることを確認し、実ベクトルへ変換する
+	 * @param operation - 演算名
+	 * @returns 実ベクトル
+	 * @throws {TypeError} 非実数複素数要素を含む場合
+	 */
+	protected _toRealVector(operation: string): BigFloatVector {
+		return BigFloatVector.from(
+			this._values.map((value) => {
+				if (!value.isReal()) BigFloatComplexVector._throwNonRealVectorOperation(operation);
+				return value.real;
+			}),
+		);
+	}
+
+	/**
 	 * 各要素に対して変換関数を適用した新しいベクトルを返す (内部用)
 	 * @param fn - 変換関数
 	 * @returns 変換後の新しいベクトル
@@ -133,13 +183,9 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this._mapValues((value, index) => fn(value, right, index));
 	}
 
-	/**
-	 * 空のベクトル (次元 0) を生成する
-	 * @returns 空のベクトル
-	 */
-	public static empty(): BigFloatComplexVector {
-		return this._fromComplexArray([]);
-	}
+	// ====================================================================================================
+	// * ベクトル生成・初期化
+	// ====================================================================================================
 
 	/**
 	 * 要素の反復可能オブジェクトから BigFloatComplexVector を生成する
@@ -285,6 +331,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this._fromComplexArray(values);
 	}
 
+	// ====================================================================================================
+	// * 要素アクセス・反復
+	// ====================================================================================================
+
 	/**
 	 * ベクトルの長さ（要素数）
 	 */
@@ -355,6 +405,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this.toArray()[Symbol.iterator]();
 	}
 
+	// ====================================================================================================
+	// * コレクション操作
+	// ====================================================================================================
+
 	/**
 	 * 各要素に対して処理を実行する
 	 * @param fn - 実行する関数
@@ -417,6 +471,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this._values.every((v, i) => fn(v.clone(), i));
 	}
 
+	// ====================================================================================================
+	// * 結合・スライス
+	// ====================================================================================================
+
 	/**
 	 * ベクトルを連結する
 	 * @param others - 連結するベクトル
@@ -451,6 +509,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return BigFloatComplexVector._fromComplexArray([...this._values].reverse().map((v) => v.clone())) as this;
 	}
 
+	// ====================================================================================================
+	// * 精度・比較系
+	// ====================================================================================================
+
 	/**
 	 * ベクトルの精度を変更する
 	 * @param precision - 新しい精度
@@ -460,48 +522,6 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	public changePrecision(precision: PrecisionValue): this {
 		const p = BigInt(precision);
 		return this._mapValues((v) => v.changePrecision(p));
-	}
-
-	/**
-	 * 複素数ベクトルとして未サポートの実数専用演算であることを通知する
-	 * @param operation - 演算名
-	 * @throws {TypeError} 常に送出
-	 */
-	protected static _throwNonRealVectorOperation(operation: string): never {
-		throw new TypeError(`${operation} is not supported for vectors containing non-real complex numbers`);
-	}
-
-	/**
-	 * 全要素が実数であることを確認し、実ベクトルへ変換する
-	 * @param operation - 演算名
-	 * @returns 実ベクトル
-	 * @throws {TypeError} 非実数複素数要素を含む場合
-	 */
-	protected _toRealVector(operation: string): BigFloatVector {
-		return BigFloatVector.from(
-			this._values.map((value) => {
-				if (!value.isReal()) BigFloatComplexVector._throwNonRealVectorOperation(operation);
-				return value.real;
-			}),
-		);
-	}
-
-	/**
-	 * 任意の入力を実ベクトルへ変換する
-	 * @param value - 対象のベクトル
-	 * @param referenceValues - 精度解決のための参照値
-	 * @param operation - 演算名
-	 * @returns 実ベクトル
-	 * @throws {TypeError} 非実数複素数要素を含む場合
-	 */
-	protected static _coerceRealVector(value: BigFloatAnyVectorLike, referenceValues: BigFloatInputValue[], operation: string): BigFloatVector {
-		const vector = BigFloatComplexVector._coerceVector(value, referenceValues);
-		return BigFloatVector.from(
-			vector._values.map((entry) => {
-				if (!entry.isReal()) BigFloatComplexVector._throwNonRealVectorOperation(operation);
-				return entry.real;
-			}),
-		);
 	}
 
 	/**
@@ -519,6 +539,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		if (this.length !== vector.length) return false;
 		return this._values.every((v, i) => v.equals(vector._values[i]));
 	}
+
+	// ====================================================================================================
+	// * 四則演算・基本関数
+	// ====================================================================================================
 
 	/**
 	 * ベクトルの加算を行う
@@ -661,6 +685,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	public reciprocal(): this {
 		return this._mapValues((v) => v.reciprocal());
 	}
+
+	// ====================================================================================================
+	// * 冪乗・ルート・スケーリング
+	// ====================================================================================================
 
 	/**
 	 * 各要素のべき乗を計算する
@@ -846,6 +874,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this._mapWithOperand(other, (l, r) => l.percentDiff(r));
 	}
 
+	// ====================================================================================================
+	// * 三角関数
+	// ====================================================================================================
+
 	/**
 	 * 各要素の正弦（sin）を計算する
 	 * @returns sin 適用後のベクトル
@@ -957,6 +989,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this._mapWithOperand(x, (left, right) => left.atan2(right));
 	}
 
+	// ====================================================================================================
+	// * 双曲線関数
+	// ====================================================================================================
+
 	/**
 	 * 各要素の双曲線正弦（sinh）を計算する
 	 * @returns sinh 適用後のベクトル
@@ -1049,6 +1085,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	public atanh(): this {
 		return this._mapValues((v) => v.atanh());
 	}
+
+	// ====================================================================================================
+	// * 対数・指数・自然定数
+	// ====================================================================================================
 
 	/**
 	 * 各要素の指数関数（exp）を計算する
@@ -1174,6 +1214,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this._mapValues((v) => v.log1p());
 	}
 
+	// ====================================================================================================
+	// * 特殊関数・積分・ガンマ関数など
+	// ====================================================================================================
+
 	/**
 	 * 各要素にガンマ関数を適用する
 	 * @returns gamma 適用後のベクトル
@@ -1212,6 +1256,9 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	public factorial(): this {
 		return this._mapValues((v) => v.factorial());
 	}
+	// ====================================================================================================
+	// * 統計関数
+	// ====================================================================================================
 
 	/**
 	 * 最大値を取得する（複素数では未サポート）
@@ -1284,6 +1331,10 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return this.sum().div(this.length);
 	}
 
+	// ====================================================================================================
+	// * ベクトル演算
+	// ====================================================================================================
+
 	/**
 	 * 他のベクトルとの内積を計算する
 	 * @param other - 対象のベクトル
@@ -1349,6 +1400,21 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	}
 
 	/**
+	 * 他のベクトルとの二乗距離を計算する
+	 * @param other - 対象のベクトル
+	 * @returns 二乗距離
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
+	 */
+	public squaredDistanceTo(other: BigFloatAnyVectorLike): BigFloat {
+		return this.sub(other).squaredNorm();
+	}
+
+	/**
 	 * 他のベクトルとの距離を計算する
 	 * @param other - 対象のベクトル
 	 * @returns 距離
@@ -1361,6 +1427,26 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	 */
 	public distanceTo(other: BigFloatAnyVectorLike): BigFloat {
 		return this.sub(other).norm();
+	}
+
+	/**
+	 * 別のベクトルへの正射影ベクトルを計算する
+	 * @param other - 射影先のベクトル
+	 * @returns 射影された新しいベクトル
+	 * @throws {DivisionByZeroError} ゼロベクトルに射影しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {DimensionMismatchError} 次元が一致しない場合
+	 */
+	public projectOnto(other: BigFloatAnyVectorLike): this {
+		const vector = BigFloatComplexVector._coerceVector(other, this._values);
+		const denominator = vector.squaredNorm();
+		if (denominator.isZero()) throw new DivisionByZeroError("Cannot project onto zero vector");
+		const scale = this.dot(vector).div(denominator);
+		return vector.mul(scale) as this;
 	}
 
 	/**
@@ -1403,38 +1489,15 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 		return BigFloatComplexVector._fromComplexArray([ay.mul(bz).sub(az.mul(by)), az.mul(bx).sub(ax.mul(bz)), ax.mul(by).sub(ay.mul(bx))]) as this;
 	}
 
-	/**
-	 * 他のベクトルとの二乗距離を計算する
-	 * @param other - 対象のベクトル
-	 * @returns 二乗距離
-	 * @throws {TypeError} 複素数モードが無効な場合
-	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {DimensionMismatchError} 次元が一致しない場合
-	 */
-	public squaredDistanceTo(other: BigFloatAnyVectorLike): BigFloat {
-		return this.sub(other).squaredNorm();
-	}
+	// ====================================================================================================
+	// * 定数オブジェクト
+	// ====================================================================================================
 
 	/**
-	 * 別のベクトルへの正射影ベクトルを計算する
-	 * @param other - 射影先のベクトル
-	 * @returns 射影された新しいベクトル
-	 * @throws {DivisionByZeroError} ゼロベクトルに射影しようとした場合
-	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 * @throws {TypeError} 複素数モードが無効な場合
-	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {DimensionMismatchError} 次元が一致しない場合
+	 * 空のベクトル (次元 0) を生成する
+	 * @returns 空のベクトル
 	 */
-	public projectOnto(other: BigFloatAnyVectorLike): this {
-		const vector = BigFloatComplexVector._coerceVector(other, this._values);
-		const denominator = vector.squaredNorm();
-		if (denominator.isZero()) throw new DivisionByZeroError("Cannot project onto zero vector");
-		const scale = this.dot(vector).div(denominator);
-		return vector.mul(scale) as this;
+	public static empty(): BigFloatComplexVector {
+		return this._fromComplexArray([]);
 	}
 }

@@ -19,6 +19,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	/** 内部要素 (行ごとの配列) */
 	public _values: BigFloat[][];
 
+	// ====================================================================================================
+	// * 基本ユーティリティ (クラス生成・変換・クローン)
+	// ====================================================================================================
+
 	/**
 	 * BigFloatMatrix コンストラクタ
 	 * @param rows - 行列要素の反復可能オブジェクト
@@ -33,6 +37,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		const resolvedPrecision = BigFloatMatrix._resolvePrecision(rawRows.flat(), precision);
 		this._values = rawRows.map((row) => row.map((value) => BigFloatMatrix._toBigFloat(value, resolvedPrecision)));
 	}
+
+	// ====================================================================================================
+	// * 内部ユーティリティ・補助関数
+	// ====================================================================================================
 
 	/**
 	 * 内部配列から行列を生成する (内部用)
@@ -358,14 +366,9 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return { values: rows, pivotColumns };
 	}
 
-	/**
-	 * 空の行列 (0x0) を生成する
-	 * @returns 空の行列
-	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 */
-	public static empty(): BigFloatMatrix {
-		return this._fromBigFloatGrid([]);
-	}
+	// ====================================================================================================
+	// * 行列生成・初期化
+	// ====================================================================================================
 
 	/**
 	 * 二次元配列から実数行列を生成する
@@ -536,6 +539,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return this._fromBigFloatGrid(Array.from({ length: normalizedRows }, () => Array.from({ length: normalizedColumns }, () => minValue.add(span.mul(BigFloat.random(resolvedPrecision))))));
 	}
 
+	// ====================================================================================================
+	// * 要素アクセス・反復
+	// ====================================================================================================
+
 	/**
 	 * 行数を取得する
 	 */
@@ -672,6 +679,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return this.toVectors()[Symbol.iterator]();
 	}
 
+	// ====================================================================================================
+	// * コレクション操作
+	// ====================================================================================================
+
 	/**
 	 * 各要素に対して関数を実行する
 	 * @param fn - 実行する関数
@@ -753,6 +764,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return true;
 	}
 
+	// ====================================================================================================
+	// * 結合・スライス
+	// ====================================================================================================
+
 	/**
 	 * 行方向に連結する
 	 * @param others - 連結する行列のリスト
@@ -821,6 +836,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return BigFloatMatrix._fromBigFloatGrid(Array.from({ length: this.columnCount }, (_, column) => this._values.map((row) => row[column].clone()))) as this;
 	}
 
+	// ====================================================================================================
+	// * 精度・比較系
+	// ====================================================================================================
+
 	/**
 	 * 別の行列と内容が等しいかどうかを判定する
 	 * @param other - 比較対象
@@ -852,6 +871,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		const precisionBig = BigInt(precision);
 		return this._mapValues((value) => value.changePrecision(precisionBig));
 	}
+
+	// ====================================================================================================
+	// * 四則演算・基本関数
+	// ====================================================================================================
 
 	/**
 	 * 各要素に別の行列またはスカラ値を加算した新しい行列を取得する
@@ -988,6 +1011,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	public reciprocal(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.reciprocal());
 	}
+
+	// ====================================================================================================
+	// * 冪乗・ルート・スケーリング
+	// ====================================================================================================
 
 	/**
 	 * 各要素を指定した指数で冪乗した新しい行列を取得する
@@ -1162,6 +1189,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return this._mapWithOperand(other, (left, right) => left.percentDiff(right));
 	}
 
+	// ====================================================================================================
+	// * 三角関数
+	// ====================================================================================================
+
 	/**
 	 * 各要素の正弦 (sin) を計算した行列を取得する
 	 * @returns sin 適用後の行列
@@ -1268,6 +1299,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return this._mapWithOperand(x, (left, right) => left.atan2(right));
 	}
 
+	// ====================================================================================================
+	// * 双曲線関数
+	// ====================================================================================================
+
 	/**
 	 * 各要素の双曲線正弦 (sinh) を計算した行列を取得する
 	 * @returns sinh 適用後の行列
@@ -1352,6 +1387,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	public atanh(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.atanh());
 	}
+
+	// ====================================================================================================
+	// * 対数・指数・自然定数
+	// ====================================================================================================
 
 	/**
 	 * 各要素の指数関数 (exp) を計算した行列を取得する
@@ -1457,6 +1496,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return this._mapValues((value) => value.log1p());
 	}
 
+	// ====================================================================================================
+	// * 特殊関数・積分・ガンマ関数など
+	// ====================================================================================================
+
 	/**
 	 * 各要素に対してガンマ関数を計算した行列を取得する
 	 * @returns ガンマ関数適用後の行列
@@ -1495,6 +1538,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	public factorial(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.factorial());
 	}
+
+	// ====================================================================================================
+	// * 統計関数
+	// ====================================================================================================
 
 	/**
 	 * 最大値を返す
@@ -1576,6 +1623,10 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		if (this.isEmpty()) return new BigFloat(0);
 		return this.sum().div(this.rowCount * this.columnCount);
 	}
+
+	// ====================================================================================================
+	// * 行列演算
+	// ====================================================================================================
 
 	/**
 	 * 行ごとの合計を計算する
@@ -1845,5 +1896,18 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 			if (power > 0) base = base.matmul(base);
 		}
 		return result as this;
+	}
+
+	// ====================================================================================================
+	// * 定数オブジェクト
+	// ====================================================================================================
+
+	/**
+	 * 空の行列 (0x0) を生成する
+	 * @returns 空の行列
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public static empty(): BigFloatMatrix {
+		return this._fromBigFloatGrid([]);
 	}
 }
