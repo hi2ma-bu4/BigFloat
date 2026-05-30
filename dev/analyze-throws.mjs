@@ -172,22 +172,44 @@ export function analyzeThrows(config) {
 			// タグの個別チェック
 			const tags = jsDoc.getTags();
 			const seenThrows = new Set();
+			const seenSuppressed = new Set();
 			for (const tag of tags) {
 				const tagName = tag.getTagName();
 				const tagLine = tag.getStartLineNumber();
 
-				if (tagName === "throws") {
+				if (tagName === "throws" || tagName === "throwsSuppressed") {
 					const text = tag.getText();
 					const typeMatch = text.match(/\{([^}]*)\}/);
 					const type = typeMatch ? typeMatch[1] : "Error";
-					if (seenThrows.has(type)) {
+
+					if (tagName === "throws") {
+						if (seenThrows.has(type)) {
+							result.push({
+								file: relPath,
+								line: tagLine,
+								message: `@throws {${type}} が重複しています。1つのJSDoc内では型ごとに1つにまとめてください`,
+							});
+						}
+						seenThrows.add(type);
+					} else {
+						if (seenSuppressed.has(type)) {
+							result.push({
+								file: relPath,
+								line: tagLine,
+								message: `@throwsSuppressed {${type}} が重複しています。1つのJSDoc内では型ごとに1つにまとめてください`,
+							});
+						}
+						seenSuppressed.add(type);
+					}
+
+					// @throws と @throwsSuppressed の重複チェック
+					if (seenThrows.has(type) && seenSuppressed.has(type)) {
 						result.push({
 							file: relPath,
 							line: tagLine,
-							message: `@throws {${type}} が重複しています。1つのJSDoc内では型ごとに1つにまとめてください`,
+							message: `@throws {${type}} と @throwsSuppressed {${type}} が両方指定されています。どちらか片方にしてください`,
 						});
 					}
-					seenThrows.add(type);
 				}
 
 				if (tagName === "return") {
@@ -208,9 +230,9 @@ export function analyzeThrows(config) {
 					}
 				}
 
-				if (["param", "returns", "throws"].includes(tagName)) {
+				if (["param", "returns", "throws", "throwsSuppressed"].includes(tagName)) {
 					const comment = tag.getComment()?.trim() || "";
-					if (!comment) {
+					if (!comment && tagName !== "throwsSuppressed") {
 						result.push({
 							file: relPath,
 							line: tagLine,
@@ -263,9 +285,12 @@ export function analyzeThrows(config) {
 	}
 
 	const funcToTags = new Map();
+	const funcToSuppressedTags = new Map();
 	for (const func of allFuncsInProject) {
 		const tags = getThrowsTags(func);
-		funcToTags.set(func, parseThrowsTags(tags));
+		funcToTags.set(func, parseThrowsTags(tags, "throws"));
+		const suppressedTags = getSuppressedThrowsTags(func);
+		funcToSuppressedTags.set(func, parseThrowsTags(suppressedTags, "throwsSuppressed"));
 	}
 
 	// [新チェック] オーバーロードと冗長な @throws のチェック
@@ -342,7 +367,7 @@ export function analyzeThrows(config) {
 		}
 
 		if (implementation) {
-			const actualThrows = collectActualThrowsRecursive(implementation, funcToTags, project);
+			const actualThrows = collectActualThrowsRecursive(implementation, funcToTags, funcToSuppressedTags, project);
 			for (const decl of group) {
 				const tags = funcToTags.get(decl);
 				if (tags) {
@@ -352,6 +377,18 @@ export function analyzeThrows(config) {
 								file: getRelPath(config.rootDir, decl.getSourceFile()),
 								line: tag.line,
 								message: `余剰な @throws {${tag.type}} があります (この例外は発生しません)`,
+							});
+						}
+					}
+				}
+				const suppressedTags = funcToSuppressedTags.get(decl);
+				if (suppressedTags) {
+					for (const tag of suppressedTags) {
+						if (!actualThrows.has(tag.type)) {
+							result.push({
+								file: getRelPath(config.rootDir, decl.getSourceFile()),
+								line: tag.line,
+								message: `余剰な @throwsSuppressed {${tag.type}} があります (この例外は発生しません)`,
 							});
 						}
 					}
@@ -373,7 +410,8 @@ export function analyzeThrows(config) {
 
 			const throwType = getThrowType(throwStmt);
 			const tags = funcToTags.get(func) || [];
-			if (tags.some((t) => t.type === throwType)) continue;
+			const suppressedTags = funcToSuppressedTags.get(func) || [];
+			if (tags.some((t) => t.type === throwType) || suppressedTags.some((t) => t.type === throwType)) continue;
 
 			result.push({
 				file: relPath,
@@ -394,9 +432,10 @@ export function analyzeThrows(config) {
 			for (const decl of calledDecls) {
 				const targetTags = funcToTags.get(decl) || [];
 				const callerTags = funcToTags.get(enclosingFunc) || [];
+				const callerSuppressedTags = funcToSuppressedTags.get(enclosingFunc) || [];
 
 				for (const targetTag of targetTags) {
-					if (!callerTags.some((t) => t.type === targetTag.type)) {
+					if (!callerTags.some((t) => t.type === targetTag.type) && !callerSuppressedTags.some((t) => t.type === targetTag.type)) {
 						const errorDetail = targetTag.description ? `{${targetTag.type}} ${targetTag.description}` : `{${targetTag.type}}`;
 						result.push({
 							file: relPath,
@@ -504,15 +543,28 @@ function getThrowsTags(func) {
 	return target.getJsDocs().flatMap((doc) => doc.getTags().filter((t) => t.getTagName() === "throws"));
 }
 
-function parseThrowsTags(tags) {
+function getSuppressedThrowsTags(func) {
+	if (!func) return [];
+	let target = func;
+	if (isVariableArrowFunc(func)) {
+		const varDecl = func.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
+		const varStmt = varDecl?.getFirstAncestorByKind(SyntaxKind.VariableStatement);
+		if (varStmt) target = varStmt;
+	}
+	if (!target.getJsDocs) return [];
+	return target.getJsDocs().flatMap((doc) => doc.getTags().filter((t) => t.getTagName() === "throwsSuppressed"));
+}
+
+function parseThrowsTags(tags, tagName = "throws") {
 	return tags.map((tag) => {
 		const text = tag.getText();
 		const typeMatch = text.match(/\{([^}]*)\}/);
 		const type = typeMatch ? typeMatch[1] : "Error";
+		const tagRegex = new RegExp(`@${tagName}\\s*`);
 		let description = text
 			.replace(/^\/\*\*|\*\/$/g, "")
 			.replace(/^\s*\*\s*/gm, "")
-			.replace(/@throws\s*/, "")
+			.replace(tagRegex, "")
 			.replace(/\{[^}]*\}\s*/, "");
 		description = description.replace(/^\s*-\s+/, "").trim();
 		return { type, description, line: tag.getStartLineNumber() };
@@ -562,7 +614,7 @@ function getCalledDeclarations(callExpr, project) {
 	return declarations.filter((d) => !d.getSourceFile().getFilePath().includes("/node_modules/"));
 }
 
-function collectActualThrowsRecursive(func, funcToTags, project, visited = new Set()) {
+function collectActualThrowsRecursive(func, funcToTags, funcToSuppressedTags, project, visited = new Set()) {
 	if (visited.has(func)) return new Set();
 	visited.add(func);
 
@@ -622,17 +674,39 @@ function collectActualThrowsRecursive(func, funcToTags, project, visited = new S
 			for (const decl of calledDecls) {
 				if (Node.isClassDeclaration(decl)) {
 					decl.getConstructors().forEach((ctor) => {
+						const suppressedTags = funcToSuppressedTags.get(ctor) || [];
+						const suppressedTypes = new Set(suppressedTags.map((t) => t.type));
+
 						const tags = funcToTags.get(ctor) || [];
-						tags.forEach((t) => types.add(t.type));
+						tags.forEach((t) => {
+							if (!suppressedTypes.has(t.type)) {
+								types.add(t.type);
+							}
+						});
 						if (!isDocumentable(ctor)) {
-							collectActualThrowsRecursive(ctor, funcToTags, project, visited).forEach((t) => types.add(t));
+							collectActualThrowsRecursive(ctor, funcToTags, funcToSuppressedTags, project, visited).forEach((t) => {
+								if (!suppressedTypes.has(t)) {
+									types.add(t);
+								}
+							});
 						}
 					});
 				} else {
+					const suppressedTags = funcToSuppressedTags.get(decl) || [];
+					const suppressedTypes = new Set(suppressedTags.map((t) => t.type));
+
 					const tags = funcToTags.get(decl) || [];
-					tags.forEach((t) => types.add(t.type));
+					tags.forEach((t) => {
+						if (!suppressedTypes.has(t.type)) {
+							types.add(t.type);
+						}
+					});
 					if (!isDocumentable(decl) && (Node.isFunctionLikeDeclaration(decl) || Node.isMethodDeclaration(decl))) {
-						collectActualThrowsRecursive(decl, funcToTags, project, visited).forEach((t) => types.add(t));
+						collectActualThrowsRecursive(decl, funcToTags, funcToSuppressedTags, project, visited).forEach((t) => {
+							if (!suppressedTypes.has(t)) {
+								types.add(t);
+							}
+						});
 					}
 				}
 			}

@@ -1051,7 +1051,6 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	 * 各要素の正弦（sin）を計算する
 	 * @returns sin 適用後の行列
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
@@ -1066,7 +1065,6 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	 * 各要素の余弦（cos）を計算する
 	 * @returns cos 適用後の行列
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
@@ -1146,7 +1144,6 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	 * @returns atan2 適用後の行列
 	 * @throws {TypeError} 実数でない複素数が含まれる場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
@@ -1169,7 +1166,6 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	 * 各要素の双曲線正弦（sinh）を計算する
 	 * @returns sinh 適用後の行列
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
@@ -1184,7 +1180,6 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	 * 各要素の双曲線余弦（cosh）を計算する
 	 * @returns cosh 適用後の行列
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
@@ -1311,7 +1306,6 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	 * @returns ln 適用後の行列
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
@@ -1381,7 +1375,6 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
 	public log1p(): this {

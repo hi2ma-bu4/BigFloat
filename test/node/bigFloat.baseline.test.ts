@@ -5,7 +5,7 @@ import { performance } from "node:perf_hooks";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
-import { BigFloat as CurrentBigFloat } from "../../dist/BigFloat";
+import { BigFloat as CurrentBigFloat, RoundingMode } from "../../dist/BigFloat";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,6 +49,8 @@ type BenchmarkCase = {
 
 const BaselineBigFloat = JavaLibraryScript.math.BigFloat as ComparableBigFloatCtor;
 BaselineBigFloat.config.extraPrecision = 6n;
+BaselineBigFloat.config.roundingMode = JavaLibraryScript.math.BigFloatConfig.ROUND_TRUNCATE;
+CurrentBigFloat.config.roundingMode = RoundingMode.TRUNCATE;
 
 /**
  * 同じ計算を旧実装・新実装で実行して文字列を比較する

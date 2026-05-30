@@ -271,11 +271,39 @@ test("BigFloat rejects complex operands by default and promotes to BigFloatCompl
 	assert.equal(sum.toString(10, HIGH_PRECISION), "2 + 2i");
 	assert.equal(diff.toString(10, HIGH_PRECISION), "2 - 2i");
 	assert.equal(product.toString(10, HIGH_PRECISION), "4i");
-	assert.ok(quotient.sub(new BigFloatComplex(1, -1, HIGH_PRECISION)).abs().lt(epsilon));
-	assert.ok(powered.sub(new BigFloatComplex(2, 0, HIGH_PRECISION).pow(enabledComplex)).abs().lt(epsilon));
-	assert.ok(enabledReal.relativeDiff(enabledComplex).sub(new BigFloatComplex(2, 0, HIGH_PRECISION).relativeDiff(enabledComplex)).abs().lt(epsilon));
-	assert.ok(enabledReal.absoluteDiff(enabledComplex).sub(new BigFloatComplex(2, 0, HIGH_PRECISION).absoluteDiff(enabledComplex)).abs().lt(epsilon));
-	assert.ok(enabledReal.percentDiff(enabledComplex).sub(new BigFloatComplex(2, 0, HIGH_PRECISION).percentDiff(enabledComplex)).abs().lt(epsilon));
+	assert.ok(
+		quotient
+			.sub(new BigFloatComplex(1, -1, HIGH_PRECISION))
+			.abs()
+			.lt(epsilon),
+	);
+	assert.ok(
+		powered
+			.sub(new BigFloatComplex(2, 0, HIGH_PRECISION).pow(enabledComplex))
+			.abs()
+			.lt(epsilon),
+	);
+	assert.ok(
+		enabledReal
+			.relativeDiff(enabledComplex)
+			.sub(new BigFloatComplex(2, 0, HIGH_PRECISION).relativeDiff(enabledComplex))
+			.abs()
+			.lt(epsilon),
+	);
+	assert.ok(
+		enabledReal
+			.absoluteDiff(enabledComplex)
+			.sub(new BigFloatComplex(2, 0, HIGH_PRECISION).absoluteDiff(enabledComplex))
+			.abs()
+			.lt(epsilon),
+	);
+	assert.ok(
+		enabledReal
+			.percentDiff(enabledComplex)
+			.sub(new BigFloatComplex(2, 0, HIGH_PRECISION).percentDiff(enabledComplex))
+			.abs()
+			.lt(epsilon),
+	);
 	assert.throws(() => enabledReal.mod(enabledComplex), /does not support BigFloatComplex operands/);
 });
 
