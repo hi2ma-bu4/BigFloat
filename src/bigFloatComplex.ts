@@ -67,7 +67,7 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	protected static _fromBigFloats(real: BigFloat, imag: BigFloat): BigFloatComplex {
-		const complex = Object.create(BigFloatComplex.prototype) as BigFloatComplex;
+		const complex = new this();
 		const precision = real._precision > imag._precision ? real._precision : imag._precision;
 		complex._real = real._precision === precision ? real.clone() : real.clone().changePrecision(precision);
 		complex._imag = imag._precision === precision ? imag.clone() : imag.clone().changePrecision(precision);

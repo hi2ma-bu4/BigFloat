@@ -32,7 +32,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	public constructor(rows: BigFloatMatrixLike = [], precision?: PrecisionValue) {
-		const rawRows = Array.from(rows, (row) => Array.from(row)) as BigFloatValue[][];
+		const rawRows: BigFloatValue[][] = Array.from(rows, (row) => Array.from(row));
 		BigFloatMatrix._assertRectangularRaw(rawRows);
 		const resolvedPrecision = BigFloatMatrix._resolvePrecision(rawRows.flat(), precision);
 		this._values = rawRows.map((row) => row.map((value) => BigFloatMatrix._toBigFloat(value, resolvedPrecision)));

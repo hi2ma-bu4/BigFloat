@@ -326,7 +326,7 @@ export class BigFloat {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 */
 	protected _complexOperand(other: unknown, operation: string): BigFloatComplex | null {
-		if (!(this.constructor as typeof BigFloat)._isComplexValue(other)) return null;
+		if (!(this.constructor as BigFloatConstructor)._isComplexValue(other)) return null;
 		this._assertComplexNumbersEnabled(operation);
 		return other;
 	}
@@ -338,7 +338,7 @@ export class BigFloat {
 	 */
 	protected _toComplexLike(other: BigFloatComplex): BigFloatComplex {
 		const precision = this._precision > other.precision ? this._precision : other.precision;
-		const ComplexCtor = other.constructor as new (value?: unknown, imag?: unknown, precision?: PrecisionValue) => BigFloatComplex;
+		const ComplexCtor = other.constructor as typeof BigFloatComplex;
 		return new ComplexCtor(this, 0, precision);
 	}
 
@@ -1628,7 +1628,6 @@ export class BigFloat {
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public toJSON(): string {
-		const config = (this.constructor as BigFloatConstructor).config;
 		let bf: BigFloat = this;
 		return bf.toString();
 	}
@@ -4932,13 +4931,13 @@ export class BigFloat {
 	 * @returns ベルヌーイ数のリスト
 	 */
 	protected static _bernoulliNumbers(n: number, precision: bigint): bigint[] {
-		const A = new Array(n + 1).fill(0n);
-		const B = new Array(n + 1).fill(0n);
+		const A: bigint[] = new Array(n + 1).fill(0n);
+		const B: bigint[] = new Array(n + 1).fill(0n);
 		const scale = this._getPow10(precision);
 		for (let m = 0; m <= n; m++) {
 			A[m] = scale / BigInt(m + 1);
 			for (let j = m; j >= 1; j--) {
-				const term = (A[j - 1] as bigint) - (A[j] as bigint);
+				const term = A[j - 1] - A[j];
 				A[j - 1] = BigInt(j) * term;
 			}
 			B[m] = A[0];

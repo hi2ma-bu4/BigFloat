@@ -2077,6 +2077,26 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 */
 	factorial(): this;
 	/**
+	 * 最大値を返す
+	 * @returns 最大値
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	max(): BigFloatComplex;
+	/**
+	 * 最小値を返す
+	 * @returns 最小値
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	min(): BigFloatComplex;
+	/**
 	 * 全要素の合計を計算する
 	 * @returns 合計値
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
@@ -2637,6 +2657,7 @@ export declare class BigFloatStream implements Iterable<BigFloatLike> {
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	sorted(compareFn?: (a: BigFloatLike, b: BigFloatLike) => number): this;
 	/**
@@ -3287,6 +3308,7 @@ export declare class BigFloatStream implements Iterable<BigFloatLike> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	max(): BigFloatLike;
 	/**
@@ -3296,6 +3318,7 @@ export declare class BigFloatStream implements Iterable<BigFloatLike> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	min(): BigFloatLike;
 	/**

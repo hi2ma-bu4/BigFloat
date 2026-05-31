@@ -862,7 +862,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
 	 */
 	public pow(exponent: BigFloatInputValue | BigFloatAnyVectorLike): this | BigFloatAnyVector {
-		return this._mapWithOperand(exponent, (left, right) => left.pow(right as BigFloat));
+		return this._mapWithOperand(exponent, (left, right) => left.pow(right));
 	}
 
 	/**
@@ -1656,7 +1656,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	public angleTo(other: BigFloatVectorLike): BigFloat {
-		const vector = BigFloatVector._coerceVector(other, this._values) as BigFloatVector;
+		const vector = BigFloatVector._coerceVector(other, this._values);
 		const denominator = this.norm().mul(vector.norm());
 		if (denominator.isZero()) throw new DivisionByZeroError("Cannot compute angle with zero vector");
 		let cosine = this.dot(vector).div(denominator);

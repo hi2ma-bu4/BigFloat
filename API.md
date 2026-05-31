@@ -6560,6 +6560,46 @@ factorial(): BigFloatComplexMatrix
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
+#### `max`
+
+```ts
+max(): BigFloatComplex
+```
+
+最大値を返す
+
+**Returns**: 最大値
+
+**Throws**: 行列が空の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を比較しようとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `min`
+
+```ts
+min(): BigFloatComplex
+```
+
+最小値を返す
+
+**Returns**: 最小値
+
+**Throws**: 行列が空の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を比較しようとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
 #### `sum`
 
 ```ts
@@ -11226,6 +11266,8 @@ sorted(compareFn?: (a: BigFloat | BigFloatComplex, b: BigFloat | BigFloatComplex
 
 **Throws**: 特殊値が無効な設定で特殊値を比較しようとした場合
 
+**Throws**: 文字列が複素数表現として無効な場合
+
 #### `peek`
 
 ```ts
@@ -12551,6 +12593,8 @@ max(): BigFloat | BigFloatComplex
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
+**Throws**: 文字列が複素数表現として無効な場合
+
 #### `min`
 
 ```ts
@@ -12568,6 +12612,8 @@ min(): BigFloat | BigFloatComplex
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `sum`
 

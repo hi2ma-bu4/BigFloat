@@ -45,7 +45,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	 * @returns 生成された BigFloatComplexVector
 	 */
 	protected static _fromComplexArray(values: BigFloatComplex[]): BigFloatComplexVector {
-		const vector = Object.create(BigFloatComplexVector.prototype) as BigFloatComplexVector;
+		const vector = new this();
 		vector._values = values;
 		return vector;
 	}

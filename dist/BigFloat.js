@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.4.3
+ * BigFloat 1.4.4
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -109,7 +109,7 @@ var BigFloatStream = class _BigFloatStream {
    * @returns 生成されたストリーム
    */
   static _fromState(sourceFactory, previousStream, stageDefinition, stageData) {
-    const stream = Object.create(_BigFloatStream.prototype);
+    const stream = new this([][Symbol.iterator]());
     stream._sourceFactory = sourceFactory;
     stream._previousStream = previousStream;
     stream._stageDefinition = stageDefinition;
@@ -596,6 +596,7 @@ var BigFloatStream = class _BigFloatStream {
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   sorted(compareFn = (a, b) => a.compare(b)) {
     const current = this.clone();
@@ -1530,6 +1531,7 @@ var BigFloatStream = class _BigFloatStream {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   max() {
     const iter = this[Symbol.iterator]();
@@ -1548,6 +1550,7 @@ var BigFloatStream = class _BigFloatStream {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   min() {
     const iter = this[Symbol.iterator]();
@@ -1747,7 +1750,7 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
    * @returns 生成された BigFloatComplexVector
    */
   static _fromComplexArray(values) {
-    const vector = Object.create(_BigFloatComplexVector.prototype);
+    const vector = new this();
     vector._values = values;
     return vector;
   }
@@ -4406,7 +4409,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    */
   static _fromBigFloats(real, imag) {
-    const complex = Object.create(_BigFloatComplex.prototype);
+    const complex = new this();
     const precision = real._precision > imag._precision ? real._precision : imag._precision;
     complex._real = real._precision === precision ? real.clone() : real.clone().changePrecision(precision);
     complex._imag = imag._precision === precision ? imag.clone() : imag.clone().changePrecision(precision);
@@ -7373,7 +7376,6 @@ var BigFloat = class _BigFloat {
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   toJSON() {
-    const config = this.constructor.config;
     let bf = this;
     return bf.toString();
   }
@@ -12759,7 +12761,7 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
    * @returns BigFloatComplexMatrix インスタンス
    */
   static _fromComplexGrid(values) {
-    const matrix = Object.create(_BigFloatComplexMatrix.prototype);
+    const matrix = new this();
     matrix._values = values;
     return matrix;
   }
@@ -14036,6 +14038,44 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
   // ====================================================================================================
   // * 統計関数
   // ====================================================================================================
+  /**
+   * 最大値を返す
+   * @returns 最大値
+   * @throws {TypeError} 行列が空の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
+  max() {
+    if (this.isEmpty()) throw new TypeError("No arguments provided");
+    let result = this._values[0][0];
+    for (const row of this._values) {
+      for (const value of row) {
+        if (value.gt(result)) result = value;
+      }
+    }
+    return result.clone();
+  }
+  /**
+   * 最小値を返す
+   * @returns 最小値
+   * @throws {TypeError} 行列が空の場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   */
+  min() {
+    if (this.isEmpty()) throw new TypeError("No arguments provided");
+    let result = this._values[0][0];
+    for (const row of this._values) {
+      for (const value of row) {
+        if (value.lt(result)) result = value;
+      }
+    }
+    return result.clone();
+  }
   /**
    * 全要素の合計を計算する
    * @returns 合計値

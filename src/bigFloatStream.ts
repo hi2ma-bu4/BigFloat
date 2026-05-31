@@ -53,7 +53,7 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 		createState: () => null,
 		process: (value, _state, data, context, nextStageIndex) => {
 			const p = value instanceof BigFloat ? value._precision : value.precision;
-			context.pushIterator(BigFloatStream._toIterator((data as (item: BigFloatLike) => Iterable<BigFloatInputValue>)(value), p), nextStageIndex);
+			context.pushIterator(BigFloatStream._toIterator((data as (item: BigFloatLike) => Iterable<BigFloatLike>)(value), p), nextStageIndex);
 			return BIGFLOAT_STREAM_SKIP;
 		},
 	};
@@ -136,7 +136,7 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 	 * @returns 生成されたストリーム
 	 */
 	protected static _fromState(sourceFactory: BigFloatStreamFactory, previousStream: BigFloatStream | null, stageDefinition: BigFloatStreamStageDefinition | null, stageData: unknown): BigFloatStream {
-		const stream = Object.create(BigFloatStream.prototype) as BigFloatStream;
+		const stream = new this([][Symbol.iterator]());
 		stream._sourceFactory = sourceFactory;
 		stream._previousStream = previousStream;
 		stream._stageDefinition = stageDefinition;
@@ -373,20 +373,20 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 		return new BigFloatStream(function* () {
 			const base = new BigFloat(10, resolvedPrecision);
 			const startValue = BigFloatStream._toItem(start, resolvedPrecision);
-			let current = base.pow(startValue as BigFloat);
+			let current = base.pow(startValue);
 			if (normalizedCount === 1) {
 				yield current;
 				return;
 			}
 
 			const endValue = BigFloatStream._toItem(end, resolvedPrecision);
-			const endTerm = base.pow(endValue as BigFloat);
+			const endTerm = base.pow(endValue);
 			const stepExponent = endValue.sub(startValue).div(normalizedCount - 1);
-			const ratio = base.pow(stepExponent as BigFloat);
+			const ratio = base.pow(stepExponent);
 
 			for (let i = 0; i < normalizedCount; i++) {
 				if (i === normalizedCount - 1) {
-					yield endTerm as BigFloatLike;
+					yield endTerm;
 				} else {
 					yield current;
 					current = current.mul(ratio);
@@ -442,8 +442,8 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 			const minValue = BigFloatStream._toItem(min, resolvedPrecision);
 			const maxValue = BigFloatStream._toItem(max, resolvedPrecision);
 			const span = maxValue.sub(minValue);
-			if ((span as BigFloat).lt(0)) throw new RangeError("Random range requires max >= min");
-			if ((span as BigFloat).isZero()) {
+			if (span.lt(0)) throw new RangeError("Random range requires max >= min");
+			if (span.isZero()) {
 				yield* BigFloatStream.repeat(minValue, normalizedCount, resolvedPrecision);
 				return;
 			}
@@ -470,7 +470,7 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 		return new BigFloatStream(function* () {
 			const baseValue = BigFloatStream._toItem(value, resolvedPrecision);
 			for (let i = 0; i < normalizedCount; i++) {
-				yield baseValue.clone() as BigFloatLike;
+				yield baseValue.clone();
 			}
 		});
 	}
@@ -552,13 +552,13 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 			const stepValue = BigFloatStream._toItem(step, resolvedPrecision);
 			if (stepValue.isZero()) throw new RangeError("Step cannot be zero");
 
-			if ((stepValue as BigFloat).gt(0)) {
-				while ((current as BigFloat).lt(endValue)) {
+			if (stepValue.gt(0)) {
+				while (current.lt(endValue)) {
 					yield current;
 					current = current.add(stepValue);
 				}
 			} else {
-				while ((current as BigFloat).gt(endValue)) {
+				while (current.gt(endValue)) {
 					yield current;
 					current = current.add(stepValue);
 				}
@@ -670,8 +670,9 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
-	public sorted(compareFn: (a: BigFloatLike, b: BigFloatLike) => number = (a, b) => (a as BigFloat).compare(b)): this {
+	public sorted(compareFn: (a: BigFloatLike, b: BigFloatLike) => number = (a, b) => a.compare(b)): this {
 		const current = this.clone();
 		return this._fork(
 			function* () {
@@ -1389,7 +1390,7 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public atan2(x: BigFloatValue): this {
-		return this.map((value) => (value as BigFloat).atan2(x));
+		return this.map((value) => value.atan2(x));
 	}
 
 	// ====================================================================================================
@@ -1687,6 +1688,7 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public max(): BigFloatLike {
 		const iter = this[Symbol.iterator]();
@@ -1695,9 +1697,9 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 
 		let result = first.value;
 		for (let next = iter.next(); !next.done; next = iter.next()) {
-			if ((next.value as BigFloat).gt(result)) result = next.value;
+			if (next.value.gt(result)) result = next.value;
 		}
-		return result.clone() as BigFloatLike;
+		return result.clone();
 	}
 
 	/**
@@ -1707,6 +1709,7 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public min(): BigFloatLike {
 		const iter = this[Symbol.iterator]();
@@ -1715,9 +1718,9 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 
 		let result = first.value;
 		for (let next = iter.next(); !next.done; next = iter.next()) {
-			if ((next.value as BigFloat).lt(result)) result = next.value;
+			if (next.value.lt(result)) result = next.value;
 		}
-		return result.clone() as BigFloatLike;
+		return result.clone();
 	}
 
 	/**
@@ -1738,7 +1741,7 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 		for (let next = iter.next(); !next.done; next = iter.next()) {
 			total = total.add(next.value);
 		}
-		return total as BigFloatLike;
+		return total;
 	}
 
 	/**
@@ -1759,7 +1762,7 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 		for (let next = iter.next(); !next.done; next = iter.next()) {
 			total = total.mul(next.value);
 		}
-		return total as BigFloatLike;
+		return total;
 	}
 
 	/**
@@ -1799,10 +1802,10 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 	public median(): BigFloatLike {
 		const arr = this.toArray();
 		if (arr.length === 0) throw new TypeError("No arguments provided");
-		const sorted = arr.sort((a, b) => (a as BigFloat).compare(b));
+		const sorted = arr.sort((a, b) => a.compare(b));
 		const mid = Math.floor(sorted.length / 2);
 		if (sorted.length % 2 === 1) {
-			return sorted[mid].clone() as BigFloatLike;
+			return sorted[mid].clone();
 		} else {
 			return sorted[mid - 1].add(sorted[mid]).div(2);
 		}

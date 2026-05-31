@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BigFloat, BigFloatComplex, BigFloatComplexVector, BigFloatVector } from "../../dist/BigFloat.js";
+import { BigFloat, BigFloatComplex, BigFloatComplexMatrix, BigFloatComplexVector, BigFloatMatrix, BigFloatVector } from "../../dist/BigFloat.js";
 
 function getPublicInstanceMethodNames(ctor: { prototype: object }): string[] {
 	return Object.getOwnPropertyNames(ctor.prototype)
@@ -22,6 +22,13 @@ test("BigFloatComplex exposes every public BigFloat instance method", () => {
 test("BigFloatComplexVector exposes every public BigFloatVector instance method", () => {
 	const realMethods = getPublicInstanceMethodNames(BigFloatVector);
 	const complexMethods = new Set(getPublicInstanceMethodNames(BigFloatComplexVector));
+	const missing = realMethods.filter((name) => !complexMethods.has(name));
+	assert.deepStrictEqual(missing, []);
+});
+
+test("BigFloatComplexMatrix exposes every public BigFloatMatrix instance method", () => {
+	const realMethods = getPublicInstanceMethodNames(BigFloatMatrix);
+	const complexMethods = new Set(getPublicInstanceMethodNames(BigFloatComplexMatrix));
 	const missing = realMethods.filter((name) => !complexMethods.has(name));
 	assert.deepStrictEqual(missing, []);
 });
