@@ -40,8 +40,8 @@ console.log(value.toString()); // "0.6172839450617283945"
 const root = new BigFloat("2", 100n).sqrt();
 console.log(root.toString()); // "1.4142135623730950488016887242096980785696718753769480731766797379907324784621070388503875343276415727"
 
-const sum = new BigFloatStream([1.1, 2.3, 5.8, 13.21]).sum();
-console.log(sum.toString());
+const sum = BigFloatStream.from([1.1, 2.3, 5.8, 13.21]).sum();
+console.log(sum.toNumber()); // 22.41
 
 const special = bigFloat(1).div(0);
 console.log(special.toString()); // Infinity
