@@ -1,9 +1,17 @@
 {
   "name": "bigfloat",
   "version": "1.4.6",
-  "description": "",
+  "description": "高精度BigFloatライブラリ。複素数や行列もサポート",
   "license": "Apache-2.0",
   "author": "hi2ma-bu4",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hi2ma-bu4/BigFloat.git"
+  },
+  "homepage": "https://github.com/hi2ma-bu4/BigFloat",
+  "bugs": {
+    "url": "https://github.com/hi2ma-bu4/BigFloat/issues"
+  },
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
@@ -12,6 +20,17 @@
     "test:unit": "tsx --test --test-concurrency=1 \"test/node/**/*.test.ts\"",
     "test": "npm run build && npm run test:unit"
   },
+  "exports": {
+    ".": {
+      "import": "./dist/BigFloat.js",
+      "types": "./dist/BigFloat.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "devDependencies": {
     "@types/node": "^25.5.0",
     "dts-bundle-generator": "^9.5.1",

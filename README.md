@@ -31,16 +31,16 @@ https://cdn.jsdelivr.net/gh/hi2ma-bu4/BigFloat/dist/BigFloat.js
 ```ts
 import { bigFloat, BigFloat, BigFloatStream } from "BigFloat";
 
-const value = bigFloat("1.234567890123456789", 80n)
+const value = bigFloat("1.234567890123456789", 80)
 	.mul("3.5")
 	.div("7");
 
-console.log(value.toString());
+console.log(value.toString()); // "0.6172839450617283945"
 
-const root = BigFloat.from("2", 100n).sqrt();
-console.log(root.toString());
+const root = new BigFloat("2", 100n).sqrt();
+console.log(root.toString()); // "1.4142135623730950488016887242096980785696718753769480731766797379907324784621070388503875343276415727"
 
-const sum = new BigFloatStream([1, 2, 3, 4], 80n).sum();
+const sum = new BigFloatStream([1.1, 2.3, 5.8, 13.21]).sum();
 console.log(sum.toString());
 
 const special = bigFloat(1).div(0);
