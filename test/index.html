@@ -38,6 +38,7 @@
 			<section class="display-card">
 				<div class="display-head">
 					<div class="display-actions">
+						<button id="btn-history-toggle" class="history-toggle" type="button" aria-expanded="false" aria-controls="history-lane">History</button>
 						<button id="btn-left" class="action-button" type="button">←</button>
 						<button id="btn-right" class="action-button" type="button">→</button>
 						<button id="btn-backspace" class="action-button" type="button">⌫</button>
@@ -102,7 +103,7 @@
 			</section>
 		</div>
 
-		<section class="lane history-lane" hidden>
+		<section id="history-lane" class="lane history-lane" hidden>
 			<div class="lane-title">History</div>
 			<ul id="history-list" class="history-list"></ul>
 		</section>

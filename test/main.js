@@ -31,6 +31,8 @@ const FUNCTION_GROUPS = [
 			{ insert: "cbrt(", texLabel: "\\sqrt[3]{x}", hint: "cbrt(x)" },
 			{ insert: "nthRoot(", texLabel: "\\sqrt[n]{x}", hint: "nthRoot(x, n)" },
 			{ insert: "pow(", texLabel: "x^y", hint: "pow(x, n)" },
+			{ insert: "hypot(", texLabel: "\\operatorname{hypot}", hint: "hypot(x1, x2, ...)" },
+			{ insert: "imul(", texLabel: "\\operatorname{imul}", hint: "imul(a, b)" },
 			{ insert: "exp(", texLabel: "e^x", hint: "exp(x)" },
 			{ insert: "exp2(", texLabel: "2^x", hint: "exp2(x)" },
 			{ insert: "expm1(", texLabel: "e^x - 1", hint: "expm1(x)" },
@@ -86,6 +88,19 @@ const FUNCTION_GROUPS = [
 			{ insert: "rowS(", texLabel: "\\operatorname{rowS}", hint: "rowS(matrix)" },
 			{ insert: "colS(", texLabel: "\\operatorname{colS}", hint: "colS(matrix)" },
 			{ insert: "frobenius(", texLabel: "\\lVert A \\rVert_F", hint: "frobenius(matrix)" },
+			{ insert: "squaredNorm(", texLabel: "\\lVert v \\rVert^2", hint: "squaredNorm(v)" },
+			{ insert: "squaredDistance(", texLabel: "d^2(a,b)", hint: "squaredDistance(a, b)" },
+			{ insert: "mulVector(", texLabel: "Av", hint: "mulVector(matrix, vector)" },
+			{ insert: "identity(", texLabel: "I_n", hint: "identity(n)" },
+			{ insert: "diagonal(", texLabel: "\\operatorname{diag}", hint: "diagonal(vector)" },
+			{ insert: "zeros(", texLabel: "\\vec{0}", hint: "zeros(length)" },
+			{ insert: "ones(", texLabel: "\\vec{1}", hint: "ones(length)" },
+			{ insert: "basis(", texLabel: "e_i", hint: "basis(length, index)" },
+			{ insert: "linspace(", texLabel: "\\operatorname{linspace}", hint: "linspace(start, end, count)" },
+			{ insert: "matrixZeros(", texLabel: "0_{m,n}", hint: "matrixZeros(rows, cols)" },
+			{ insert: "matrixOnes(", texLabel: "1_{m,n}", hint: "matrixOnes(rows, cols)" },
+			{ insert: "shape(", texLabel: "\\operatorname{shape}", hint: "shape(matrix)" },
+			{ insert: "dimension(", texLabel: "\\dim", hint: "dimension(vector)" },
 			{ insert: "[[1,2],[3,4]]", texLabel: "\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}", hint: "[[a,b],[c,d]]" },
 			{ insert: "[1,2,3]", texLabel: "[x,y,z]", hint: "[x,y,z]" },
 		],
@@ -117,12 +132,26 @@ const FUNCTION_GROUPS = [
 			{ insert: "fround(", texLabel: "32\\text{bit}", hint: "fround(x)" },
 			{ insert: "clz32(", texLabel: "\\operatorname{clz}_{32}", hint: "clz32(x)" },
 			{ insert: "normalize(", texLabel: "\\text{norm.}", hint: "normalize(x)" },
+			{ insert: "compare(", texLabel: "a\\ ?\\ b", hint: "compare(a, b)" },
+			{ insert: "eq(", texLabel: "a=b", hint: "eq(a, b)" },
+			{ insert: "lt(", texLabel: "a<b", hint: "lt(a, b)" },
+			{ insert: "gte(", texLabel: "a\\ge b", hint: "gte(a, b)" },
+			{ insert: "relativeDiff(", texLabel: "\\Delta_r", hint: "relativeDiff(a, b)" },
+			{ insert: "absoluteDiff(", texLabel: "\\Delta", hint: "absoluteDiff(a, b)" },
+			{ insert: "percentDiff(", texLabel: "\\Delta\\%", hint: "percentDiff(a, b)" },
+			{ insert: "isZero(", texLabel: "x=0?", hint: "isZero(x)" },
+			{ insert: "isReal(", texLabel: "\\Re?", hint: "isReal(z)" },
+			{ insert: "toFixed(", texLabel: "\\text{fixed}", hint: "toFixed(x, digits)" },
+			{ insert: "random(", texLabel: "\\operatorname{rand}", hint: "random()" },
+			{ insert: "nan(", texLabel: "\\mathrm{NaN}", hint: "nan()" },
+			{ insert: "infinity(", texLabel: "\\infty", hint: "infinity()" },
+			{ insert: "range(", texLabel: "\\operatorname{range}", hint: "range(start, end, step)" },
 			{ insert: "tau", texLabel: "\\tau", hint: "tau" },
 		],
 	},
 ];
 
-const VARIADIC_FUNCTIONS = new Set(["sum", "product", "average", "max", "min", "median", "variance", "stddev"]);
+const VARIADIC_FUNCTIONS = new Set(["sum", "product", "average", "max", "min", "median", "variance", "stddev", "hypot"]);
 const FUNCTION_SIGNATURES = new Map(FUNCTION_GROUPS.flatMap((group) => group.items.filter((item) => item.insert.endsWith("(") && item.hint.includes("(")).map((item) => [item.insert.slice(0, -1), extractHintArguments(item.hint)])));
 
 function extractHintArguments(hint) {
@@ -459,6 +488,26 @@ class EditorBuffer {
 		}
 	}
 
+	deleteForward(preserveFocus = false) {
+		const start = this.selectionStart;
+		const end = this.selectionEnd;
+		if (start !== end) {
+			this.textarea.setRangeText("", start, end, "end");
+		} else if (start < this.textarea.value.length) {
+			this.textarea.setRangeText("", start, start + 1, "end");
+		} else {
+			return;
+		}
+		this.selectionStart = this.textarea.selectionStart;
+		this.selectionEnd = this.selectionStart;
+		if (preserveFocus) {
+			this.safelyFocus();
+		} else {
+			this.textarea.selectionStart = this.selectionStart;
+			this.textarea.selectionEnd = this.selectionEnd;
+		}
+	}
+
 	moveCursor(delta, focus = true) {
 		const next = Math.max(0, Math.min(this.textarea.value.length, this.selectionStart + delta));
 		this.selectionStart = next;
@@ -532,11 +581,17 @@ class EvaluationManager {
 }
 
 class HistoryPanel {
-	constructor(sectionElement, listElement, onSelect) {
+	constructor(sectionElement, listElement, toggleButton, onSelect) {
 		this.sectionElement = sectionElement;
 		this.listElement = listElement;
+		this.toggleButton = toggleButton;
 		this.onSelect = onSelect;
 		this.entries = [];
+		this.visible = false;
+		this.toggleButton.addEventListener("click", () => {
+			this.visible = !this.visible;
+			this.render();
+		});
 		this.render();
 	}
 
@@ -555,7 +610,8 @@ class HistoryPanel {
 
 	render() {
 		this.listElement.replaceChildren();
-		this.sectionElement.hidden = this.entries.length === 0;
+		this.sectionElement.hidden = !this.visible;
+		this.toggleButton.setAttribute("aria-expanded", this.visible ? "true" : "false");
 		for (const entry of this.entries) {
 			const item = document.createElement("li");
 			item.className = "history-card";
@@ -581,11 +637,12 @@ class CalculatorApp {
 		this.keypadGrid = document.getElementById("keypad-grid");
 		this.defaultKeypadHTML = this.keypadGrid.innerHTML;
 		this.activeFunctionGroup = null;
+		this.activeFunctionPage = 0;
 		this.currentHint = DEFAULT_HINT;
 		this.lastAnswer = null;
 		this.previewTimer = null;
 		this.precisionController = new PrecisionController(document.getElementById("precision-input"), document.getElementById("extra-precision-input"), document.getElementById("rounding-mode"));
-		this.history = new HistoryPanel(document.querySelector(".history-lane"), document.getElementById("history-list"), (expression) => {
+		this.history = new HistoryPanel(document.querySelector(".history-lane"), document.getElementById("history-list"), document.getElementById("btn-history-toggle"), (expression) => {
 			this.editor.setValue(expression, false);
 			this.handleInput(false);
 		});
@@ -616,6 +673,44 @@ class CalculatorApp {
 			if (event.key === "Enter" && !event.shiftKey) {
 				event.preventDefault();
 				this.handleInput(true);
+			}
+		});
+		document.addEventListener("keydown", (event) => {
+			if (document.activeElement === this.editor.textarea || isEditableTarget(event.target) || event.ctrlKey || event.altKey || event.metaKey || event.isComposing) {
+				return;
+			}
+			if (event.key === "Enter" && !event.shiftKey) {
+				event.preventDefault();
+				this.handleInput(true);
+				return;
+			}
+			if (event.key === "Backspace") {
+				event.preventDefault();
+				this.editor.backspace(false);
+				this.handleInput(false);
+				return;
+			}
+			if (event.key === "Delete") {
+				event.preventDefault();
+				this.editor.deleteForward(false);
+				this.handleInput(false);
+				return;
+			}
+			if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+				event.preventDefault();
+				this.editor.moveCursor(event.key === "ArrowLeft" ? -1 : 1, false);
+				this.updateGhostHint();
+				return;
+			}
+			if (event.key === "Escape") {
+				event.preventDefault();
+				this.resetKeypad();
+				return;
+			}
+			if (event.key.length === 1) {
+				event.preventDefault();
+				this.editor.insert(event.key, false);
+				this.handleInput(false);
 			}
 		});
 
@@ -653,6 +748,11 @@ class CalculatorApp {
 
 			if (button.dataset.groupId) {
 				this.toggleFunctionGroup(button.dataset.groupId);
+				return;
+			}
+
+			if (button.dataset.pageDelta) {
+				this.changeFunctionPage(Number(button.dataset.pageDelta));
 				return;
 			}
 
@@ -697,10 +797,13 @@ class CalculatorApp {
 		}
 
 		this.activeFunctionGroup = groupId;
+		this.activeFunctionPage = 0;
 		this.renderSwappedKeypad(group);
 	}
 
 	renderSwappedKeypad(group) {
+		this.keypadGrid.querySelectorAll(".swapped-key").forEach((btn) => btn.remove());
+		this.keypadGrid.querySelectorAll(".swapped-key-row6").forEach((btn) => btn.remove());
 		const children = Array.from(this.keypadGrid.children);
 		const middleButtons = children.filter((btn) => btn.classList.contains("swappable"));
 		middleButtons.forEach((btn) => (btn.style.display = "none"));
@@ -737,7 +840,20 @@ class CalculatorApp {
 		this.keypadGrid.insertBefore(createKey(")", ")"), children[children.length - 4]);
 		this.keypadGrid.insertBefore(createKey(",", ",", "key function swapped-key-row6"), children[children.length - 2]);
 
-		const items = group.items.slice(0, 24);
+		const pageSize = group.items.length > 24 ? 22 : 24;
+		const pageCount = Math.max(1, Math.ceil(group.items.length / pageSize));
+		this.activeFunctionPage = Math.max(0, Math.min(this.activeFunctionPage, pageCount - 1));
+		const items = group.items.slice(this.activeFunctionPage * pageSize, this.activeFunctionPage * pageSize + pageSize);
+		if (pageCount > 1) {
+			const prev = createKey("\\leftarrow", "", "key function swapped-key");
+			prev.dataset.pageDelta = "-1";
+			prev.disabled = this.activeFunctionPage === 0;
+			this.keypadGrid.insertBefore(prev, children[children.length - 5]);
+			const next = createKey("\\rightarrow", "", "key function swapped-key");
+			next.dataset.pageDelta = "1";
+			next.disabled = this.activeFunctionPage === pageCount - 1;
+			this.keypadGrid.insertBefore(next, children[children.length - 5]);
+		}
 		items.forEach((item) => {
 			const button = document.createElement("button");
 			button.type = "button";
@@ -755,7 +871,7 @@ class CalculatorApp {
 		});
 
 		// Pad with empty buttons to maintain grid structure (Rows 2-5 = 24 slots)
-		for (let i = items.length; i < 24; i++) {
+		for (let i = items.length + (pageCount > 1 ? 2 : 0); i < 24; i++) {
 			const placeholder = document.createElement("button");
 			placeholder.type = "button";
 			placeholder.className = "key swapped-key placeholder";
@@ -773,8 +889,21 @@ class CalculatorApp {
 		this.updateFitty();
 	}
 
+	changeFunctionPage(delta) {
+		if (!this.activeFunctionGroup) {
+			return;
+		}
+		const group = FUNCTION_GROUPS.find((entry) => entry.id === this.activeFunctionGroup);
+		if (!group) {
+			return;
+		}
+		this.activeFunctionPage += delta;
+		this.renderSwappedKeypad(group);
+	}
+
 	resetKeypad() {
 		this.activeFunctionGroup = null;
+		this.activeFunctionPage = 0;
 		this.keypadGrid.querySelectorAll(".swapped-key").forEach((btn) => btn.remove());
 		this.keypadGrid.querySelectorAll(".swapped-key-row6").forEach((btn) => btn.remove());
 		Array.from(this.keypadGrid.children).forEach((btn) => (btn.style.display = ""));
@@ -876,6 +1005,13 @@ class CalculatorApp {
 
 function escapeHtml(value) {
 	return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+}
+
+function isEditableTarget(target) {
+	if (!(target instanceof Element)) {
+		return false;
+	}
+	return Boolean(target.closest("input, select, textarea, [contenteditable='true']"));
 }
 
 const formatter = new MathFormatter(await waitForKatex());

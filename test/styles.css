@@ -157,6 +157,20 @@ button {
 	cursor: pointer;
 }
 
+.history-toggle {
+	justify-self: end;
+	height: 32px;
+	padding: 0 12px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.08);
+	color: var(--text);
+	cursor: pointer;
+}
+
+.history-toggle[aria-expanded="true"] {
+	background: linear-gradient(135deg, rgba(255, 158, 87, 0.28), rgba(255, 196, 77, 0.2));
+}
+
 .action-button.accent {
 	background: linear-gradient(135deg, rgba(255, 158, 87, 0.28), rgba(255, 196, 77, 0.2));
 }
@@ -471,6 +485,11 @@ button {
 
 	.topbar {
 		grid-template-columns: auto 1fr;
+	}
+
+	.history-toggle {
+		grid-column: 1 / -1;
+		justify-self: stretch;
 	}
 
 	.workspace {

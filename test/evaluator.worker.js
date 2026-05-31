@@ -1,11 +1,4 @@
-import {
-	AstTeXPrinter,
-	EvaluationContext,
-	Evaluator,
-	formatSerializedValue,
-	parseExpression,
-	serializeValue,
-} from "./calculator-core.js";
+import { AstTeXPrinter, EvaluationContext, Evaluator, formatSerializedValue, parseExpression, serializeValue } from "./calculator-core.js";
 
 const printer = new AstTeXPrinter();
 

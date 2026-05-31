@@ -1,12 +1,4 @@
-import {
-	BigFloat,
-	BigFloatComplex,
-	BigFloatComplexMatrix,
-	BigFloatComplexVector,
-	BigFloatMatrix,
-	BigFloatVector,
-	RoundingMode,
-} from "../dist/BigFloat.js";
+import { BigFloat, BigFloatComplex, BigFloatComplexMatrix, BigFloatComplexVector, BigFloatMatrix, BigFloatStream, BigFloatVector, RoundingMode } from "../dist/BigFloat.js";
 
 export const ROUNDING_MODE_OPTIONS = ["TRUNCATE", "DOWN", "UP", "CEIL", "FLOOR", "HALF_UP", "HALF_DOWN"];
 
@@ -79,6 +71,10 @@ export function formatSerializedValue(serialized, precision) {
 		case "scalar":
 			return serialized.value;
 		case "complex":
+			return serialized.text;
+		case "boolean":
+		case "number":
+		case "text":
 			return serialized.text;
 		case "vector":
 		case "complex-vector":
@@ -304,7 +300,7 @@ export class AstTeXPrinter {
 			case "binary":
 				return this.printBinary(node, parentPrecedence);
 			case "call":
-				return this.printCall(node);
+				return this.printCall(node, parentPrecedence);
 			case "array":
 				return this.printArray(node);
 			default:
@@ -362,10 +358,11 @@ export class AstTeXPrinter {
 		return this.wrapIfNeeded(tex, precedence, parentPrecedence);
 	}
 
-	printCall(node) {
+	printCall(node, parentPrecedence = 0) {
 		const [first, second] = node.args;
 		const firstTex = first ? this.print(first, 0) : "";
 		const secondTex = second ? this.print(second, 0) : "";
+		const wrap = (tex, ownPrecedence = 100) => this.wrapIfNeeded(tex, ownPrecedence, parentPrecedence);
 		switch (node.name) {
 			case "sin":
 			case "cos":
@@ -391,8 +388,8 @@ export class AstTeXPrinter {
 			case "arcsinh":
 				return `\\operatorname{arsinh}\\left(${firstTex}\\right)`;
 			case "acosh":
-			case "arsinh":
-			case "arcsinh":
+			case "arcosh":
+			case "arccosh":
 				return `\\operatorname{arcosh}\\left(${firstTex}\\right)`;
 			case "atanh":
 			case "artanh":
@@ -411,7 +408,7 @@ export class AstTeXPrinter {
 			case "exp2":
 				return `2^{${firstTex}}`;
 			case "expm1":
-				return `e^{${firstTex}} - 1`;
+				return wrap(`e^{${firstTex}} - 1`, 9);
 			case "factorial":
 				return `{${firstTex}}!`;
 			case "reciprocal":
@@ -431,9 +428,9 @@ export class AstTeXPrinter {
 			case "zeta":
 				return `\\zeta\\left(${firstTex}\\right)`;
 			case "complex":
-				return `${firstTex} + ${secondTex}i`;
+				return wrap(`${firstTex} + ${secondTex}i`, 9);
 			case "polar":
-				return `${firstTex}\\angle${secondTex}`;
+				return wrap(`${firstTex}\\angle${secondTex}`, 19);
 			case "conj":
 				return `\\overline{${firstTex}}`;
 			case "arg":
@@ -446,9 +443,9 @@ export class AstTeXPrinter {
 				return `R_{${secondTex}}\\left(${firstTex}\\right)`;
 			// roots
 			case "dot":
-				return `${firstTex} \\cdot ${secondTex}`;
+				return wrap(`${firstTex} \\cdot ${secondTex}`, 19);
 			case "cross":
-				return `${firstTex} \\times ${secondTex}`;
+				return wrap(`${firstTex} \\times ${secondTex}`, 19);
 			case "norm":
 				return `\\left\\lVert ${firstTex} \\right\\rVert`;
 			case "angle":
@@ -468,9 +465,9 @@ export class AstTeXPrinter {
 			case "inv":
 				return `{${this.print(first, 31)}}^{-1}`;
 			case "matmul":
-				return `${firstTex}${secondTex}`;
+				return wrap(`${firstTex}${secondTex}`, 19);
 			case "hadamard":
-				return `${firstTex} \\odot ${secondTex}`;
+				return wrap(`${firstTex} \\odot ${secondTex}`, 19);
 			// solve
 			case "rowS":
 			case "rowSums":
@@ -563,7 +560,7 @@ export class EvaluationContext {
 	}
 
 	createMatrix(rows) {
-		return BigFloatMatrix.fromRows(rows, this.precision);
+		return BigFloatMatrix.from(rows, this.precision);
 	}
 }
 
@@ -686,9 +683,44 @@ export class Evaluator {
 			case "artanh":
 			case "arctanh":
 				name = "atanh";
+				break;
+			case "neq":
+				name = "ne";
+				break;
+			case "le":
+				name = "lte";
+				break;
+			case "ge":
+				name = "gte";
+				break;
 		}
 
 		switch (name) {
+			// constants and scalar constructors
+			case "parseFloat":
+				return BigFloat.parseFloat(String(this.expectScalar(args[0]).toString(10)), this.context.precision, args[1] ? this.toInteger(args[1]) : 10);
+			case "random":
+				return BigFloat.random(this.context.precision);
+			case "nan":
+				return BigFloat.nan(this.context.precision);
+			case "inf":
+			case "infinity":
+				return BigFloat.infinity(this.context.precision);
+			case "ninf":
+			case "negativeInfinity":
+				return BigFloat.negativeInfinity(this.context.precision);
+			case "zero":
+			case "one":
+			case "two":
+			case "ten":
+			case "hundred":
+			case "thousand":
+			case "half":
+			case "quarter":
+			case "minusOne":
+			case "minusTwo":
+			case "minusTen":
+				return BigFloat[name](this.context.precision);
 			// trig
 			case "atan2":
 				return this.callMethod(args[0], "atan2", args[1]);
@@ -697,6 +729,10 @@ export class Evaluator {
 				return this.callMethod(args[0], "nthRoot", this.toInteger(args[1]));
 			case "pow":
 				return this.pow(args[0], args[1]);
+			case "hypot":
+				return BigFloat.hypot(...args.map((arg) => this.expectScalar(arg)));
+			case "imul":
+				return BigFloat.imul(this.expectScalar(args[0]), this.expectScalar(args[1]));
 			// logs
 			case "log":
 				if (args.length >= 2) {
@@ -720,6 +756,48 @@ export class Evaluator {
 				return this.toComplex(args[0]).rotate(this.expectScalar(args[1]));
 			case "roots":
 				return this.context.createVector(this.toComplex(args[0]).nthRoots(this.toInteger(args[1])));
+			// vector and matrix constructors
+			case "vector":
+			case "vec":
+				return this.context.createVector(args.map((arg) => this.expectScalarOrComplex(arg)));
+			case "matrix":
+				return this.context.createMatrix(args.map((arg) => (this.isVector(arg) ? arg.toArray() : [this.expectScalarOrComplex(arg)])));
+			case "zeros":
+				return BigFloatVector.zeros(this.toInteger(args[0]), this.context.precision);
+			case "ones":
+				return BigFloatVector.ones(this.toInteger(args[0]), this.context.precision);
+			case "fill":
+				return this.context.createVector(Array.from({ length: this.toInteger(args[0]) }, () => this.expectScalarOrComplex(args[1])));
+			case "basis":
+				return BigFloatVector.basis(this.toInteger(args[0]), this.toInteger(args[1]), this.context.precision);
+			case "linspace":
+				return BigFloatVector.linspace(this.expectScalarOrComplex(args[0]), this.expectScalarOrComplex(args[1]), this.toInteger(args[2]), this.context.precision);
+			case "identity":
+				return BigFloatMatrix.identity(this.toInteger(args[0]), this.context.precision);
+			case "diagonal":
+				return this.createDiagonalMatrix(this.expectVector(args[0], true));
+			case "matrixZeros":
+				return BigFloatMatrix.zeros(this.toInteger(args[0]), this.toInteger(args[1]), this.context.precision);
+			case "matrixOnes":
+				return BigFloatMatrix.ones(this.toInteger(args[0]), this.toInteger(args[1]), this.context.precision);
+			case "matrixFill":
+				return this.context.createMatrix(Array.from({ length: this.toInteger(args[0]) }, () => Array.from({ length: this.toInteger(args[1]) }, () => this.expectScalarOrComplex(args[2]))));
+			case "range":
+				return BigFloatVector.fromStream(BigFloatStream.range(this.expectScalar(args[0]), args[1], args[2] ?? 1, this.context.precision));
+			case "arithmetic":
+				return BigFloatVector.fromStream(BigFloatStream.arithmetic(this.expectScalarOrComplex(args[0]), this.expectScalarOrComplex(args[1]), this.toInteger(args[2]), this.context.precision));
+			case "geometric":
+				return BigFloatVector.fromStream(BigFloatStream.geometric(this.expectScalarOrComplex(args[0]), this.expectScalarOrComplex(args[1]), this.toInteger(args[2]), this.context.precision));
+			case "logspace":
+				return BigFloatVector.fromStream(BigFloatStream.logspace(this.expectScalar(args[0]), this.expectScalar(args[1]), this.toInteger(args[2]), this.context.precision));
+			case "harmonic":
+				return BigFloatVector.fromStream(BigFloatStream.harmonic(this.toInteger(args[0]), this.context.precision));
+			case "repeat":
+				return BigFloatVector.fromStream(BigFloatStream.repeat(this.expectScalarOrComplex(args[0]), this.toInteger(args[1]), this.context.precision));
+			case "fibonacci":
+				return BigFloatVector.fromStream(BigFloatStream.fibonacci(this.toInteger(args[0]), this.context.precision));
+			case "factorialSeq":
+				return BigFloatVector.fromStream(BigFloatStream.factorial(this.toInteger(args[0]), this.context.precision));
 			// linear
 			case "dot":
 				return this.expectVector(args[0], true).dot(this.expectVector(args[1], true));
@@ -753,7 +831,12 @@ export class Evaluator {
 			case "inv":
 				return this.expectMatrix(args[0], true).inverse();
 			case "matmul":
+				if (this.isVector(args[1])) {
+					return this.expectMatrix(args[0], true).mulVector(this.expectVector(args[1], true));
+				}
 				return this.expectMatrix(args[0], true).matmul(this.expectMatrix(args[1], true));
+			case "mulVector":
+				return this.expectMatrix(args[0], true).mulVector(this.expectVector(args[1], true));
 			case "hadamard":
 				return this.callHadamard(args[0], args[1]);
 			case "solve":
@@ -766,17 +849,65 @@ export class Evaluator {
 				return this.expectMatrix(args[0], true).columnSums();
 			case "frobenius":
 				return this.expectMatrix(args[0], true).frobeniusNorm();
+			case "squaredNorm":
+				return this.expectVector(args[0], true).squaredNorm();
+			case "squaredDistance":
+				return this.expectVector(args[0], true).squaredDistanceTo(this.expectVector(args[1], true));
+			case "shape":
+				return this.expectMatrix(args[0], true).shape();
+			case "dimension":
+				return this.expectVector(args[0], true).dimension();
+			case "row":
+				return this.expectMatrix(args[0], true).row(this.toInteger(args[1]));
+			case "column":
+				return this.expectMatrix(args[0], true).column(this.toInteger(args[1]));
+			case "diagonalVector":
+				return this.expectMatrix(args[0], true).diagonalVector();
+			case "flatten":
+				return this.expectMatrix(args[0], true).flatten();
 			// stats
 			case "sum":
 			case "product":
 			case "average":
 			case "max":
 			case "min":
-				return this.callAggregate(name, args);
 			case "median":
 			case "variance":
 			case "stddev":
-				return BigFloat[name](...args.map((arg) => this.expectScalar(arg)));
+				return this.callAggregate(name, args);
+			// comparison and conversion
+			case "compare":
+			case "eq":
+			case "equals":
+			case "ne":
+			case "lt":
+			case "lte":
+			case "gt":
+			case "gte":
+			case "relativeDiff":
+			case "absoluteDiff":
+			case "percentDiff":
+			case "distanceTo":
+				return this.callMethod(args[0], name, args[1]);
+			case "isZero":
+			case "isPositive":
+			case "isNegative":
+			case "isReal":
+			case "isImaginary":
+			case "isEmpty":
+			case "isSquare":
+				return this.callMethod(args[0], name);
+			case "absSquared":
+				return this.callMethod(args[0], "absSquared");
+			case "toNumber":
+				return this.callMethod(args[0], "toNumber");
+			case "toFixed":
+				return this.callMethod(args[0], "toFixed", this.toInteger(args[1]));
+			case "toExponential":
+				return this.callMethod(args[0], "toExponential", args[1] ? this.toInteger(args[1]) : undefined);
+			case "string":
+			case "toStringValue":
+				return this.callMethod(args[0], "toString", args[1] ? this.toInteger(args[1]) : 10, args[2] ? this.toInteger(args[2]) : this.context.precision);
 
 			default:
 				if (UNARY_VALUE_FUNCTIONS.has(name)) {
@@ -797,7 +928,7 @@ export class Evaluator {
 		if (args.length === 1 && this.isVector(args[0])) {
 			return args[0][name]();
 		}
-		if (args.length === 1 && this.isMatrix(args[0])) {
+		if (args.length === 1 && this.isMatrix(args[0]) && typeof args[0][name] === "function") {
 			return args[0][name]();
 		}
 		if (args.length === 1) {
@@ -848,6 +979,11 @@ export class Evaluator {
 			return matrix.solveMatrix(rhs);
 		}
 		return matrix.solveVector(this.expectVector(rhs));
+	}
+
+	createDiagonalMatrix(vector) {
+		const values = vector.toArray();
+		return this.context.createMatrix(values.map((entry, row) => values.map((_, column) => (row === column ? entry : this.context.createScalar(0)))));
 	}
 
 	add(left, right) {
@@ -1010,6 +1146,21 @@ export class Evaluator {
 
 export function serializeValue(value, precision) {
 	const digits = BigInt(precision);
+	if (typeof value === "boolean") {
+		return { kind: "boolean", text: value ? "true" : "false" };
+	}
+	if (typeof value === "number" || typeof value === "bigint") {
+		return { kind: "number", text: String(value) };
+	}
+	if (typeof value === "string") {
+		return { kind: "text", text: value };
+	}
+	if (Array.isArray(value)) {
+		return {
+			kind: "vector",
+			values: value.map((entry) => serializeValue(entry, digits)),
+		};
+	}
 	if (value instanceof BigFloat) {
 		return { kind: "scalar", value: value.toString(10, digits) };
 	}
@@ -1045,6 +1196,12 @@ export function serializeValue(value, precision) {
 			rows: value.toArray().map((row) => row.map((entry) => serializeValue(entry, digits))),
 		};
 	}
+	if (value instanceof BigFloatStream) {
+		return {
+			kind: "vector",
+			values: value.toArray().map((entry) => serializeValue(entry, digits)),
+		};
+	}
 	console.warn("Unsupported value for serialization:", value);
 	throw new TypeError("Unsupported value for serialization.");
 }
@@ -1052,6 +1209,12 @@ export function serializeValue(value, precision) {
 export function deserializeValue(serialized, precision) {
 	const digits = BigInt(precision);
 	switch (serialized.kind) {
+		case "boolean":
+			return serialized.text === "true";
+		case "number":
+			return Number(serialized.text);
+		case "text":
+			return serialized.text;
 		case "scalar":
 			return new BigFloat(serialized.value, digits);
 		case "complex":
