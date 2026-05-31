@@ -129,8 +129,8 @@ test("BigFloat class cloning isolates configuration, instance cloning, and copy 
 	assert.equal(BigFloat.config.allowSpecialValues, true);
 	assert.equal(BigFloat.config.roundingMode, RoundingMode.TRUNCATE);
 	assert.equal(BigFloat.config.extraPrecision, 6n);
-	assert.equal(BigFloat.config.trigFuncsMaxSteps, 5000n);
-	assert.equal(BigFloat.config.lnMaxSteps, 10000n);
+	assert.equal(BigFloat.config.trigFuncsMaxSteps, 10000n);
+	assert.equal(BigFloat.config.lnMaxSteps, 50000n);
 
 	const original = new BigFloat("1.25", HIGH_PRECISION);
 	const cloned = original.clone();

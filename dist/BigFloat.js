@@ -6444,7 +6444,7 @@ var BigFloatConfig = class _BigFloatConfig {
    * @param options.lnMaxSteps - 対数計算の最大ステップ数
    * @returns 設定オブジェクト
    */
-  constructor({ allowPrecisionMismatch = false, allowComplexNumbers = false, mutateResult = false, allowSpecialValues = true, roundingMode = 0 /* TRUNCATE */, extraPrecision = 6n, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n } = {}) {
+  constructor({ allowPrecisionMismatch = false, allowComplexNumbers = false, mutateResult = false, allowSpecialValues = true, roundingMode = 0 /* TRUNCATE */, extraPrecision = 6n, trigFuncsMaxSteps = 10000n, lnMaxSteps = 50000n } = {}) {
     this.allowPrecisionMismatch = allowPrecisionMismatch;
     this.allowComplexNumbers = allowComplexNumbers;
     this.mutateResult = mutateResult;
@@ -9996,31 +9996,30 @@ var BigFloat = class _BigFloat {
     if (this._getCheckEulerGammaCache(precision)) {
       return this._getEulerGammaCache(precision);
     }
-    const scale = this._getPow10(precision);
-    const n = precision < 1000n ? precision : this._sqrt(precision, precision) * 4n + 32n;
-    let hn = 0n;
-    const CHUNK = 256n;
-    for (let start = 1n; start <= n; start += CHUNK) {
-      const end = start + CHUNK - 1n > n ? n : start + CHUNK - 1n;
-      let local = 0n;
-      for (let i = start; i <= end; i++) {
-        local += scale / i;
-      }
-      hn += local;
+    const config = this.config;
+    const maxStep = config.lnMaxSteps;
+    const workPrecision = precision + config.extraPrecision;
+    const scale = this._getPow10(workPrecision);
+    let x = workPrecision * 60n / 100n + 1n;
+    if (x < 1n) x = 1n;
+    const x2 = x * x;
+    let termI = scale;
+    let termS = 0n;
+    let sumI = termI;
+    let sumS = termS;
+    let k = 1n;
+    for (let i = 0; i < maxStep; i++) {
+      const k2 = k * k;
+      termI = termI * x2 / k2;
+      if (termI === 0n) break;
+      sumI += termI;
+      termS = termS * x2 / k2 + termI / k;
+      sumS += termS;
+      k++;
     }
-    const lnN = this._ln(n * scale, precision, this.config.lnMaxSteps);
-    let res = hn - lnN;
-    const n2 = n * n;
-    const n4 = n2 * n2;
-    const n6 = n4 * n2;
-    const n8 = n4 * n4;
-    const n10 = n8 * n2;
-    res -= scale / (2n * n);
-    res += scale / (12n * n2);
-    res -= scale / (120n * n4);
-    res += scale / (252n * n6);
-    res -= scale / (240n * n8);
-    res += scale * 5n / (660n * n10);
+    const lnX = this._ln(x * scale, workPrecision, maxStep);
+    let res = sumS * scale / sumI - lnX;
+    res = this._rescaleInternalValue(res, workPrecision, precision);
     this._updateEulerGammaCache(res, precision);
     return res;
   }

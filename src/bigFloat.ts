@@ -43,7 +43,7 @@ export class BigFloatConfig {
 	 * @param options.lnMaxSteps - 対数計算の最大ステップ数
 	 * @returns 設定オブジェクト
 	 */
-	public constructor({ allowPrecisionMismatch = false, allowComplexNumbers = false, mutateResult = false, allowSpecialValues = true, roundingMode = RoundingMode.TRUNCATE, extraPrecision = 6n, trigFuncsMaxSteps = 5000n, lnMaxSteps = 10000n }: BigFloatOptions = {}) {
+	public constructor({ allowPrecisionMismatch = false, allowComplexNumbers = false, mutateResult = false, allowSpecialValues = true, roundingMode = RoundingMode.TRUNCATE, extraPrecision = 6n, trigFuncsMaxSteps = 10000n, lnMaxSteps = 50000n }: BigFloatOptions = {}) {
 		this.allowPrecisionMismatch = allowPrecisionMismatch;
 		this.allowComplexNumbers = allowComplexNumbers;
 		this.mutateResult = mutateResult;
@@ -4114,42 +4114,56 @@ export class BigFloat {
 			return this._getEulerGammaCache(precision);
 		}
 
-		const scale = this._getPow10(precision);
+		const config = this.config;
+		const maxStep = config.lnMaxSteps;
+		const workPrecision = precision + config.extraPrecision;
+		const scale = this._getPow10(workPrecision);
 
-		// 誤差 O(n^-10)
-		const n = precision < 1000n ? precision : this._sqrt(precision, precision) * 4n + 32n;
+		// Brent-McMillan アルゴリズムの誤差項 O(e^{-4x}) を 10^{-workPrecision} 未満にする
+		// 4x > workPrecision * ln(10)  =>  x > workPrecision * 0.575646...
+		let x = (workPrecision * 60n) / 100n + 1n;
+		if (x < 1n) x = 1n;
 
-		let hn = 0n;
-		const CHUNK = 256n;
+		const x2 = x * x;
 
-		for (let start = 1n; start <= n; start += CHUNK) {
-			const end = start + CHUNK - 1n > n ? n : start + CHUNK - 1n;
-			let local = 0n;
+		// Forward Recurrence (順方向の漸化式計算)
+		// termI: I_0(2x) の現在の項
+		// termS: S_0(2x) の現在の項
+		let termI = scale;
+		let termS = 0n;
 
-			for (let i = start; i <= end; i++) {
-				local += scale / i;
-			}
+		let sumI = termI;
+		let sumS = termS;
 
-			hn += local;
+		let k = 1n;
+		for (let i = 0; i < maxStep; i++) {
+			const k2 = k * k;
+
+			// I_0(2x) の次の項を計算 ( T_k = T_{k-1} * x^2 / k^2 )
+			termI = (termI * x2) / k2;
+
+			if (termI === 0n) break;
+
+			sumI += termI;
+
+			// S_0(2x) の次の項を計算 ( U_k = U_{k-1} * x^2 / k^2 + T_k / k )
+			termS = (termS * x2) / k2 + termI / k;
+			sumS += termS;
+
+			k++;
 		}
 
-		const lnN = this._ln(n * scale, precision, this.config.lnMaxSteps);
-		let res = hn - lnN;
+		// 対数項の計算
+		// x は整数ですが、既存の _ln の仕様に合わせて scale 倍したものを渡します
+		const lnX = this._ln(x * scale, workPrecision, maxStep);
 
-		const n2 = n * n;
-		const n4 = n2 * n2;
-		const n6 = n4 * n2;
-		const n8 = n4 * n4;
-		const n10 = n8 * n2;
+		// 最終計算
+		// 公式: γ = S_0(2x) / I_0(2x) - ln(x)
+		// 最後に一回だけスケール倍して除算することで、道中の丸め誤差を極限まで抑え込みます
+		let res = (sumS * scale) / sumI - lnX;
 
-		// Euler–Maclaurin corrections
-
-		res -= scale / (2n * n);
-		res += scale / (12n * n2);
-		res -= scale / (120n * n4);
-		res += scale / (252n * n6);
-		res -= scale / (240n * n8);
-		res += (scale * 5n) / (660n * n10);
+		// 指定された precision にリスケールしてキャッシュ
+		res = this._rescaleInternalValue(res, workPrecision, precision);
 
 		this._updateEulerGammaCache(res, precision);
 		return res;
