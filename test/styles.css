@@ -393,6 +393,16 @@ button {
 	color: #ffe6a9;
 }
 
+.key.pager-button {
+	background: linear-gradient(180deg, rgba(120, 229, 212, 0.22), rgba(120, 229, 212, 0.14));
+	color: #78e5d4;
+	border: 1px solid rgba(120, 229, 212, 0.3);
+}
+
+.key.pager-button:active {
+	background: linear-gradient(180deg, rgba(120, 229, 212, 0.32), rgba(120, 229, 212, 0.24));
+}
+
 .key.accent {
 	background: linear-gradient(180deg, rgba(255, 158, 87, 0.22), rgba(255, 158, 87, 0.14));
 }

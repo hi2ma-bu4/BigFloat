@@ -1314,12 +1314,13 @@ export class BigFloat {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {TypeError} 複素数と比較しようとした場合
+	 * @throws {TypeError} 非実数複素数と比較しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public compare(other: BigFloatInputValue): number {
 		const construct = this.constructor as BigFloatConstructor;
 		if (other instanceof BigFloatComplex) {
-			throw new TypeError("Cannot compare BigFloat with a complex number");
+			return BigFloatComplex.from(this).compare(other);
 		}
 		const bfB = other instanceof BigFloat ? other : new construct(other, this._precision);
 		if (!construct.config.allowSpecialValues && (!this._isFiniteState() || !bfB._isFiniteState())) {
@@ -1344,7 +1345,8 @@ export class BigFloat {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {TypeError} 複素数と比較しようとした場合
+	 * @throws {TypeError} 非実数複素数と比較しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public eq(other: BigFloatInputValue): boolean {
 		return this.compare(other) === 0;
@@ -1357,7 +1359,8 @@ export class BigFloat {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {TypeError} 複素数と比較しようとした場合
+	 * @throws {TypeError} 非実数複素数と比較しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public equals(other: BigFloatInputValue): boolean {
 		return this.compare(other) === 0;
@@ -1370,7 +1373,8 @@ export class BigFloat {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {TypeError} 複素数と比較しようとした場合
+	 * @throws {TypeError} 非実数複素数と比較しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public ne(other: BigFloatInputValue): boolean {
 		return this.compare(other) !== 0;
@@ -1383,7 +1387,8 @@ export class BigFloat {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {TypeError} 複素数と比較しようとした場合
+	 * @throws {TypeError} 非実数複素数と比較しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public lt(other: BigFloatInputValue): boolean {
 		return this.compare(other) === -1;
@@ -1396,7 +1401,8 @@ export class BigFloat {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {TypeError} 複素数と比較しようとした場合
+	 * @throws {TypeError} 非実数複素数と比較しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public lte(other: BigFloatInputValue): boolean {
 		return this.compare(other) <= 0;
@@ -1409,7 +1415,8 @@ export class BigFloat {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {TypeError} 複素数と比較しようとした場合
+	 * @throws {TypeError} 非実数複素数と比較しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public gt(other: BigFloatInputValue): boolean {
 		return this.compare(other) === 1;
@@ -1422,7 +1429,8 @@ export class BigFloat {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-	 * @throws {TypeError} 複素数と比較しようとした場合
+	 * @throws {TypeError} 非実数複素数と比較しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public gte(other: BigFloatInputValue): boolean {
 		return this.compare(other) >= 0;
@@ -3701,6 +3709,7 @@ export class BigFloat {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {TypeError} 複素数と比較しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public log(base: BigFloatValue): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -3858,6 +3867,7 @@ export class BigFloat {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {TypeError} 複素数と比較しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public log1p(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -4452,7 +4462,8 @@ export class BigFloat {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
-	 * @throws {TypeError} 複素数と比較しようとした場合
+	 * @throws {TypeError} 非実数複素数と比較しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public static log1p(value: BigFloatValue, precision?: PrecisionValue): BigFloat {
 		const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -4481,6 +4492,7 @@ export class BigFloat {
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数と比較しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public static max(...args: BigFloatAggregateArgs): BigFloat {
 		const values = this._normalizeArgs(args);
@@ -4510,6 +4522,7 @@ export class BigFloat {
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数と比較しようとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	public static min(...args: BigFloatAggregateArgs): BigFloat {
 		const values = this._normalizeArgs(args);

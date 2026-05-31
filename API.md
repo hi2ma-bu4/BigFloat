@@ -736,7 +736,9 @@ Math.log1p() 相当
 
 **Throws**: キャッシュが存在しない場合
 
-**Throws**: 複素数と比較しようとした場合
+**Throws**: 非実数複素数と比較しようとした場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `log2`
 
@@ -779,6 +781,8 @@ Math.max() 相当
 
 **Throws**: 複素数と比較しようとした場合
 
+**Throws**: 文字列が複素数表現として無効な場合
+
 #### `min`
 
 ```ts
@@ -799,6 +803,8 @@ Math.min() 相当
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: 複素数と比較しようとした場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `pow`
 
@@ -1486,7 +1492,9 @@ compare(other: string | number | bigint | BigFloat | BigFloatComplex): number
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
-**Throws**: 複素数と比較しようとした場合
+**Throws**: 非実数複素数と比較しようとした場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `eq`
 
@@ -1507,7 +1515,9 @@ eq(other: string | number | bigint | BigFloat | BigFloatComplex): boolean
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
-**Throws**: 複素数と比較しようとした場合
+**Throws**: 非実数複素数と比較しようとした場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `equals`
 
@@ -1528,7 +1538,9 @@ equals(other: string | number | bigint | BigFloat | BigFloatComplex): boolean
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
-**Throws**: 複素数と比較しようとした場合
+**Throws**: 非実数複素数と比較しようとした場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `ne`
 
@@ -1549,7 +1561,9 @@ ne(other: string | number | bigint | BigFloat | BigFloatComplex): boolean
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
-**Throws**: 複素数と比較しようとした場合
+**Throws**: 非実数複素数と比較しようとした場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `lt`
 
@@ -1570,7 +1584,9 @@ lt(other: string | number | bigint | BigFloat | BigFloatComplex): boolean
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
-**Throws**: 複素数と比較しようとした場合
+**Throws**: 非実数複素数と比較しようとした場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `lte`
 
@@ -1591,7 +1607,9 @@ lte(other: string | number | bigint | BigFloat | BigFloatComplex): boolean
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
-**Throws**: 複素数と比較しようとした場合
+**Throws**: 非実数複素数と比較しようとした場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `gt`
 
@@ -1612,7 +1630,9 @@ gt(other: string | number | bigint | BigFloat | BigFloatComplex): boolean
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
-**Throws**: 複素数と比較しようとした場合
+**Throws**: 非実数複素数と比較しようとした場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `gte`
 
@@ -1633,7 +1653,9 @@ gte(other: string | number | bigint | BigFloat | BigFloatComplex): boolean
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
-**Throws**: 複素数と比較しようとした場合
+**Throws**: 非実数複素数と比較しようとした場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `isZero`
 
@@ -2593,6 +2615,8 @@ log(base: string | number | bigint | BigFloat): BigFloat
 
 **Throws**: 複素数と比較しようとした場合
 
+**Throws**: 文字列が複素数表現として無効な場合
+
 #### `log2`
 
 ```ts
@@ -2644,6 +2668,8 @@ ln(1 + x) を計算する
 **Throws**: キャッシュが存在しない場合
 
 **Throws**: 複素数と比較しようとした場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `gamma`
 
@@ -8536,6 +8562,8 @@ max(): BigFloatComplex
 
 **Throws**: 特殊値が無効な設定で特殊値を比較しようとした場合
 
+**Throws**: 文字列が複素数表現として無効な場合
+
 #### `min`
 
 ```ts
@@ -8553,6 +8581,8 @@ min(): BigFloatComplex
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: 特殊値が無効な設定で特殊値を比較しようとした場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `sum`
 
@@ -9439,7 +9469,9 @@ equals(other: BigFloatMatrix | Iterable<BigFloatVectorLike>): boolean
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
-**Throws**: 複素数と比較しようとした場合
+**Throws**: 非実数複素数と比較しようとした場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `changePrecision`
 
@@ -10477,6 +10509,8 @@ max(): BigFloat
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
+**Throws**: 文字列が複素数表現として無効な場合
+
 #### `min`
 
 ```ts
@@ -10494,6 +10528,8 @@ min(): BigFloat
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `sum`
 
@@ -13199,7 +13235,9 @@ equals(other: BigFloatVector | Iterable<BigFloatValue> | BigFloatComplexVector |
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
-**Throws**: 複素数と比較しようとした場合
+**Throws**: 非実数複素数と比較しようとした場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `add`
 
@@ -14140,7 +14178,9 @@ log1p(): BigFloatVector
 
 **Throws**: キャッシュが存在しない場合
 
-**Throws**: 複素数と比較しようとした場合
+**Throws**: 非実数複素数と比較しようとした場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `gamma`
 
@@ -14214,6 +14254,8 @@ max(): BigFloat
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
+**Throws**: 文字列が複素数表現として無効な場合
+
 #### `min`
 
 ```ts
@@ -14231,6 +14273,8 @@ min(): BigFloat
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `sum`
 

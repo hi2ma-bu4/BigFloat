@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.4.4
+ * BigFloat 1.4.5
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -2867,6 +2867,7 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   max() {
     if (this.isEmpty()) throw new TypeError("No elements");
@@ -2880,6 +2881,7 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   min() {
     if (this.isEmpty()) throw new TypeError("No elements");
@@ -3547,7 +3549,8 @@ var BigFloatVector = class _BigFloatVector {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-   * @throws {TypeError} 複素数と比較しようとした場合
+   * @throws {TypeError} 非実数複素数と比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   equals(other) {
     const vector = _BigFloatVector._coerceVector(other, this._values);
@@ -4083,7 +4086,8 @@ var BigFloatVector = class _BigFloatVector {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
-   * @throws {TypeError} 複素数と比較しようとした場合
+   * @throws {TypeError} 非実数複素数と比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   log1p() {
     return this._mapValues((value) => value.log1p());
@@ -4134,6 +4138,7 @@ var BigFloatVector = class _BigFloatVector {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   max() {
     if (this.isEmpty()) throw new TypeError("No arguments provided");
@@ -4150,6 +4155,7 @@ var BigFloatVector = class _BigFloatVector {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   min() {
     if (this.isEmpty()) throw new TypeError("No arguments provided");
@@ -7097,12 +7103,13 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-   * @throws {TypeError} 複素数と比較しようとした場合
+   * @throws {TypeError} 非実数複素数と比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   compare(other) {
     const construct = this.constructor;
     if (other instanceof BigFloatComplex) {
-      throw new TypeError("Cannot compare BigFloat with a complex number");
+      return BigFloatComplex.from(this).compare(other);
     }
     const bfB = other instanceof _BigFloat ? other : new construct(other, this._precision);
     if (!construct.config.allowSpecialValues && (!this._isFiniteState() || !bfB._isFiniteState())) {
@@ -7126,7 +7133,8 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-   * @throws {TypeError} 複素数と比較しようとした場合
+   * @throws {TypeError} 非実数複素数と比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   eq(other) {
     return this.compare(other) === 0;
@@ -7138,7 +7146,8 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-   * @throws {TypeError} 複素数と比較しようとした場合
+   * @throws {TypeError} 非実数複素数と比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   equals(other) {
     return this.compare(other) === 0;
@@ -7150,7 +7159,8 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-   * @throws {TypeError} 複素数と比較しようとした場合
+   * @throws {TypeError} 非実数複素数と比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   ne(other) {
     return this.compare(other) !== 0;
@@ -7162,7 +7172,8 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-   * @throws {TypeError} 複素数と比較しようとした場合
+   * @throws {TypeError} 非実数複素数と比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   lt(other) {
     return this.compare(other) === -1;
@@ -7174,7 +7185,8 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-   * @throws {TypeError} 複素数と比較しようとした場合
+   * @throws {TypeError} 非実数複素数と比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   lte(other) {
     return this.compare(other) <= 0;
@@ -7186,7 +7198,8 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-   * @throws {TypeError} 複素数と比較しようとした場合
+   * @throws {TypeError} 非実数複素数と比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   gt(other) {
     return this.compare(other) === 1;
@@ -7198,7 +7211,8 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-   * @throws {TypeError} 複素数と比較しようとした場合
+   * @throws {TypeError} 非実数複素数と比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   gte(other) {
     return this.compare(other) >= 0;
@@ -9152,6 +9166,7 @@ var BigFloat = class _BigFloat {
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {TypeError} 複素数と比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   log(base) {
     const construct = this.constructor;
@@ -9301,6 +9316,7 @@ var BigFloat = class _BigFloat {
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {TypeError} 複素数と比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   log1p() {
     const construct = this.constructor;
@@ -9854,7 +9870,8 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
-   * @throws {TypeError} 複素数と比較しようとした場合
+   * @throws {TypeError} 非実数複素数と比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static log1p(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -9881,6 +9898,7 @@ var BigFloat = class _BigFloat {
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {TypeError} 複素数と比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static max(...args) {
     const values = this._normalizeArgs(args);
@@ -9909,6 +9927,7 @@ var BigFloat = class _BigFloat {
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {TypeError} 複素数と比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   static min(...args) {
     const values = this._normalizeArgs(args);
@@ -11751,7 +11770,8 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
-   * @throws {TypeError} 複素数と比較しようとした場合
+   * @throws {TypeError} 非実数複素数と比較しようとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   equals(other) {
     const matrix = _BigFloatMatrix._coerceMatrix(other, this._flattenValues());
@@ -12390,6 +12410,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   max() {
     if (this.isEmpty()) throw new TypeError("No arguments provided");
@@ -12408,6 +12429,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    */
   min() {
     if (this.isEmpty()) throw new TypeError("No arguments provided");

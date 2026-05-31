@@ -414,8 +414,17 @@ class EditorBuffer {
 		this.textarea = textarea;
 		this.selectionStart = 0;
 		this.selectionEnd = 0;
+		this.history = [{ value: "", selectionStart: 0, selectionEnd: 0 }];
+		this.historyIndex = 0;
+		this.saveTimeout = null;
+
 		for (const type of ["select", "keyup", "click", "input", "focus"]) {
-			this.textarea.addEventListener(type, () => this.cacheSelection());
+			this.textarea.addEventListener(type, () => {
+				this.cacheSelection();
+				if (type === "input") {
+					this.scheduleSaveState();
+				}
+			});
 		}
 		this.cacheSelection();
 	}
@@ -425,6 +434,54 @@ class EditorBuffer {
 			this.selectionStart = this.textarea.selectionStart ?? this.textarea.value.length;
 			this.selectionEnd = this.textarea.selectionEnd ?? this.selectionStart;
 		}
+	}
+
+	scheduleSaveState() {
+		if (this.saveTimeout) clearTimeout(this.saveTimeout);
+		this.saveTimeout = setTimeout(() => this.saveState(), 400);
+	}
+
+	saveState() {
+		if (this.saveTimeout) clearTimeout(this.saveTimeout);
+		const state = {
+			value: this.textarea.value,
+			selectionStart: this.selectionStart,
+			selectionEnd: this.selectionEnd,
+		};
+		const current = this.history[this.historyIndex];
+		if (current && current.value === state.value) {
+			this.history[this.historyIndex] = state;
+			return;
+		}
+		this.history = this.history.slice(0, this.historyIndex + 1);
+		this.history.push(state);
+		if (this.history.length > 100) {
+			this.history.shift();
+		} else {
+			this.historyIndex++;
+		}
+	}
+
+	undo() {
+		if (this.historyIndex > 0) {
+			this.historyIndex--;
+			this.applyState(this.history[this.historyIndex]);
+		}
+	}
+
+	redo() {
+		if (this.historyIndex < this.history.length - 1) {
+			this.historyIndex++;
+			this.applyState(this.history[this.historyIndex]);
+		}
+	}
+
+	applyState(state) {
+		this.textarea.value = state.value;
+		this.selectionStart = state.selectionStart;
+		this.selectionEnd = state.selectionEnd;
+		this.textarea.selectionStart = state.selectionStart;
+		this.textarea.selectionEnd = state.selectionEnd;
 	}
 
 	getValue() {
@@ -441,6 +498,7 @@ class EditorBuffer {
 		this.selectionEnd = value.length;
 		this.textarea.selectionStart = value.length;
 		this.textarea.selectionEnd = value.length;
+		this.saveState();
 		if (focus) {
 			this.safelyFocus();
 		}
@@ -452,6 +510,7 @@ class EditorBuffer {
 		this.textarea.setRangeText(text, start, end, "end");
 		this.selectionStart = this.textarea.selectionStart;
 		this.selectionEnd = this.textarea.selectionEnd;
+		this.saveState();
 		if (preserveFocus) {
 			this.safelyFocus();
 		} else {
@@ -465,26 +524,19 @@ class EditorBuffer {
 		const end = this.selectionEnd;
 		if (start !== end) {
 			this.textarea.setRangeText("", start, end, "end");
-			this.selectionStart = this.textarea.selectionStart;
-			this.selectionEnd = this.selectionStart;
-			if (preserveFocus) {
-				this.safelyFocus();
-			} else {
-				this.textarea.selectionStart = this.selectionStart;
-				this.textarea.selectionEnd = this.selectionEnd;
-			}
+		} else if (start > 0) {
+			this.textarea.setRangeText("", start - 1, start, "end");
+		} else {
 			return;
 		}
-		if (start > 0) {
-			this.textarea.setRangeText("", start - 1, start, "end");
-			this.selectionStart = this.textarea.selectionStart;
-			this.selectionEnd = this.selectionStart;
-			if (preserveFocus) {
-				this.safelyFocus();
-			} else {
-				this.textarea.selectionStart = this.selectionStart;
-				this.textarea.selectionEnd = this.selectionEnd;
-			}
+		this.selectionStart = this.textarea.selectionStart;
+		this.selectionEnd = this.selectionStart;
+		this.saveState();
+		if (preserveFocus) {
+			this.safelyFocus();
+		} else {
+			this.textarea.selectionStart = this.selectionStart;
+			this.textarea.selectionEnd = this.selectionEnd;
 		}
 	}
 
@@ -500,6 +552,7 @@ class EditorBuffer {
 		}
 		this.selectionStart = this.textarea.selectionStart;
 		this.selectionEnd = this.selectionStart;
+		this.saveState();
 		if (preserveFocus) {
 			this.safelyFocus();
 		} else {
@@ -525,6 +578,7 @@ class EditorBuffer {
 		this.selectionEnd = 0;
 		this.textarea.selectionStart = 0;
 		this.textarea.selectionEnd = 0;
+		this.saveState();
 		if (focus) {
 			this.safelyFocus();
 		}
@@ -676,9 +730,48 @@ class CalculatorApp {
 			}
 		});
 		document.addEventListener("keydown", (event) => {
-			if (document.activeElement === this.editor.textarea || isEditableTarget(event.target) || event.ctrlKey || event.altKey || event.metaKey || event.isComposing) {
+			const isFocused = document.activeElement === this.editor.textarea;
+			if (isEditableTarget(event.target) && !isFocused) {
 				return;
 			}
+
+			if (event.ctrlKey || event.metaKey) {
+				const key = event.key.toLowerCase();
+				if (key === "z") {
+					event.preventDefault();
+					if (event.shiftKey) {
+						this.editor.redo();
+					} else {
+						this.editor.undo();
+					}
+					this.handleInput(false);
+					return;
+				}
+				if (key === "y") {
+					event.preventDefault();
+					this.editor.redo();
+					this.handleInput(false);
+					return;
+				}
+				if (key === "a") {
+					event.preventDefault();
+					this.editor.safelyFocus();
+					this.editor.textarea.select();
+					return;
+				}
+				if (key === "c" || key === "v" || key === "x") {
+					if (!isFocused) {
+						this.editor.safelyFocus();
+					}
+					return;
+				}
+				if (!isFocused) return;
+			}
+
+			if (isFocused || event.altKey || event.isComposing) {
+				return;
+			}
+
 			if (event.key === "Enter" && !event.shiftKey) {
 				event.preventDefault();
 				this.handleInput(true);
@@ -840,19 +933,14 @@ class CalculatorApp {
 		this.keypadGrid.insertBefore(createKey(")", ")"), children[children.length - 4]);
 		this.keypadGrid.insertBefore(createKey(",", ",", "key function swapped-key-row6"), children[children.length - 2]);
 
-		const pageSize = group.items.length > 24 ? 22 : 24;
+		const pageSize = group.items.length > 24 ? 23 : 24;
 		const pageCount = Math.max(1, Math.ceil(group.items.length / pageSize));
 		this.activeFunctionPage = Math.max(0, Math.min(this.activeFunctionPage, pageCount - 1));
 		const items = group.items.slice(this.activeFunctionPage * pageSize, this.activeFunctionPage * pageSize + pageSize);
 		if (pageCount > 1) {
-			const prev = createKey("\\leftarrow", "", "key function swapped-key");
-			prev.dataset.pageDelta = "-1";
-			prev.disabled = this.activeFunctionPage === 0;
-			this.keypadGrid.insertBefore(prev, children[children.length - 5]);
-			const next = createKey("\\rightarrow", "", "key function swapped-key");
-			next.dataset.pageDelta = "1";
-			next.disabled = this.activeFunctionPage === pageCount - 1;
-			this.keypadGrid.insertBefore(next, children[children.length - 5]);
+			const pager = createKey(`> ${this.activeFunctionPage + 1} <`, "", "key function swapped-key pager-button");
+			pager.dataset.pageDelta = "1";
+			this.keypadGrid.insertBefore(pager, children[children.length - 5]);
 		}
 		items.forEach((item) => {
 			const button = document.createElement("button");
@@ -871,7 +959,7 @@ class CalculatorApp {
 		});
 
 		// Pad with empty buttons to maintain grid structure (Rows 2-5 = 24 slots)
-		for (let i = items.length + (pageCount > 1 ? 2 : 0); i < 24; i++) {
+		for (let i = items.length + (pageCount > 1 ? 1 : 0); i < 24; i++) {
 			const placeholder = document.createElement("button");
 			placeholder.type = "button";
 			placeholder.className = "key swapped-key placeholder";
@@ -897,7 +985,9 @@ class CalculatorApp {
 		if (!group) {
 			return;
 		}
-		this.activeFunctionPage += delta;
+		const pageSize = group.items.length > 24 ? 23 : 24;
+		const pageCount = Math.max(1, Math.ceil(group.items.length / pageSize));
+		this.activeFunctionPage = (this.activeFunctionPage + delta + pageCount) % pageCount;
 		this.renderSwappedKeypad(group);
 	}
 
