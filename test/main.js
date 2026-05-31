@@ -1,4 +1,4 @@
-import { BigFloat, bigFloat, BigFloatComplex, bigFloatComplex, BigFloatComplexMatrix, BigFloatComplexVector, BigFloatMatrix, BigFloatStream, BigFloatVector } from "../dist/BigFloat.js";
+import { BigFloat, bigFloat, BigFloatComplex, bigFloatComplex, BigFloatComplexMatrix, BigFloatComplexVector, BigFloatMatrix, BigFloatStream, BigFloatVector, RoundingMode, SpecialValueState } from "../dist/BigFloat.js";
 import { AstTeXPrinter, escapeLatex, formatSerializedValue, parseExpression, ROUNDING_MODE_OPTIONS } from "./calculator-core.js";
 
 const DEFAULT_HINT = "sin(x)";
@@ -1117,4 +1117,7 @@ if (typeof window !== "undefined") {
 	window.BigFloatMatrix = BigFloatMatrix;
 	window.BigFloatComplexMatrix = BigFloatComplexMatrix;
 	window.BigFloatStream = BigFloatStream;
+
+	window.RoundingMode = RoundingMode;
+	window.SpecialValueState = SpecialValueState;
 }
