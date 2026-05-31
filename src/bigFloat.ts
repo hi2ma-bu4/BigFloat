@@ -113,6 +113,8 @@ export class BigFloat {
 	private static _piCache: BigFloatCacheEntry | null = null;
 	/** eキャッシュ */
 	private static _eCache: BigFloatCacheEntry | null = null;
+	/** オイラー・マスケローニ定数キャッシュ */
+	private static _eulerGammaCache: BigFloatCacheEntry | null = null;
 	/** 対数キャッシュ */
 	private static _lnCache: Record<string, BigFloatCacheEntry> = Object.create(null);
 	/** 5の累乗キャッシュ */
@@ -139,6 +141,7 @@ export class BigFloat {
 	public static clearCache(): void {
 		this._piCache = null;
 		this._eCache = null;
+		this._eulerGammaCache = null;
 		this._lnCache = Object.create(null);
 		this._pow5Cache = [1n];
 		this._pow2Cache = [1n];
@@ -4099,6 +4102,73 @@ export class BigFloat {
 		return this._makeResult(val, precisionBig);
 	}
 
+	/**
+	 * オイラーの定数 γ を取得する (内部用)
+	 * @param precision - 精度
+	 * @returns γ
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throwsSuppressed {RangeError}
+	 */
+	protected static _eulerGamma(precision: bigint): bigint {
+		if (this._getCheckEulerGammaCache(precision)) {
+			return this._getEulerGammaCache(precision);
+		}
+
+		const scale = this._getPow10(precision);
+
+		// 誤差 O(n^-10)
+		const n = precision < 1000n ? precision : this._sqrt(precision, precision) * 4n + 32n;
+
+		let hn = 0n;
+		const CHUNK = 256n;
+
+		for (let start = 1n; start <= n; start += CHUNK) {
+			const end = start + CHUNK - 1n > n ? n : start + CHUNK - 1n;
+			let local = 0n;
+
+			for (let i = start; i <= end; i++) {
+				local += scale / i;
+			}
+
+			hn += local;
+		}
+
+		const lnN = this._ln(n * scale, precision, this.config.lnMaxSteps);
+		let res = hn - lnN;
+
+		const n2 = n * n;
+		const n4 = n2 * n2;
+		const n6 = n4 * n2;
+		const n8 = n4 * n4;
+		const n10 = n8 * n2;
+
+		// Euler–Maclaurin corrections
+
+		res -= scale / (2n * n);
+		res += scale / (12n * n2);
+		res -= scale / (120n * n4);
+		res += scale / (252n * n6);
+		res -= scale / (240n * n8);
+		res += (scale * 5n) / (660n * n10);
+
+		this._updateEulerGammaCache(res, precision);
+		return res;
+	}
+
+	/**
+	 * オイラーの定数 γ を計算する
+	 * @param precision - 精度
+	 * @returns γ
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 */
+	public static eulerGamma(precision: PrecisionValue = this.DEFAULT_PRECISION): BigFloat {
+		const precisionBig = BigInt(precision);
+		this._checkPrecision(precisionBig);
+		const raw = this._eulerGamma(precisionBig);
+		return this._makeResult(raw, precisionBig);
+	}
+
 	// ====================================================================================================
 	// * Math互換 静的メソッド
 	// ====================================================================================================
@@ -4818,6 +4888,66 @@ export class BigFloat {
 		return varianceVal.sqrt();
 	}
 
+	/**
+	 * 引数の幾何平均を返す
+	 * @param args - 数値のリスト
+	 * @returns 幾何平均
+	 * @throws {TypeError} 引数が空の場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public static geometricMean(...args: BigFloatAggregateArgs): BigFloat {
+		const arr = this._normalizeArgs(args);
+		if (arr.length === 0) throw new TypeError("No arguments provided");
+		const total = this.product(arr);
+		return total.nthRoot(arr.length);
+	}
+
+	/**
+	 * 引数の調和平均を返す
+	 * @param args - 数値のリスト
+	 * @returns 調和平均
+	 * @throws {TypeError} 引数が空の場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public static harmonicMean(...args: BigFloatAggregateArgs): BigFloat {
+		const arr = this._normalizeArgs(args);
+		if (arr.length === 0) throw new TypeError("No arguments provided");
+		let sumRecip = new this(0);
+		for (const val of arr) {
+			sumRecip = sumRecip.add(new this(val).reciprocal());
+		}
+		return new this(arr.length).div(sumRecip);
+	}
+
+	/**
+	 * 引数の二乗平均平方根 (RMS) を返す
+	 * @param args - 数値のリスト
+	 * @returns RMS
+	 * @throws {TypeError} 引数が空の場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public static rms(...args: BigFloatAggregateArgs): BigFloat {
+		const arr = this._normalizeArgs(args);
+		if (arr.length === 0) throw new TypeError("No arguments provided");
+		let sumSq = new this(0);
+		for (const val of arr) {
+			const bf = val instanceof BigFloat ? val : new this(val);
+			sumSq = sumSq.add(bf.mul(bf));
+		}
+		return sumSq.div(arr.length).sqrt();
+	}
+
 	// ====================================================================================================
 	// * ランダム・乱数生成
 	// ====================================================================================================
@@ -5342,6 +5472,31 @@ export class BigFloat {
 	}
 
 	/**
+	 * 指数積分 Ei(x) を計算する (内部用)
+	 * @param val - 値 (scaled)
+	 * @param precision - 精度
+	 * @returns Ei(x) の値 (scaled)
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throwsSuppressed {RangeError}
+	 */
+	protected static _Ei(val: bigint, precision: bigint): bigint {
+		const scale = this._getPow10(precision);
+		const absVal = val < 0n ? -val : val;
+		const lnAbsX = this._ln(absVal, precision, this.config.lnMaxSteps);
+		const gamma = this._eulerGamma(precision);
+
+		// series: gamma + ln|x| + sum(x^k / (k * k!))
+		let sum = val;
+		let term = val;
+		for (let k = 1n; k < precision * 10n + 100n; k++) {
+			term = (term * val * k) / ((k + 1n) * (k + 1n) * scale);
+			if (term === 0n) break;
+			sum += term;
+		}
+		return gamma + lnAbsX + sum;
+	}
+
+	/**
 	 * 階乗を計算する (内部用)
 	 * @param n - 値
 	 * @returns 階乗
@@ -5391,6 +5546,80 @@ export class BigFloat {
 			raw = construct._factorialGamma(val, totalPr);
 		}
 		return this._makeResult(raw, this._precision, totalPr);
+	}
+
+	/**
+	 * 算術幾何平均 (Arithmetic-Geometric Mean) を計算する
+	 * @param other - 対象の数値
+	 * @returns 算術幾何平均
+	 * @throws {RangeError} 引数が負の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throwsSuppressed {DivisionByZeroError}
+	 */
+	public agm(other: BigFloatInputValue): BigFloat {
+		const construct = this.constructor as BigFloatConstructor;
+		let a = this.abs();
+		let b = other instanceof BigFloatComplex ? other.abs() : BigFloat.abs(other, this._precision);
+
+		if (a.isZero() || b.isZero()) return construct.zero(this._precision);
+
+		// 収束判定用の精度
+		const totalPr = this._precision + construct.config.extraPrecision;
+		const scale = construct._getPow10(totalPr);
+		const eps = scale / (construct._getPow10(this._precision + 2n) || 1n);
+
+		for (let i = 0; i < 100; i++) {
+			const nextA = a.add(b).div(2);
+			const nextB = a.mul(b).sqrt();
+			if (a.absoluteDiff(nextA)._getInternalValue(totalPr) <= eps) {
+				return nextA.changePrecision(this._precision);
+			}
+			a = nextA;
+			b = nextB;
+		}
+		return a.changePrecision(this._precision);
+	}
+
+	/**
+	 * 指数積分 Ei(x) を計算する
+	 * @returns 指数積分 Ei(x)
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 */
+	public Ei(): BigFloat {
+		const construct = this.constructor as BigFloatConstructor;
+		if (!this._isFiniteState()) {
+			this._ensureSpecialValuesEnabled(this);
+			if (this._specialState === SpecialValueState.POSITIVE_INFINITY) return this._specialResult(SpecialValueState.POSITIVE_INFINITY);
+			if (this._specialState === SpecialValueState.NEGATIVE_INFINITY) return construct.zero(this._precision);
+			return this._specialResult(SpecialValueState.NAN);
+		}
+		if (this.isZero()) return this._specialResult(SpecialValueState.NEGATIVE_INFINITY);
+
+		const totalPr = this._precision + construct.config.extraPrecision;
+		const val = this._getInternalValue(totalPr);
+		const raw = construct._Ei(val, totalPr);
+		return this._makeResult(raw, this._precision, totalPr);
+	}
+
+	/**
+	 * 対数積分 li(x) を計算する
+	 * @returns 対数積分 li(x)
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} x <= 0 の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 */
+	public li(): BigFloat {
+		if (this.isNegative() || this.isZero()) {
+			throw new RangeError("li(x) is only defined for x > 0");
+		}
+		return this.ln().Ei();
 	}
 
 	/**
@@ -5485,6 +5714,43 @@ export class BigFloat {
 			return;
 		}
 		this._eCache = { exactValue: value, precision };
+	}
+
+	/**
+	 * オイラー・マスケローニ定数キャッシュが存在するか確認する (内部用)
+	 * @param precision - 必要精度
+	 * @returns 存在する場合はtrue
+	 */
+	protected static _getCheckEulerGammaCache(precision: bigint): boolean {
+		const cachedData = this._eulerGammaCache;
+		return !!(cachedData && cachedData.precision >= precision);
+	}
+
+	/**
+	 * オイラー・マスケローニ定数キャッシュを取得する (内部用)
+	 * @param precision - 必要精度
+	 * @returns キャッシュされた値
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 */
+	protected static _getEulerGammaCache(precision: bigint): bigint {
+		const cachedData = this._eulerGammaCache;
+		if (cachedData) {
+			return this._rescaleInternalValue(cachedData.exactValue, cachedData.precision, precision);
+		}
+		throw new CacheNotInitializedError("use _getCheckEulerGammaCache first");
+	}
+
+	/**
+	 * オイラー・マスケローニ定数キャッシュを更新する (内部用)
+	 * @param value - 値
+	 * @param precision - 精度
+	 */
+	protected static _updateEulerGammaCache(value: bigint, precision: bigint): void {
+		const cachedData = this._eulerGammaCache;
+		if (cachedData && cachedData.precision >= precision) {
+			return;
+		}
+		this._eulerGammaCache = { exactValue: value, precision };
 	}
 
 	/**

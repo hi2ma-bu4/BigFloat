@@ -1249,6 +1249,33 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	public factorial(): this {
 		return this._mapValues((v) => v.factorial());
 	}
+
+	/**
+	 * 各要素に対して指数積分 Ei(z) を計算する
+	 * @returns Ei(z) 適用後のベクトル
+	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 */
+	public Ei(): this {
+		return this._mapValues((v) => v.Ei());
+	}
+
+	/**
+	 * 各要素に対して対数積分 li(z) を計算する
+	 * @returns li(z) 適用後のベクトル
+	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} x <= 0 の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 */
+	public li(): this {
+		return this._mapValues((v) => v.li());
+	}
+
 	// ====================================================================================================
 	// * 統計関数
 	// ====================================================================================================
@@ -1324,6 +1351,119 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	public average(): BigFloatComplex {
 		if (this.isEmpty()) return new BigFloatComplex(0);
 		return this.sum().div(this.length);
+	}
+
+	/**
+	 * 中央値を計算する
+	 * @returns 中央値
+	 * @throws {TypeError} ベクトルが空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throwsSuppressed {DivisionByZeroError}
+	 */
+	public median(): BigFloatComplex {
+		if (this.isEmpty()) throw new TypeError("No elements");
+		const sorted = this._values.slice().sort((a, b) => a.compare(b));
+		const mid = Math.floor(sorted.length / 2);
+		if (sorted.length % 2 === 1) {
+			return sorted[mid].clone();
+		}
+		return sorted[mid - 1].add(sorted[mid]).div(2);
+	}
+
+	/**
+	 * 分散を計算する
+	 * @returns 分散
+	 * @throws {TypeError} ベクトルが空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throwsSuppressed {DivisionByZeroError}
+	 */
+	public variance(): BigFloatComplex {
+		if (this.isEmpty()) throw new TypeError("No elements");
+		if (this.length === 1) return new BigFloatComplex(0, 0, this._values[0].precision);
+		const mean = this.average();
+		let sumSq = new BigFloatComplex(0, 0, this._values[0].precision);
+		for (const val of this._values) {
+			const diff = val.sub(mean);
+			sumSq = sumSq.add(diff.mul(diff));
+		}
+		return sumSq.div(this.length);
+	}
+
+	/**
+	 * 標準偏差を計算する
+	 * @returns 標準偏差
+	 * @throws {TypeError} ベクトルが空の場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 */
+	public stddev(): BigFloatComplex {
+		return this.variance().sqrt();
+	}
+
+	/**
+	 * 幾何平均を計算する
+	 * @returns 幾何平均
+	 * @throws {TypeError} ベクトルが空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 */
+	public geometricMean(): BigFloatComplex {
+		if (this.isEmpty()) throw new TypeError("No elements");
+		return this.product().nthRoot(this.length);
+	}
+
+	/**
+	 * 調和平均を計算する
+	 * @returns 調和平均
+	 * @throws {TypeError} ベクトルが空の場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public harmonicMean(): BigFloatComplex {
+		if (this.isEmpty()) throw new TypeError("No elements");
+		const p = this._values[0].precision;
+		let sumRecip = new BigFloatComplex(0, 0, p);
+		for (const val of this._values) {
+			sumRecip = sumRecip.add(val.reciprocal());
+		}
+		return new BigFloatComplex(this.length, 0, p).div(sumRecip);
+	}
+
+	/**
+	 * 二乗平均平方根 (RMS) を計算する
+	 * @returns RMS
+	 * @throws {TypeError} ベクトルが空の場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public rms(): BigFloatComplex {
+		if (this.isEmpty()) throw new TypeError("No elements");
+		const p = this._values[0].precision;
+		let sumSq = new BigFloatComplex(0, 0, p);
+		for (const val of this._values) {
+			sumSq = sumSq.add(val.mul(val));
+		}
+		return sumSq.div(this.length).sqrt();
 	}
 
 	// ====================================================================================================

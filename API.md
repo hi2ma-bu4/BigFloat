@@ -221,6 +221,23 @@ tau(precision?: number | bigint): BigFloat
 
 **Throws**: キャッシュが存在しない場合
 
+#### `eulerGamma`
+
+```ts
+eulerGamma(precision?: number | bigint): BigFloat
+```
+
+オイラーの定数 γ を計算する
+
+**Parameters**
+- `precision`: 精度
+
+**Returns**: γ
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: キャッシュが存在しない場合
+
 #### `abs`
 
 ```ts
@@ -1154,6 +1171,79 @@ stddev(...args: string | number | bigint | BigFloat[] | [ReadonlyArray<BigFloatV
 **Throws**: 引数が空の場合
 
 **Throws**: 負の数の平方根を計算しようとした場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `geometricMean`
+
+```ts
+geometricMean(...args: string | number | bigint | BigFloat[] | [ReadonlyArray<BigFloatValue>]): BigFloat
+```
+
+引数の幾何平均を返す
+
+**Parameters**
+- `args`: 数値のリスト
+
+**Returns**: 幾何平均
+
+**Throws**: 引数が空の場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `harmonicMean`
+
+```ts
+harmonicMean(...args: string | number | bigint | BigFloat[] | [ReadonlyArray<BigFloatValue>]): BigFloat
+```
+
+引数の調和平均を返す
+
+**Parameters**
+- `args`: 数値のリスト
+
+**Returns**: 調和平均
+
+**Throws**: 引数が空の場合
+
+**Throws**: ゼロ除算が発生した場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `rms`
+
+```ts
+rms(...args: string | number | bigint | BigFloat[] | [ReadonlyArray<BigFloatValue>]): BigFloat
+```
+
+引数の二乗平均平方根 (RMS) を返す
+
+**Parameters**
+- `args`: 数値のリスト
+
+**Returns**: RMS
+
+**Throws**: 引数が空の場合
+
+**Throws**: ゼロ除算が発生した場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
@@ -2725,6 +2815,65 @@ factorial(): BigFloat
 
 **Throws**: ゼロ除算が発生した場合
 
+#### `agm`
+
+```ts
+agm(other: string | number | bigint | BigFloat | BigFloatComplex): BigFloat
+```
+
+算術幾何平均 (Arithmetic-Geometric Mean) を計算する
+
+**Parameters**
+- `other`: 対象の数値
+
+**Returns**: 算術幾何平均
+
+**Throws**: 引数が負の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+**Throws**: 複素数モードが無効な場合
+
+#### `Ei`
+
+```ts
+Ei(): BigFloat
+```
+
+指数積分 Ei(x) を計算する
+
+**Returns**: 指数積分 Ei(x)
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: キャッシュが存在しない場合
+
+#### `li`
+
+```ts
+li(): BigFloat
+```
+
+対数積分 li(x) を計算する
+
+**Returns**: 対数積分 li(x)
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: x <= 0 の場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+**Throws**: 複素数モードが無効な場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
 <a id="bigfloatconfig"></a>
 
 ## `BigFloatConfig`
@@ -3097,6 +3246,88 @@ average(values: Iterable<BigFloatComplexValue>, precision?: number | bigint): Bi
 **Throws**: 文字列が複素数表現として無効な場合
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+#### `geometricMean`
+
+```ts
+geometricMean(values: Iterable<BigFloatComplexValue>, precision?: number | bigint): BigFloatComplex
+```
+
+複素数リストの幾何平均を計算する
+
+**Parameters**
+- `values`: 複素数のリスト
+- `precision`: 結果の精度
+
+**Returns**: 幾何平均
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 複素数モードが無効な場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+**Throws**: 数値的に不安定な点の場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: ゼロ除算が発生した場合
+
+#### `harmonicMean`
+
+```ts
+harmonicMean(values: Iterable<BigFloatComplexValue>, precision?: number | bigint): BigFloatComplex
+```
+
+複素数リストの調和平均を計算する
+
+**Parameters**
+- `values`: 複素数のリスト
+- `precision`: 結果の精度
+
+**Returns**: 調和平均
+
+**Throws**: ゼロ複素数で除算しようとした場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 複素数モードが無効な場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `rms`
+
+```ts
+rms(values: Iterable<BigFloatComplexValue>, precision?: number | bigint): BigFloatComplex
+```
+
+複素数リストの二乗平均平方根 (RMS) を計算する
+
+**Parameters**
+- `values`: 複素数のリスト
+- `precision`: 結果の精度
+
+**Returns**: RMS
+
+**Throws**: ゼロ複素数で除算しようとした場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 複素数モードが無効な場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `zero`
 
@@ -4889,6 +5120,69 @@ factorial(): BigFloatComplex
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
+#### `agm`
+
+```ts
+agm(other: string | number | bigint | BigFloat | BigFloatComplex | [BigFloatValue | BigFloatComplex, BigFloatValue | BigFloatComplex] | { re?: string | number | bigint | BigFloat | BigFloatComplex; im?: string | number | bigint | BigFloat | BigFloatComplex; real?: string | number | bigint | BigFloat | BigFloatComplex; imag?: string | number | bigint | BigFloat | BigFloatComplex }): BigFloatComplex
+```
+
+算術幾何平均 (Arithmetic-Geometric Mean) を計算する
+
+**Parameters**
+- `other`: 対象の数値
+
+**Returns**: 算術幾何平均
+
+**Throws**: 虚部が 0 でない場合
+
+**Throws**: 引数が負の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `Ei`
+
+```ts
+Ei(): BigFloatComplex
+```
+
+指数積分 Ei(z) を計算する
+
+**Returns**: 指数積分 Ei(z)
+
+**Throws**: 非実数複素数の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+#### `li`
+
+```ts
+li(): BigFloatComplex
+```
+
+対数積分 li(z) を計算する
+
+**Returns**: 対数積分 li(z)
+
+**Throws**: 非実数複素数の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: x <= 0 の場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
 <a id="bigfloatcomplexmatrix"></a>
 
 ## `BigFloatComplexMatrix`
@@ -6586,6 +6880,46 @@ factorial(): BigFloatComplexMatrix
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
+#### `Ei`
+
+```ts
+Ei(): BigFloatComplexMatrix
+```
+
+各要素に対して指数積分 Ei(z) を計算する
+
+**Returns**: Ei(z) 適用後の行列
+
+**Throws**: 非実数複素数の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+#### `li`
+
+```ts
+li(): BigFloatComplexMatrix
+```
+
+各要素に対して対数積分 li(z) を計算する
+
+**Returns**: li(z) 適用後の行列
+
+**Throws**: 非実数複素数の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: x <= 0 の場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
 #### `max`
 
 ```ts
@@ -6687,6 +7021,138 @@ average(): BigFloatComplex
 **Throws**: ゼロ除算が発生した場合
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+#### `median`
+
+```ts
+median(): BigFloatComplex
+```
+
+全要素の中央値を計算する
+
+**Returns**: 中央値
+
+**Throws**: 行列が空の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を比較しようとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `variance`
+
+```ts
+variance(): BigFloatComplex
+```
+
+全要素の分散を計算する
+
+**Returns**: 分散
+
+**Throws**: 行列が空の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `stddev`
+
+```ts
+stddev(): BigFloatComplex
+```
+
+全要素の標準偏差を計算する
+
+**Returns**: 標準偏差
+
+**Throws**: 行列が空の場合
+
+**Throws**: 負の数の平方根を計算しようとした場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+**Throws**: ゼロ除算が発生した場合
+
+#### `geometricMean`
+
+```ts
+geometricMean(): BigFloatComplex
+```
+
+全要素の幾何平均を計算する
+
+**Returns**: 幾何平均
+
+**Throws**: 行列が空の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+**Throws**: ゼロ除算が発生した場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: 数値的に不安定な点の場合
+
+#### `harmonicMean`
+
+```ts
+harmonicMean(): BigFloatComplex
+```
+
+全要素の調和平均を計算する
+
+**Returns**: 調和平均
+
+**Throws**: 行列が空の場合
+
+**Throws**: ゼロ複素数で除算しようとした場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `rms`
+
+```ts
+rms(): BigFloatComplex
+```
+
+全要素の二乗平均平方根 (RMS) を計算する
+
+**Returns**: RMS
+
+**Throws**: 行列が空の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+**Throws**: ゼロ複素数で除算しようとした場合
 
 #### `rowSums`
 
@@ -8544,6 +9010,46 @@ factorial(): BigFloatComplexVector
 
 **Throws**: 非実数複素数の場合
 
+#### `Ei`
+
+```ts
+Ei(): BigFloatComplexVector
+```
+
+各要素に対して指数積分 Ei(z) を計算する
+
+**Returns**: Ei(z) 適用後のベクトル
+
+**Throws**: 非実数複素数の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+#### `li`
+
+```ts
+li(): BigFloatComplexVector
+```
+
+各要素に対して対数積分 li(z) を計算する
+
+**Returns**: li(z) 適用後のベクトル
+
+**Throws**: 非実数複素数の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: x <= 0 の場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
 #### `max`
 
 ```ts
@@ -8645,6 +9151,138 @@ average(): BigFloatComplex
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+#### `median`
+
+```ts
+median(): BigFloatComplex
+```
+
+中央値を計算する
+
+**Returns**: 中央値
+
+**Throws**: ベクトルが空の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を比較しようとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `variance`
+
+```ts
+variance(): BigFloatComplex
+```
+
+分散を計算する
+
+**Returns**: 分散
+
+**Throws**: ベクトルが空の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `stddev`
+
+```ts
+stddev(): BigFloatComplex
+```
+
+標準偏差を計算する
+
+**Returns**: 標準偏差
+
+**Throws**: ベクトルが空の場合
+
+**Throws**: 負の数の平方根を計算しようとした場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+**Throws**: ゼロ除算が発生した場合
+
+#### `geometricMean`
+
+```ts
+geometricMean(): BigFloatComplex
+```
+
+幾何平均を計算する
+
+**Returns**: 幾何平均
+
+**Throws**: ベクトルが空の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+**Throws**: 数値的に不安定な点の場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: ゼロ除算が発生した場合
+
+#### `harmonicMean`
+
+```ts
+harmonicMean(): BigFloatComplex
+```
+
+調和平均を計算する
+
+**Returns**: 調和平均
+
+**Throws**: ベクトルが空の場合
+
+**Throws**: ゼロ複素数で除算しようとした場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `rms`
+
+```ts
+rms(): BigFloatComplex
+```
+
+二乗平均平方根 (RMS) を計算する
+
+**Returns**: RMS
+
+**Throws**: ベクトルが空の場合
+
+**Throws**: ゼロ複素数で除算しようとした場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `dot`
 
@@ -10491,6 +11129,46 @@ factorial(): BigFloatMatrix | BigFloatMatrix
 
 **Throws**: 文字列が複素数表現として無効な場合
 
+#### `Ei`
+
+```ts
+Ei(): BigFloatMatrix | BigFloatMatrix
+```
+
+各要素に対して指数積分 Ei(x) を計算する
+
+**Returns**: Ei(x) 適用後の行列
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `li`
+
+```ts
+li(): BigFloatMatrix | BigFloatMatrix
+```
+
+各要素に対して対数積分 li(x) を計算する
+
+**Returns**: li(x) 適用後の行列
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: x <= 0 の場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 複素数モードが無効な場合
+
 #### `max`
 
 ```ts
@@ -10586,6 +11264,130 @@ average(): BigFloat
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
 **Throws**: 複素数モードが無効な場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+**Throws**: ゼロ複素数で除算しようとした場合
+
+#### `median`
+
+```ts
+median(): BigFloat
+```
+
+全要素の中央値を計算する
+
+**Returns**: 中央値
+
+**Throws**: 行列が空の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を比較しようとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `variance`
+
+```ts
+variance(): BigFloat
+```
+
+全要素の分散を計算する
+
+**Returns**: 分散
+
+**Throws**: 行列が空の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `stddev`
+
+```ts
+stddev(): BigFloat
+```
+
+全要素の標準偏差を計算する
+
+**Returns**: 標準偏差
+
+**Throws**: 行列が空の場合
+
+**Throws**: 負の数の平方根を計算しようとした場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `geometricMean`
+
+```ts
+geometricMean(): BigFloat
+```
+
+全要素の幾何平均を計算する
+
+**Returns**: 幾何平均
+
+**Throws**: 行列が空の場合
+
+**Throws**: 負の数の n 乗根を計算しようとした場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `harmonicMean`
+
+```ts
+harmonicMean(): BigFloat
+```
+
+全要素の調和平均を計算する
+
+**Returns**: 調和平均
+
+**Throws**: 行列が空の場合
+
+**Throws**: ゼロ除算が発生した場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `rms`
+
+```ts
+rms(): BigFloat
+```
+
+全要素の二乗平均平方根 (RMS) を計算する
+
+**Returns**: RMS
+
+**Throws**: 行列が空の場合
+
+**Throws**: 負の数の平方根を計算しようとした場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
 **Throws**: 精度の不一致が許容されていない場合
 
@@ -12611,6 +13413,69 @@ factorial(): BigFloatStream
 
 **Throws**: 複素数の場合
 
+#### `agm`
+
+```ts
+agm(other: string | number | bigint | BigFloat | BigFloatComplex): BigFloatStream
+```
+
+各要素に対して算術幾何平均 (agm) を計算する
+
+**Parameters**
+- `other`: 対象の数値
+
+**Returns**: agm 適用後のストリーム
+
+**Throws**: 虚部が 0 でない場合
+
+**Throws**: 引数が負の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `Ei`
+
+```ts
+Ei(): BigFloatStream
+```
+
+各要素に対して指数積分 Ei(x) を計算する
+
+**Returns**: Ei 適用後のストリーム
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 非実数複素数の場合
+
+#### `li`
+
+```ts
+li(): BigFloatStream
+```
+
+各要素に対して対数積分 li(x) を計算する
+
+**Returns**: li 適用後のストリーム
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: x <= 0 の場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: 非実数複素数の場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
 #### `max`
 
 ```ts
@@ -12776,6 +13641,76 @@ stddev(): BigFloat | BigFloatComplex
 **Throws**: ゼロ除算が発生した場合
 
 **Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `geometricMean`
+
+```ts
+geometricMean(): BigFloat | BigFloatComplex
+```
+
+ストリームの要素の幾何平均を計算する (終端操作)
+
+**Returns**: 幾何平均
+
+**Throws**: ストリームが空の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+**Throws**: 数値的に不安定な点の場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: ゼロ除算が発生した場合
+
+#### `harmonicMean`
+
+```ts
+harmonicMean(): BigFloat | BigFloatComplex
+```
+
+ストリームの要素の調和平均を計算する (終端操作)
+
+**Returns**: 調和平均
+
+**Throws**: ストリームが空の場合
+
+**Throws**: ゼロ除算が発生した場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `rms`
+
+```ts
+rms(): BigFloat | BigFloatComplex
+```
+
+ストリームの要素の二乗平均平方根 (RMS) を計算する (終端操作)
+
+**Returns**: RMS
+
+**Throws**: ストリームが空の場合
+
+**Throws**: ゼロ複素数で除算しようとした場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
 **Throws**: 文字列が複素数表現として無効な場合
 
@@ -14236,6 +15171,44 @@ factorial(): BigFloatVector
 
 **Throws**: ゼロ除算が発生した場合
 
+#### `Ei`
+
+```ts
+Ei(): BigFloatVector
+```
+
+各要素に対して指数積分 Ei(x) を計算する
+
+**Returns**: Ei(x) 適用後のベクトル
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+#### `li`
+
+```ts
+li(): BigFloatVector
+```
+
+各要素に対して対数積分 li(x) を計算する
+
+**Returns**: li(x) 適用後のベクトル
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: x <= 0 の場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 複素数モードが無効な場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
 #### `max`
 
 ```ts
@@ -14337,6 +15310,130 @@ average(): BigFloat
 **Throws**: 文字列が複素数表現として無効な場合
 
 **Throws**: ゼロ複素数で除算しようとした場合
+
+#### `median`
+
+```ts
+median(): BigFloat
+```
+
+中央値を計算する
+
+**Returns**: 中央値
+
+**Throws**: ベクトルが空の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を比較しようとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `variance`
+
+```ts
+variance(): BigFloat
+```
+
+分散を計算する
+
+**Returns**: 分散
+
+**Throws**: ベクトルが空の場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `stddev`
+
+```ts
+stddev(): BigFloat
+```
+
+標準偏差を計算する
+
+**Returns**: 標準偏差
+
+**Throws**: ベクトルが空の場合
+
+**Throws**: 負の数の平方根を計算しようとした場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `geometricMean`
+
+```ts
+geometricMean(): BigFloat
+```
+
+幾何平均を計算する
+
+**Returns**: 幾何平均
+
+**Throws**: ベクトルが空の場合
+
+**Throws**: 負の数の n 乗根を計算しようとした場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `harmonicMean`
+
+```ts
+harmonicMean(): BigFloat
+```
+
+調和平均を計算する
+
+**Returns**: 調和平均
+
+**Throws**: ベクトルが空の場合
+
+**Throws**: ゼロ複素数で除算しようとした場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+#### `rms`
+
+```ts
+rms(): BigFloat
+```
+
+二乗平均平方根 (RMS) を計算する
+
+**Returns**: RMS
+
+**Throws**: ベクトルが空の場合
+
+**Throws**: ゼロ複素数で除算しようとした場合
+
+**Throws**: 負の数の平方根を計算しようとした場合
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
 
 #### `dot`
 

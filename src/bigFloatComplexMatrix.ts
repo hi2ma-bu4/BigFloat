@@ -1434,6 +1434,32 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 		});
 	}
 
+	/**
+	 * 各要素に対して指数積分 Ei(z) を計算する
+	 * @returns Ei(z) 適用後の行列
+	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 */
+	public Ei(): this {
+		return this._mapValues((v) => v.Ei());
+	}
+
+	/**
+	 * 各要素に対して対数積分 li(z) を計算する
+	 * @returns li(z) 適用後の行列
+	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} x <= 0 の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 */
+	public li(): this {
+		return this._mapValues((v) => v.li());
+	}
+
 	// ====================================================================================================
 	// * 統計関数
 	// ====================================================================================================
@@ -1521,6 +1547,95 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	public average(): BigFloatComplex {
 		if (this.isEmpty()) return new BigFloatComplex(0, 0, BigFloat.DEFAULT_PRECISION);
 		return this.sum().div(this.rowCount * this.columnCount);
+	}
+
+	/**
+	 * 全要素の中央値を計算する
+	 * @returns 中央値
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public median(): BigFloatComplex {
+		if (this.isEmpty()) throw new TypeError("No elements");
+		return this.flatten().median();
+	}
+
+	/**
+	 * 全要素の分散を計算する
+	 * @returns 分散
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public variance(): BigFloatComplex {
+		if (this.isEmpty()) throw new TypeError("No elements");
+		return this.flatten().variance();
+	}
+
+	/**
+	 * 全要素の標準偏差を計算する
+	 * @returns 標準偏差
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 */
+	public stddev(): BigFloatComplex {
+		return this.flatten().stddev();
+	}
+
+	/**
+	 * 全要素の幾何平均を計算する
+	 * @returns 幾何平均
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 */
+	public geometricMean(): BigFloatComplex {
+		if (this.isEmpty()) throw new TypeError("No elements");
+		return this.flatten().geometricMean();
+	}
+
+	/**
+	 * 全要素の調和平均を計算する
+	 * @returns 調和平均
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public harmonicMean(): BigFloatComplex {
+		if (this.isEmpty()) throw new TypeError("No elements");
+		return this.flatten().harmonicMean();
+	}
+
+	/**
+	 * 全要素の二乗平均平方根 (RMS) を計算する
+	 * @returns RMS
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 */
+	public rms(): BigFloatComplex {
+		if (this.isEmpty()) throw new TypeError("No elements");
+		return this.flatten().rms();
 	}
 
 	// ====================================================================================================

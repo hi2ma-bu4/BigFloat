@@ -1677,6 +1677,46 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 		});
 	}
 
+	/**
+	 * 各要素に対して算術幾何平均 (agm) を計算する
+	 * @param other - 対象の数値
+	 * @returns agm 適用後のストリーム
+	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {RangeError} 引数が負の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public agm(other: BigFloatInputValue): this {
+		return this.map((x) => x.agm(other));
+	}
+
+	/**
+	 * 各要素に対して指数積分 Ei(x) を計算する
+	 * @returns Ei 適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {TypeError} 非実数複素数の場合
+	 */
+	public Ei(): this {
+		return this.map((x) => x.Ei());
+	}
+
+	/**
+	 * 各要素に対して対数積分 li(x) を計算する
+	 * @returns li 適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} x <= 0 の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public li(): this {
+		return this.map((x) => x.li());
+	}
+
 	// ====================================================================================================
 	// * 統計関数
 	// ====================================================================================================
@@ -1859,5 +1899,67 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 	public stddev(): BigFloatLike {
 		const varianceVal = this.variance();
 		return varianceVal.sqrt();
+	}
+
+	/**
+	 * ストリームの要素の幾何平均を計算する (終端操作)
+	 * @returns 幾何平均
+	 * @throws {TypeError} ストリームが空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 */
+	public geometricMean(): BigFloatLike {
+		const arr = this.toArray();
+		if (arr.length === 0) throw new TypeError("No elements");
+		const total = this.product();
+		return total.nthRoot(arr.length);
+	}
+
+	/**
+	 * ストリームの要素の調和平均を計算する (終端操作)
+	 * @returns 調和平均
+	 * @throws {TypeError} ストリームが空の場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public harmonicMean(): BigFloatLike {
+		const arr = this.toArray();
+		if (arr.length === 0) throw new TypeError("No elements");
+		const p = arr[0] instanceof BigFloat ? arr[0]._precision : arr[0].precision;
+		let sumRecip: BigFloatLike = arr[0] instanceof BigFloat ? new BigFloat(0, p) : new BigFloatComplex(0, 0, p);
+		for (const val of arr) {
+			sumRecip = sumRecip.add(val.reciprocal());
+		}
+		const count = arr[0] instanceof BigFloat ? new BigFloat(arr.length, p) : new BigFloatComplex(arr.length, 0, p);
+		return count.div(sumRecip);
+	}
+
+	/**
+	 * ストリームの要素の二乗平均平方根 (RMS) を計算する (終端操作)
+	 * @returns RMS
+	 * @throws {TypeError} ストリームが空の場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public rms(): BigFloatLike {
+		const arr = this.toArray();
+		if (arr.length === 0) throw new TypeError("No elements");
+		const p = arr[0] instanceof BigFloat ? arr[0]._precision : arr[0].precision;
+		let sumSq: BigFloatLike = arr[0] instanceof BigFloat ? new BigFloat(0, p) : new BigFloatComplex(0, 0, p);
+		for (const val of arr) {
+			sumSq = sumSq.add(val.mul(val));
+		}
+		return sumSq.div(arr.length).sqrt();
 	}
 }

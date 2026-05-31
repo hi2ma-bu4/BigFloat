@@ -1666,6 +1666,46 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		return this._applyRealUnaryComplex("factorial", (value) => value.factorial());
 	}
 
+	/**
+	 * 算術幾何平均 (Arithmetic-Geometric Mean) を計算する
+	 * @param other - 対象の数値
+	 * @returns 算術幾何平均
+	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {RangeError} 引数が負の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public agm(other: BigFloatComplexValue): BigFloatComplex {
+		return this._applyRealBinaryComplex(other, "agm", (l, r) => l.agm(r));
+	}
+
+	/**
+	 * 指数積分 Ei(z) を計算する
+	 * @returns 指数積分 Ei(z)
+	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 */
+	public Ei(): BigFloatComplex {
+		return this._applyRealUnaryComplex("Ei", (value) => value.Ei());
+	}
+
+	/**
+	 * 対数積分 li(z) を計算する
+	 * @returns 対数積分 li(z)
+	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} x <= 0 の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public li(): BigFloatComplex {
+		return this._applyRealUnaryComplex("li", (value) => value.li());
+	}
+
 	// ====================================================================================================
 	// * 統計関数
 	// ====================================================================================================
@@ -1726,6 +1766,74 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		}
 		if (count === 0) return this.zero(p);
 		return total.div(count);
+	}
+
+	/**
+	 * 複素数リストの幾何平均を計算する
+	 * @param values - 複素数のリスト
+	 * @param precision - 結果の精度
+	 * @returns 幾何平均
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 */
+	public static geometricMean(values: BigFloatComplexAggregateSource, precision?: PrecisionValue): BigFloatComplex {
+		const arr = Array.from(values);
+		if (arr.length === 0) return precision === undefined ? this.zero() : this.zero(precision);
+		const total = this.product(arr, precision);
+		return total.nthRoot(arr.length);
+	}
+
+	/**
+	 * 複素数リストの調和平均を計算する
+	 * @param values - 複素数のリスト
+	 * @param precision - 結果の精度
+	 * @returns 調和平均
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public static harmonicMean(values: BigFloatComplexAggregateSource, precision?: PrecisionValue): BigFloatComplex {
+		const arr = Array.from(values);
+		if (arr.length === 0) return precision === undefined ? this.zero() : this.zero(precision);
+		const p = precision === undefined ? BigFloat.DEFAULT_PRECISION : BigInt(precision);
+		let sumRecip = this.zero(p);
+		for (const val of arr) {
+			sumRecip = sumRecip.add(BigFloatComplex.from(val, p).reciprocal());
+		}
+		return BigFloatComplex.from(arr.length, 0, p).div(sumRecip);
+	}
+
+	/**
+	 * 複素数リストの二乗平均平方根 (RMS) を計算する
+	 * @param values - 複素数のリスト
+	 * @param precision - 結果の精度
+	 * @returns RMS
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public static rms(values: BigFloatComplexAggregateSource, precision?: PrecisionValue): BigFloatComplex {
+		const arr = Array.from(values);
+		if (arr.length === 0) return precision === undefined ? this.zero() : this.zero(precision);
+		const p = precision === undefined ? BigFloat.DEFAULT_PRECISION : BigInt(precision);
+		let sumSq = this.zero(p);
+		for (const val of arr) {
+			const bfc = BigFloatComplex.from(val, p);
+			sumSq = sumSq.add(bfc.mul(bfc));
+		}
+		return sumSq.div(arr.length).sqrt();
 	}
 
 	// ====================================================================================================

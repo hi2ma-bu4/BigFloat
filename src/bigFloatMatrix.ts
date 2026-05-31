@@ -1532,6 +1532,32 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 		return this._mapValues((value) => value.factorial());
 	}
 
+	/**
+	 * 各要素に対して指数積分 Ei(x) を計算する
+	 * @returns Ei(x) 適用後の行列
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public Ei(): this | BigFloatMatrix {
+		return this._mapValues((value) => value.Ei());
+	}
+
+	/**
+	 * 各要素に対して対数積分 li(x) を計算する
+	 * @returns li(x) 適用後の行列
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} x <= 0 の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 */
+	public li(): this | BigFloatMatrix {
+		return this._mapValues((value) => value.li());
+	}
+
 	// ====================================================================================================
 	// * 統計関数
 	// ====================================================================================================
@@ -1617,6 +1643,91 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	public average(): BigFloat {
 		if (this.isEmpty()) return new BigFloat(0);
 		return this.sum().div(this.rowCount * this.columnCount);
+	}
+
+	/**
+	 * 全要素の中央値を計算する
+	 * @returns 中央値
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public median(): BigFloat {
+		if (this.isEmpty()) throw new TypeError("No elements");
+		return this.flatten().median();
+	}
+
+	/**
+	 * 全要素の分散を計算する
+	 * @returns 分散
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public variance(): BigFloat {
+		if (this.isEmpty()) throw new TypeError("No elements");
+		return this.flatten().variance();
+	}
+
+	/**
+	 * 全要素の標準偏差を計算する
+	 * @returns 標準偏差
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public stddev(): BigFloat {
+		return this.flatten().stddev();
+	}
+
+	/**
+	 * 全要素の幾何平均を計算する
+	 * @returns 幾何平均
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {RangeError} 負の数の n 乗根を計算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public geometricMean(): BigFloat {
+		if (this.isEmpty()) throw new TypeError("No elements");
+		return this.flatten().geometricMean();
+	}
+
+	/**
+	 * 全要素の調和平均を計算する
+	 * @returns 調和平均
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	public harmonicMean(): BigFloat {
+		if (this.isEmpty()) throw new TypeError("No elements");
+		return this.flatten().harmonicMean();
+	}
+
+	/**
+	 * 全要素の二乗平均平方根 (RMS) を計算する
+	 * @returns RMS
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 */
+	public rms(): BigFloat {
+		if (this.isEmpty()) throw new TypeError("No elements");
+		return this.flatten().rms();
 	}
 
 	// ====================================================================================================

@@ -961,6 +961,26 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 */
 	factorial(): this | BigFloatMatrix;
 	/**
+	 * 各要素に対して指数積分 Ei(x) を計算する
+	 * @returns Ei(x) 適用後の行列
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	Ei(): this | BigFloatMatrix;
+	/**
+	 * 各要素に対して対数積分 li(x) を計算する
+	 * @returns li(x) 適用後の行列
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} x <= 0 の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 */
+	li(): this | BigFloatMatrix;
+	/**
 	 * 最大値を返す
 	 * @returns 最大値
 	 * @throws {TypeError} 行列が空の場合
@@ -1011,6 +1031,68 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 */
 	average(): BigFloat;
+	/**
+	 * 全要素の中央値を計算する
+	 * @returns 中央値
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	median(): BigFloat;
+	/**
+	 * 全要素の分散を計算する
+	 * @returns 分散
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	variance(): BigFloat;
+	/**
+	 * 全要素の標準偏差を計算する
+	 * @returns 標準偏差
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	stddev(): BigFloat;
+	/**
+	 * 全要素の幾何平均を計算する
+	 * @returns 幾何平均
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {RangeError} 負の数の n 乗根を計算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	geometricMean(): BigFloat;
+	/**
+	 * 全要素の調和平均を計算する
+	 * @returns 調和平均
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	harmonicMean(): BigFloat;
+	/**
+	 * 全要素の二乗平均平方根 (RMS) を計算する
+	 * @returns RMS
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 */
+	rms(): BigFloat;
 	/**
 	 * 行ごとの合計を計算する
 	 * @returns 各行の和を持つベクトル
@@ -2080,6 +2162,26 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 */
 	factorial(): this;
 	/**
+	 * 各要素に対して指数積分 Ei(z) を計算する
+	 * @returns Ei(z) 適用後の行列
+	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 */
+	Ei(): this;
+	/**
+	 * 各要素に対して対数積分 li(z) を計算する
+	 * @returns li(z) 適用後の行列
+	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} x <= 0 の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 */
+	li(): this;
+	/**
 	 * 最大値を返す
 	 * @returns 最大値
 	 * @throws {TypeError} 行列が空の場合
@@ -2130,6 +2232,72 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	average(): BigFloatComplex;
+	/**
+	 * 全要素の中央値を計算する
+	 * @returns 中央値
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	median(): BigFloatComplex;
+	/**
+	 * 全要素の分散を計算する
+	 * @returns 分散
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	variance(): BigFloatComplex;
+	/**
+	 * 全要素の標準偏差を計算する
+	 * @returns 標準偏差
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 */
+	stddev(): BigFloatComplex;
+	/**
+	 * 全要素の幾何平均を計算する
+	 * @returns 幾何平均
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 */
+	geometricMean(): BigFloatComplex;
+	/**
+	 * 全要素の調和平均を計算する
+	 * @returns 調和平均
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	harmonicMean(): BigFloatComplex;
+	/**
+	 * 全要素の二乗平均平方根 (RMS) を計算する
+	 * @returns RMS
+	 * @throws {TypeError} 行列が空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 */
+	rms(): BigFloatComplex;
 	/**
 	 * 各行の和を計算する
 	 * @returns 各行の和を持つベクトル
@@ -3305,6 +3473,37 @@ export declare class BigFloatStream implements Iterable<BigFloatLike> {
 	 */
 	factorial(): this;
 	/**
+	 * 各要素に対して算術幾何平均 (agm) を計算する
+	 * @param other - 対象の数値
+	 * @returns agm 適用後のストリーム
+	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {RangeError} 引数が負の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	agm(other: BigFloatInputValue): this;
+	/**
+	 * 各要素に対して指数積分 Ei(x) を計算する
+	 * @returns Ei 適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {TypeError} 非実数複素数の場合
+	 */
+	Ei(): this;
+	/**
+	 * 各要素に対して対数積分 li(x) を計算する
+	 * @returns li 適用後のストリーム
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} x <= 0 の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	li(): this;
+	/**
 	 * ストリームの要素の中から最大値を返す (終端操作)
 	 * @returns 最大値
 	 * @throws {TypeError} ストリームが空の場合
@@ -3388,6 +3587,41 @@ export declare class BigFloatStream implements Iterable<BigFloatLike> {
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 */
 	stddev(): BigFloatLike;
+	/**
+	 * ストリームの要素の幾何平均を計算する (終端操作)
+	 * @returns 幾何平均
+	 * @throws {TypeError} ストリームが空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 */
+	geometricMean(): BigFloatLike;
+	/**
+	 * ストリームの要素の調和平均を計算する (終端操作)
+	 * @returns 調和平均
+	 * @throws {TypeError} ストリームが空の場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	harmonicMean(): BigFloatLike;
+	/**
+	 * ストリームの要素の二乗平均平方根 (RMS) を計算する (終端操作)
+	 * @returns RMS
+	 * @throws {TypeError} ストリームが空の場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	rms(): BigFloatLike;
 }
 export type BigFloatComplexVectorRandomOptions = {
 	min?: BigFloatInputValue;
@@ -4231,6 +4465,26 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 */
 	factorial(): this;
 	/**
+	 * 各要素に対して指数積分 Ei(z) を計算する
+	 * @returns Ei(z) 適用後のベクトル
+	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 */
+	Ei(): this;
+	/**
+	 * 各要素に対して対数積分 li(z) を計算する
+	 * @returns li(z) 適用後のベクトル
+	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} x <= 0 の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 */
+	li(): this;
+	/**
 	 * 最大値を取得する（複素数では未サポート）
 	 * @returns 最大値
 	 * @throws {TypeError} 複素数ベクトルではサポートされていないため
@@ -4281,6 +4535,74 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	average(): BigFloatComplex;
+	/**
+	 * 中央値を計算する
+	 * @returns 中央値
+	 * @throws {TypeError} ベクトルが空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throwsSuppressed {DivisionByZeroError}
+	 */
+	median(): BigFloatComplex;
+	/**
+	 * 分散を計算する
+	 * @returns 分散
+	 * @throws {TypeError} ベクトルが空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throwsSuppressed {DivisionByZeroError}
+	 */
+	variance(): BigFloatComplex;
+	/**
+	 * 標準偏差を計算する
+	 * @returns 標準偏差
+	 * @throws {TypeError} ベクトルが空の場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 */
+	stddev(): BigFloatComplex;
+	/**
+	 * 幾何平均を計算する
+	 * @returns 幾何平均
+	 * @throws {TypeError} ベクトルが空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 */
+	geometricMean(): BigFloatComplex;
+	/**
+	 * 調和平均を計算する
+	 * @returns 調和平均
+	 * @throws {TypeError} ベクトルが空の場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	harmonicMean(): BigFloatComplex;
+	/**
+	 * 二乗平均平方根 (RMS) を計算する
+	 * @returns RMS
+	 * @throws {TypeError} ベクトルが空の場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	rms(): BigFloatComplex;
 	/**
 	 * 他のベクトルとの内積を計算する
 	 * @param other - 対象のベクトル
@@ -5224,6 +5546,25 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 */
 	factorial(): this;
 	/**
+	 * 各要素に対して指数積分 Ei(x) を計算する
+	 * @returns Ei(x) 適用後のベクトル
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 */
+	Ei(): this;
+	/**
+	 * 各要素に対して対数積分 li(x) を計算する
+	 * @returns li(x) 適用後のベクトル
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} x <= 0 の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	li(): this;
+	/**
 	 * 最大値を返す
 	 * @returns 最大値
 	 * @throws {TypeError} ベクトルが空の場合
@@ -5274,6 +5615,70 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
 	 */
 	average(): BigFloat;
+	/**
+	 * 中央値を計算する
+	 * @returns 中央値
+	 * @throws {TypeError} ベクトルが空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throwsSuppressed {DivisionByZeroError}
+	 */
+	median(): BigFloat;
+	/**
+	 * 分散を計算する
+	 * @returns 分散
+	 * @throws {TypeError} ベクトルが空の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throwsSuppressed {DivisionByZeroError}
+	 */
+	variance(): BigFloat;
+	/**
+	 * 標準偏差を計算する
+	 * @returns 標準偏差
+	 * @throws {TypeError} ベクトルが空の場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	stddev(): BigFloat;
+	/**
+	 * 幾何平均を計算する
+	 * @returns 幾何平均
+	 * @throws {TypeError} ベクトルが空の場合
+	 * @throws {RangeError} 負の数の n 乗根を計算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	geometricMean(): BigFloat;
+	/**
+	 * 調和平均を計算する
+	 * @returns 調和平均
+	 * @throws {TypeError} ベクトルが空の場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	harmonicMean(): BigFloat;
+	/**
+	 * 二乗平均平方根 (RMS) を計算する
+	 * @returns RMS
+	 * @throws {TypeError} ベクトルが空の場合
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	rms(): BigFloat;
 	/**
 	 * 別のベクトルとの内積を計算する
 	 * @param other - 対象ベクトル
@@ -6515,6 +6920,37 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 */
 	factorial(): BigFloatComplex;
 	/**
+	 * 算術幾何平均 (Arithmetic-Geometric Mean) を計算する
+	 * @param other - 対象の数値
+	 * @returns 算術幾何平均
+	 * @throws {TypeError} 虚部が 0 でない場合
+	 * @throws {RangeError} 引数が負の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	agm(other: BigFloatComplexValue): BigFloatComplex;
+	/**
+	 * 指数積分 Ei(z) を計算する
+	 * @returns 指数積分 Ei(z)
+	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 */
+	Ei(): BigFloatComplex;
+	/**
+	 * 対数積分 li(z) を計算する
+	 * @returns 対数積分 li(z)
+	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} x <= 0 の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	li(): BigFloatComplex;
+	/**
 	 * 複素数リストの総和を計算する
 	 * @param values - 複素数のリスト
 	 * @param precision - 結果の精度
@@ -6551,6 +6987,47 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	static average(values: BigFloatComplexAggregateSource, precision?: PrecisionValue): BigFloatComplex;
+	/**
+	 * 複素数リストの幾何平均を計算する
+	 * @param values - 複素数のリスト
+	 * @param precision - 結果の精度
+	 * @returns 幾何平均
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 */
+	static geometricMean(values: BigFloatComplexAggregateSource, precision?: PrecisionValue): BigFloatComplex;
+	/**
+	 * 複素数リストの調和平均を計算する
+	 * @param values - 複素数のリスト
+	 * @param precision - 結果の精度
+	 * @returns 調和平均
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	static harmonicMean(values: BigFloatComplexAggregateSource, precision?: PrecisionValue): BigFloatComplex;
+	/**
+	 * 複素数リストの二乗平均平方根 (RMS) を計算する
+	 * @param values - 複素数のリスト
+	 * @param precision - 結果の精度
+	 * @returns RMS
+	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	static rms(values: BigFloatComplexAggregateSource, precision?: PrecisionValue): BigFloatComplex;
 	/**
 	 * 複素数 0 を取得する
 	 * @param precision - 精度
@@ -6663,6 +7140,8 @@ export declare class BigFloat {
 	private static _piCache;
 	/** eキャッシュ */
 	private static _eCache;
+	/** オイラー・マスケローニ定数キャッシュ */
+	private static _eulerGammaCache;
 	/** 対数キャッシュ */
 	private static _lnCache;
 	/** 5の累乗キャッシュ */
@@ -7983,6 +8462,22 @@ export declare class BigFloat {
 	 */
 	static tau(precision?: PrecisionValue): BigFloat;
 	/**
+	 * オイラーの定数 γ を取得する (内部用)
+	 * @param precision - 精度
+	 * @returns γ
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throwsSuppressed {RangeError}
+	 */
+	protected static _eulerGamma(precision: bigint): bigint;
+	/**
+	 * オイラーの定数 γ を計算する
+	 * @param precision - 精度
+	 * @returns γ
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 */
+	static eulerGamma(precision?: PrecisionValue): BigFloat;
+	/**
 	 * Math.abs() 相当
 	 * @param value - 対象値
 	 * @param precision - 結果精度
@@ -8452,6 +8947,41 @@ export declare class BigFloat {
 	 */
 	static stddev(...args: BigFloatAggregateArgs): BigFloat;
 	/**
+	 * 引数の幾何平均を返す
+	 * @param args - 数値のリスト
+	 * @returns 幾何平均
+	 * @throws {TypeError} 引数が空の場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	static geometricMean(...args: BigFloatAggregateArgs): BigFloat;
+	/**
+	 * 引数の調和平均を返す
+	 * @param args - 数値のリスト
+	 * @returns 調和平均
+	 * @throws {TypeError} 引数が空の場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	static harmonicMean(...args: BigFloatAggregateArgs): BigFloat;
+	/**
+	 * 引数の二乗平均平方根 (RMS) を返す
+	 * @param args - 数値のリスト
+	 * @returns RMS
+	 * @throws {TypeError} 引数が空の場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 */
+	static rms(...args: BigFloatAggregateArgs): BigFloat;
+	/**
 	 * ランダムな整数値を生成する (内部用)
 	 * @param precision - 精度
 	 * @returns ランダムな値
@@ -8602,6 +9132,15 @@ export declare class BigFloat {
 	 */
 	zeta(): BigFloat;
 	/**
+	 * 指数積分 Ei(x) を計算する (内部用)
+	 * @param val - 値 (scaled)
+	 * @param precision - 精度
+	 * @returns Ei(x) の値 (scaled)
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throwsSuppressed {RangeError}
+	 */
+	protected static _Ei(val: bigint, precision: bigint): bigint;
+	/**
 	 * 階乗を計算する (内部用)
 	 * @param n - 値
 	 * @returns 階乗
@@ -8626,6 +9165,36 @@ export declare class BigFloat {
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 */
 	factorial(): BigFloat;
+	/**
+	 * 算術幾何平均 (Arithmetic-Geometric Mean) を計算する
+	 * @param other - 対象の数値
+	 * @returns 算術幾何平均
+	 * @throws {RangeError} 引数が負の場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throwsSuppressed {DivisionByZeroError}
+	 */
+	agm(other: BigFloatInputValue): BigFloat;
+	/**
+	 * 指数積分 Ei(x) を計算する
+	 * @returns 指数積分 Ei(x)
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 */
+	Ei(): BigFloat;
+	/**
+	 * 対数積分 li(x) を計算する
+	 * @returns 対数積分 li(x)
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} x <= 0 の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 */
+	li(): BigFloat;
 	/**
 	 * 二項係数を計算する (内部用)
 	 * @param n - 全体数
@@ -8671,6 +9240,25 @@ export declare class BigFloat {
 	 * @param precision - 精度
 	 */
 	protected static _updateECache(value: bigint, precision: bigint): void;
+	/**
+	 * オイラー・マスケローニ定数キャッシュが存在するか確認する (内部用)
+	 * @param precision - 必要精度
+	 * @returns 存在する場合はtrue
+	 */
+	protected static _getCheckEulerGammaCache(precision: bigint): boolean;
+	/**
+	 * オイラー・マスケローニ定数キャッシュを取得する (内部用)
+	 * @param precision - 必要精度
+	 * @returns キャッシュされた値
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 */
+	protected static _getEulerGammaCache(precision: bigint): bigint;
+	/**
+	 * オイラー・マスケローニ定数キャッシュを更新する (内部用)
+	 * @param value - 値
+	 * @param precision - 精度
+	 */
+	protected static _updateEulerGammaCache(value: bigint, precision: bigint): void;
 	/**
 	 * 円周率の低精度キャッシュを取得する (内部用)
 	 * @param precision - 必要精度
