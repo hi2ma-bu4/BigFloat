@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.4.6
+ * BigFloat 1.4.7
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
