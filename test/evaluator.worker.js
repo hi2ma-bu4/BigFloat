@@ -1,3 +1,4 @@
+import { BigFloat } from "../dist/BigFloat.js";
 import { AstTeXPrinter, EvaluationContext, Evaluator, formatSerializedValue, parseExpression, serializeValue } from "./calculator-core.js";
 
 const printer = new AstTeXPrinter();
@@ -5,8 +6,15 @@ const printer = new AstTeXPrinter();
 self.addEventListener("message", (event) => {
 	const { requestId, expression, precision, settings, lastAnswer } = event.data;
 	try {
+		BigFloat.config.trigFuncsMaxSteps = BigInt(settings.trigFuncsMaxSteps);
+		BigFloat.config.lnMaxSteps = BigInt(settings.lnMaxSteps);
+
+		self.postMessage({ type: "status", requestId, status: "calculating" });
+
+		const calculationPrecision = precision + (settings.auxPrecision || 0);
+
 		const ast = parseExpression(expression);
-		const evaluator = new Evaluator(new EvaluationContext(precision, settings, lastAnswer));
+		const evaluator = new Evaluator(new EvaluationContext(calculationPrecision, settings, lastAnswer));
 		const value = evaluator.evaluate(ast);
 		const serialized = serializeValue(value, precision);
 		self.postMessage({

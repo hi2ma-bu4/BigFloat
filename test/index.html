@@ -23,12 +23,11 @@
 					<span>Precision</span>
 					<input id="precision-input" type="number" min="1" step="1" value="28">
 				</label>
-				<label class="compact-field">
-					<span>Ex Prec</span>
-					<input id="extra-precision-input" type="number" min="0" step="1" value="6">
-				</label>
 				<label class="compact-field wide">
-					<span>Rounding Mode</span>
+					<div class="compact-roundmode-labels">
+						<span>Rounding Mode</span>
+						<div id="worker-status" class="status-indicator" title="Idle"></div>
+					</div>
 					<select id="rounding-mode"></select>
 				</label>
 			</section>
@@ -38,7 +37,8 @@
 			<section class="display-card">
 				<div class="display-head">
 					<div class="display-actions">
-						<button id="btn-history-toggle" class="history-toggle" type="button" aria-expanded="false" aria-controls="history-lane">History</button>
+						<button id="btn-history-toggle" class="history-toggle" type="button" aria-expanded="false" aria-controls="history-lane">Hist</button>
+						<button id="btn-settings-toggle" class="action-button" type="button" aria-label="Settings">⚙</button>
 						<button id="btn-left" class="action-button" type="button">←</button>
 						<button id="btn-right" class="action-button" type="button">→</button>
 						<button id="btn-backspace" class="action-button" type="button">⌫</button>
@@ -107,6 +107,33 @@
 			<div class="lane-title">History</div>
 			<ul id="history-list" class="history-list"></ul>
 		</section>
+	</div>
+
+	<div id="settings-modal" class="modal-overlay" hidden>
+		<div class="modal-content">
+			<header class="modal-header">
+				<strong>Advanced Settings</strong>
+				<button id="btn-settings-close" class="close-button" type="button">&times;</button>
+			</header>
+			<div class="modal-body">
+				<label class="setting-item">
+					<span>Extra Precision (Library)</span>
+					<input id="extra-precision-input" type="number" min="0" step="1" value="6">
+				</label>
+				<label class="setting-item">
+					<span>Trig Funcs Max Steps</span>
+					<input id="trig-max-steps-input" type="number" min="1" step="1" value="10000">
+				</label>
+				<label class="setting-item">
+					<span>ln Max Steps</span>
+					<input id="ln-max-steps-input" type="number" min="1" step="1" value="50000">
+				</label>
+				<label class="setting-item">
+					<span>Auxiliary Precision (Calculator)</span>
+					<input id="aux-precision-input" type="number" min="0" step="1" value="20">
+				</label>
+			</div>
+		</div>
 	</div>
 </body>
 </html>

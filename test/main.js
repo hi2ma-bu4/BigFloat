@@ -377,36 +377,34 @@ class MathFormatter {
 	}
 }
 
-class PrecisionController {
-	constructor(precisionInput, extraInput, roundingSelect) {
-		this.precisionInput = precisionInput;
-		this.extraInput = extraInput;
-		this.roundingSelect = roundingSelect;
+class SettingsManager {
+	constructor(elements) {
+		this.elements = elements;
 		this.listeners = [];
 		for (const key of ROUNDING_MODE_OPTIONS) {
-			this.roundingSelect.add(new Option(key, key));
+			this.elements.roundingSelect.add(new Option(key, key));
 		}
-		this.roundingSelect.value = "HALF_UP";
+		this.elements.roundingSelect.value = "HALF_UP";
+
 		const notify = () => {
 			for (const listener of this.listeners) {
 				listener(this.getSettings());
 			}
 		};
-		this.precisionInput.addEventListener("change", notify);
-		this.extraInput.addEventListener("change", notify);
-		this.roundingSelect.addEventListener("change", notify);
-		notify();
-	}
 
-	getPrecision() {
-		return Math.max(1, Number(this.precisionInput.value || "28"));
+		[this.elements.precisionInput, this.elements.extraPrecisionInput, this.elements.roundingSelect, this.elements.trigMaxStepsInput, this.elements.lnMaxStepsInput, this.elements.auxPrecisionInput].forEach((el) => el.addEventListener("change", notify));
+
+		notify();
 	}
 
 	getSettings() {
 		return {
-			precision: this.getPrecision(),
-			extraPrecision: Math.max(0, Number(this.extraInput.value || "6")),
-			roundingMode: this.roundingSelect.value,
+			precision: Math.max(1, Number(this.elements.precisionInput.value || "28")),
+			extraPrecision: Math.max(0, Number(this.elements.extraPrecisionInput.value || "6")),
+			roundingMode: this.elements.roundingSelect.value,
+			trigFuncsMaxSteps: Math.max(1, Number(this.elements.trigMaxStepsInput.value || "10000")),
+			lnMaxSteps: Math.max(1, Number(this.elements.lnMaxStepsInput.value || "50000")),
+			auxPrecision: Math.max(0, Number(this.elements.auxPrecisionInput.value || "0")),
 		};
 	}
 
@@ -592,23 +590,33 @@ class EditorBuffer {
 }
 
 class EvaluationManager {
-	constructor(onResult) {
+	constructor(onResult, onStatusChange) {
 		this.onResult = onResult;
+		this.onStatusChange = onStatusChange;
 		this.latestRequestId = 0;
 		this.activeWorkers = new Map();
+		this.updateStatus();
 	}
 
 	evaluate(expression, settings, lastAnswer, commit = false) {
 		const requestId = ++this.latestRequestId;
+		this.onStatusChange("initializing");
 		const worker = new Worker(new URL("./evaluator.worker.js", import.meta.url), { type: "module" });
 		this.activeWorkers.set(requestId, worker);
 		this.trimWorkers();
 
 		worker.addEventListener("message", (event) => {
 			const payload = event.data;
+			if (payload.type === "status") {
+				if (payload.requestId === this.latestRequestId) {
+					this.onStatusChange(payload.status);
+				}
+				return;
+			}
 			worker.terminate();
 			this.activeWorkers.delete(payload.requestId);
 			this.onResult(payload, expression, payload.requestId === this.latestRequestId, commit);
+			this.updateStatus();
 		});
 
 		worker.postMessage({
@@ -618,6 +626,12 @@ class EvaluationManager {
 			settings,
 			lastAnswer,
 		});
+	}
+
+	updateStatus() {
+		if (this.activeWorkers.size === 0) {
+			this.onStatusChange("idle");
+		}
 	}
 
 	trimWorkers() {
@@ -701,12 +715,27 @@ class CalculatorApp {
 		this.currentHint = DEFAULT_HINT;
 		this.lastAnswer = null;
 		this.previewTimer = null;
-		this.precisionController = new PrecisionController(document.getElementById("precision-input"), document.getElementById("extra-precision-input"), document.getElementById("rounding-mode"));
+		this.workerStatus = document.getElementById("worker-status");
+		this.settingsModal = document.getElementById("settings-modal");
+		this.settingsManager = new SettingsManager({
+			precisionInput: document.getElementById("precision-input"),
+			extraPrecisionInput: document.getElementById("extra-precision-input"),
+			roundingSelect: document.getElementById("rounding-mode"),
+			trigMaxStepsInput: document.getElementById("trig-max-steps-input"),
+			lnMaxStepsInput: document.getElementById("ln-max-steps-input"),
+			auxPrecisionInput: document.getElementById("aux-precision-input"),
+		});
 		this.history = new HistoryPanel(document.querySelector(".history-lane"), document.getElementById("history-list"), document.getElementById("btn-history-toggle"), (expression) => {
 			this.editor.setValue(expression, false);
 			this.handleInput(false);
 		});
-		this.evaluator = new EvaluationManager((payload, expression, isLatest, commit) => this.handleWorkerResult(payload, expression, isLatest, commit));
+		this.evaluator = new EvaluationManager(
+			(payload, expression, isLatest, commit) => this.handleWorkerResult(payload, expression, isLatest, commit),
+			(status) => {
+				this.workerStatus.dataset.state = status;
+				this.workerStatus.title = status.charAt(0).toUpperCase() + status.slice(1);
+			},
+		);
 		this.bind();
 		this.updateFitty();
 	}
@@ -728,7 +757,32 @@ class CalculatorApp {
 		this.editor.textarea.addEventListener("scroll", () => {
 			this.syncGhostScroll();
 		});
-		this.precisionController.subscribe(() => this.handleInput(false));
+		this.settingsManager.subscribe(() => this.handleInput(false));
+
+		document.getElementById("btn-settings-toggle").addEventListener("click", () => {
+			this.settingsModal.hidden = false;
+			history.pushState({ modal: "settings" }, "");
+		});
+		document.getElementById("btn-settings-close").addEventListener("click", () => {
+			this.settingsModal.hidden = true;
+			if (history.state?.modal === "settings") {
+				history.back();
+			}
+		});
+		this.settingsModal.addEventListener("click", (event) => {
+			if (event.target === this.settingsModal) {
+				this.settingsModal.hidden = true;
+				if (history.state?.modal === "settings") {
+					history.back();
+				}
+			}
+		});
+		window.addEventListener("popstate", (event) => {
+			if (!event.state || event.state.modal !== "settings") {
+				this.settingsModal.hidden = true;
+			}
+		});
+
 		this.editor.textarea.addEventListener("keydown", (event) => {
 			if (event.key === "Enter" && !event.shiftKey) {
 				event.preventDefault();
@@ -1059,7 +1113,7 @@ class CalculatorApp {
 			return;
 		}
 		const run = () => {
-			this.evaluator.evaluate(expression, this.precisionController.getSettings(), this.lastAnswer, commit);
+			this.evaluator.evaluate(expression, this.settingsManager.getSettings(), this.lastAnswer, commit);
 		};
 		if (commit) {
 			run();
@@ -1094,7 +1148,7 @@ class CalculatorApp {
 			this.lastAnswer = payload.serialized;
 			this.history.push(expression, payload.text);
 		}
-		this.resultOutput.textContent = formatSerializedValue(payload.serialized, this.precisionController.getSettings().precision);
+		this.resultOutput.textContent = formatSerializedValue(payload.serialized, this.settingsManager.getSettings().precision);
 		this.formatter.render(payload.tex, this.expressionMath, false);
 	}
 }
