@@ -40,6 +40,8 @@ const UNARY_VALUE_FUNCTIONS = new Set([
 	"log1p",
 	"gamma",
 	"zeta",
+	"Ei",
+	"li",
 	// linear
 	"transpose",
 	// more
@@ -318,6 +320,14 @@ export class AstTeXPrinter {
 				return "i";
 			case "ans":
 				return "\\mathrm{Ans}";
+			case "eGamma":
+			case "eulerGamma":
+				return "\\gamma";
+			case "nan":
+				return "\\mathrm{NaN}";
+			case "inf":
+			case "infinity":
+				return "\\infty";
 			default:
 				return escapeLatex(name);
 		}
@@ -427,6 +437,10 @@ export class AstTeXPrinter {
 				return `\\Gamma\\left(${firstTex}\\right)`;
 			case "zeta":
 				return `\\zeta\\left(${firstTex}\\right)`;
+			case "Ei":
+				return `\\operatorname{Ei}\\left(${firstTex}\\right)`;
+			case "li":
+				return `\\operatorname{li}\\left(${firstTex}\\right)`;
 			case "complex":
 				return wrap(`${firstTex} + ${secondTex}i`, 9);
 			case "polar":
@@ -475,6 +489,12 @@ export class AstTeXPrinter {
 			case "colS":
 			case "columnSums":
 				return `\\operatorname{colS}\\left(${firstTex}\\right)`;
+			case "geometricMean":
+				return `\\operatorname{gMean}\\left(${node.args.map((argument) => this.print(argument, 0)).join(", ")}\\right)`;
+			case "harmonicMean":
+				return `\\operatorname{hMean}\\left(${node.args.map((argument) => this.print(argument, 0)).join(", ")}\\right)`;
+			case "rms":
+				return `\\operatorname{rms}\\left(${node.args.map((argument) => this.print(argument, 0)).join(", ")}\\right)`;
 			case "frobenius":
 				return `\\left\\lVert ${firstTex} \\right\\rVert_F`;
 			// sum
@@ -605,6 +625,14 @@ export class Evaluator {
 					throw new ReferenceError("ans is not available yet.");
 				}
 				return this.context.lastAnswer;
+			case "eGamma":
+			case "eulerGamma":
+				return BigFloat.eulerGamma(this.context.precision);
+			case "nan":
+				return BigFloat.nan(this.context.precision);
+			case "inf":
+			case "infinity":
+				return BigFloat.infinity(this.context.precision);
 			default:
 				throw new ReferenceError(`Unknown identifier: ${name}`);
 		}
@@ -701,11 +729,6 @@ export class Evaluator {
 				return BigFloat.parseFloat(String(this.expectScalar(args[0]).toString(10)), this.context.precision, args[1] ? this.toInteger(args[1]) : 10);
 			case "random":
 				return BigFloat.random(this.context.precision);
-			case "nan":
-				return BigFloat.nan(this.context.precision);
-			case "inf":
-			case "infinity":
-				return BigFloat.infinity(this.context.precision);
 			case "ninf":
 			case "negativeInfinity":
 				return BigFloat.negativeInfinity(this.context.precision);
@@ -874,6 +897,9 @@ export class Evaluator {
 			case "median":
 			case "variance":
 			case "stddev":
+			case "geometricMean":
+			case "harmonicMean":
+			case "rms":
 				return this.callAggregate(name, args);
 			// comparison and conversion
 			case "compare":

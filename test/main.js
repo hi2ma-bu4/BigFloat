@@ -51,6 +51,9 @@ const FUNCTION_GROUPS = [
 			{ insert: "log1p(", texLabel: "\\ln(1+x)", hint: "log1p(x)" },
 			{ insert: "gamma(", texLabel: "\\Gamma(x)", hint: "gamma(x)" },
 			{ insert: "zeta(", texLabel: "\\zeta(x)", hint: "zeta(x)" },
+			{ insert: "eulerGamma", texLabel: "\\gamma", hint: "eulerGamma" },
+			{ insert: "Ei(", texLabel: "\\operatorname{Ei}(x)", hint: "Ei(x)" },
+			{ insert: "li(", texLabel: "\\operatorname{li}(x)", hint: "li(x)" },
 		],
 	},
 	{
@@ -117,6 +120,9 @@ const FUNCTION_GROUPS = [
 			{ insert: "median(", texLabel: "\\operatorname{median}", hint: "median(x1, x2, ...)" },
 			{ insert: "variance(", texLabel: "\\operatorname{variance}", hint: "variance(x1, x2, ...)" },
 			{ insert: "stddev(", texLabel: "\\operatorname{stddev}", hint: "stddev(x1, x2, ...)" },
+			{ insert: "geometricMean(", texLabel: "\\operatorname{gMean}", hint: "geometricMean(x1, x2, ...)" },
+			{ insert: "harmonicMean(", texLabel: "\\operatorname{hMean}", hint: "harmonicMean(x1, x2, ...)" },
+			{ insert: "rms(", texLabel: "\\operatorname{rms}", hint: "rms(x1, x2, ...)" },
 		],
 	},
 	{
@@ -143,15 +149,15 @@ const FUNCTION_GROUPS = [
 			{ insert: "isReal(", texLabel: "\\Re?", hint: "isReal(z)" },
 			{ insert: "toFixed(", texLabel: "\\text{fixed}", hint: "toFixed(x, digits)" },
 			{ insert: "random(", texLabel: "\\operatorname{rand}", hint: "random()" },
-			{ insert: "nan(", texLabel: "\\mathrm{NaN}", hint: "nan()" },
-			{ insert: "infinity(", texLabel: "\\infty", hint: "infinity()" },
+			{ insert: "nan", texLabel: "\\mathrm{NaN}", hint: "nan" },
+			{ insert: "infinity", texLabel: "\\infty", hint: "infinity" },
 			{ insert: "range(", texLabel: "\\operatorname{range}", hint: "range(start, end, step)" },
 			{ insert: "tau", texLabel: "\\tau", hint: "tau" },
 		],
 	},
 ];
 
-const VARIADIC_FUNCTIONS = new Set(["sum", "product", "average", "max", "min", "median", "variance", "stddev", "hypot"]);
+const VARIADIC_FUNCTIONS = new Set(["sum", "product", "average", "max", "min", "median", "variance", "stddev", "hypot", "geometricMean", "harmonicMean", "rms"]);
 const FUNCTION_SIGNATURES = new Map(FUNCTION_GROUPS.flatMap((group) => group.items.filter((item) => item.insert.endsWith("(") && item.hint.includes("(")).map((item) => [item.insert.slice(0, -1), extractHintArguments(item.hint)])));
 
 function extractHintArguments(hint) {
