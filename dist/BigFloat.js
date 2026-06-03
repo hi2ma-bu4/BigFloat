@@ -5433,6 +5433,66 @@ var BigFloatComplex = class _BigFloatComplex {
   toExponential(digits = Number(this._precision)) {
     return this._requireRealPart("toExponential").toExponential(digits);
   }
+  // ====================================================================================================
+  // * 変換・認識系
+  // ====================================================================================================
+  /**
+   * 小数点表示を分数で表示する
+   * @param options - オプション
+   * @returns 分数表示 (文字列またはオブジェクト)
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   */
+  rationalize(options = {}) {
+    const real = this._real.rationalize(options);
+    const imag = this._imag.rationalize(options);
+    if (options.asObject) {
+      return { re: real, im: imag };
+    }
+    if (this._imag.isZero()) return real;
+    if (this._real.isZero()) {
+      if (imag === "1") return "i";
+      if (imag === "-1") return "-i";
+      return `${imag}i`;
+    }
+    const imagStr = imag;
+    if (imagStr.startsWith("-")) {
+      const absImag = imagStr.slice(1);
+      return `${real} - ${absImag === "1" ? "i" : `${absImag}i`}`;
+    }
+    return `${real} + ${imagStr === "1" ? "i" : `${imagStr}i`}`;
+  }
+  /**
+   * 値を定数やその組み合わせとして認識を試める
+   * @param options - オプション
+   * @returns 認識結果の文字列、または分数の表示
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   */
+  recognize(options = {}) {
+    const real = this._real.recognize(options);
+    const imag = this._imag.recognize(options);
+    if (options.asObject) {
+      return { re: real, im: imag };
+    }
+    if (this._imag.isZero()) return real;
+    if (this._real.isZero()) {
+      if (imag === "1") return "i";
+      if (imag === "-1") return "-i";
+      return `${imag}i`;
+    }
+    const imagStr = imag;
+    if (imagStr.startsWith("-")) {
+      const absImag = imagStr.slice(1);
+      return `${real} - ${absImag === "1" ? "i" : `(${absImag})i`}`;
+    }
+    return `${real} + ${imagStr === "1" ? "i" : `(${imagStr})i`}`;
+  }
   /**
    * 実部と虚部を順に反復するイテレータを取得する
    * @returns BigFloat のイテレータ
@@ -8332,6 +8392,33 @@ var BigFloat = class _BigFloat {
   // * 冪乗・ルート・スケーリング
   // ====================================================================================================
   /**
+   * 冪乗を計算する (整数専用、内部用)
+   * @param base - 底
+   * @param exp - 指数 (整数 / スケーリングなし)
+   * @returns 冪乗の結果
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   */
+  static _powScaled(base, exponent, scale) {
+    if (exponent === 0n) return scale;
+    if (base === 0n) return 0n;
+    if (exponent < 0n) {
+      const positivePow = this._powScaled(base, -exponent, scale);
+      if (positivePow === 0n) throw new DivisionByZeroError("Division by zero in power function");
+      return scale * scale / positivePow;
+    }
+    let exp = exponent;
+    let res = scale;
+    let b = base;
+    while (exp > 0n) {
+      if (exp & 1n) {
+        res = res * b / scale;
+      }
+      exp >>= 1n;
+      if (exp > 0n) b = b * b / scale;
+    }
+    return res;
+  }
+  /**
    * 冪乗を計算する (内部用)
    * @param base - 底
    * @param exponent - 指数
@@ -8351,17 +8438,7 @@ var BigFloat = class _BigFloat {
       return scale * scale / positivePow;
     }
     if (exponent % scale === 0n) {
-      let exp = exponent / scale;
-      let res = scale;
-      let b = base;
-      while (exp > 0n) {
-        if (exp & 1n) {
-          res = res * b / scale;
-        }
-        b = b * b / scale;
-        exp >>= 1n;
-      }
-      return res;
+      return this._powScaled(base, exponent / scale, scale);
     }
     const config = this.config;
     const maxSteps = config.lnMaxSteps;
@@ -8550,32 +8627,40 @@ var BigFloat = class _BigFloat {
    * @param precision - 精度
    * @returns n乗根
    * @throws {RangeError} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
+   * @throwsSuppressed {DivisionByZeroError}
    */
   static _nthRoot(v, n, precision) {
-    if (n <= 0n) {
-      throw new RangeError("n must be a positive integer");
-    }
+    if (n <= 0n) throw new RangeError("n must be a positive integer");
     if (v < 0n) {
-      if (n % 2n === 0n) {
-        throw new RangeError("Even root of negative number is not real");
-      }
+      if (n % 2n === 0n) throw new RangeError("Even root of negative number is not real");
       return -this._nthRoot(-v, n, precision);
     }
+    if (v === 0n) return 0n;
+    if (n === 1n) return v;
     const scale = this._getPow10(precision);
+    const vScaled = v * scale;
     let x = this._estimatePositiveRoot(v, n, precision * (n - 1n));
     if (x < scale) x = scale;
-    while (true) {
-      let xPow = x;
-      if (n === 1n) {
-        xPow = scale;
-      } else {
-        for (let j = 1n; j < n - 1n; j++) {
-          xPow = xPow * x / scale;
-        }
+    const history = [];
+    let iterations = 0;
+    const maxIterations = 256;
+    while (iterations++ < maxIterations) {
+      const xPow = this._powScaled(x, n - 1n, scale);
+      const xNext = ((n - 1n) * x + vScaled / xPow) / n;
+      if (xNext === x) {
+        return x;
       }
-      const numerator = (n - 1n) * x + v * scale / xPow;
-      const xNext = numerator / n;
-      if (xNext === x) break;
+      if (history.includes(xNext)) {
+        return xNext < x ? xNext : x;
+      }
+      const diff = xNext > x ? xNext - x : x - xNext;
+      if (diff <= 1n) {
+        return xNext < x ? xNext : x;
+      }
+      history.push(x);
+      if (history.length > 16) {
+        history.shift();
+      }
       x = xNext;
     }
     return x;
@@ -10963,7 +11048,7 @@ var BigFloat = class _BigFloat {
     const bNumbers = this._getBernoulliNumbers(order, precision);
     const b2n = bNumbers[order];
     const twoPi = 2n * this._pi(precision);
-    const power = this._pow(twoPi, exponent * scale, precision);
+    const power = this._powScaled(twoPi, exponent, scale);
     let result = b2n * power / scale / this._factorial(exponent);
     result /= 2n;
     if (halfOrder % 2 === 0) result = -result;
@@ -11302,6 +11387,383 @@ var BigFloat = class _BigFloat {
       raw = construct._factorialGamma(val, totalPr);
     }
     return this._makeResult(raw, this._precision, totalPr);
+  }
+  // ====================================================================================================
+  // * 変換・認識系
+  // ====================================================================================================
+  /**
+   * 小数点表示を分数で表示する
+   * @param options - オプション
+   * @returns 分数表示 (文字列またはオブジェクト)
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   */
+  rationalize(options = {}) {
+    if (!this._isFiniteState()) {
+      this._ensureSpecialValuesEnabled(this);
+      const label = this.constructor._specialStateLabel(this._specialState);
+      if (options.asObject) return { sign: this._signum(), integer: 0n, numerator: 0n, denominator: 0n };
+      return label;
+    }
+    if (this.isZero()) {
+      if (options.asObject) return { sign: 1, integer: 0n, numerator: 0n, denominator: 1n };
+      return "0";
+    }
+    const precision = options.precision !== void 0 && BigInt(options.precision) >= 0n ? BigInt(options.precision) : this._precision;
+    const value = this.clone().changePrecision(precision);
+    const { n: absN, d: denom } = value.abs()._toExactFraction();
+    const isNeg = this.isNegative();
+    if (denom === 0n) {
+      if (options.asObject) return { sign: isNeg ? -1 : 1, integer: 0n, numerator: 0n, denominator: 0n };
+      return this.constructor._specialStateLabel(3 /* NAN */);
+    }
+    const scale = this.constructor._getPow10(precision);
+    const twoScale = scale << 1n;
+    let ln = absN * twoScale - denom;
+    let ld = denom * twoScale;
+    let rn = absN * twoScale + denom;
+    let rd = denom * twoScale;
+    if (ln < 0n) ln = 0n;
+    const simplest = this.constructor._simplestFractionInInterval(ln, ld, rn, rd);
+    const sign = isNeg ? -1 : 1;
+    if (options.asObject) {
+      if (options.improper) {
+        return { sign, integer: 0n, numerator: simplest.n, denominator: simplest.d };
+      } else {
+        return { sign, integer: simplest.n / simplest.d, numerator: simplest.n % simplest.d, denominator: simplest.d };
+      }
+    }
+    const absInt = simplest.n / simplest.d;
+    const absNum = simplest.n % simplest.d;
+    const signStr = isNeg ? "-" : "";
+    if (options.improper || absInt === 0n || absNum === 0n) {
+      if (absNum === 0n) return `${signStr}${absInt}`;
+      if (options.improper) return `${signStr}${simplest.n}/${simplest.d}`;
+      return `${signStr}${absNum}/${simplest.d}`;
+    }
+    return `${signStr}${absInt} ${absNum}/${simplest.d}`;
+  }
+  /**
+   * 値を定数やその組み合わせとして認識を試める
+   * @param options - オプション
+   * @returns 認識結果の文字列、または分数の表示
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @remarks 非常に計算コストが重たいです。
+   */
+  recognize(options = {}) {
+    if (!this._isFiniteState()) {
+      return this.rationalize(options);
+    }
+    const useConstants = options.useConstants ?? true;
+    if (!useConstants) return this.rationalize(options);
+    const precision = options.precision !== void 0 && BigInt(options.precision) >= 0n ? BigInt(options.precision) : this._precision;
+    const construct = this.constructor;
+    let bestExpr = null;
+    let minComplexity = 1e5;
+    for (let d = 1n; d <= 10n; d++) {
+      const target = this.mul(new construct(d, this._precision + 10n));
+      const res = this._searchRecognize(target, construct._getRecognizableConstants(), 2, precision);
+      if (res) {
+        let expr = res.expression;
+        let comp = res.complexity + (d > 1n ? 2 : 0);
+        if (d > 1n) {
+          if (res.isTerm) {
+            expr = `${expr} / ${d}`;
+          } else {
+            expr = `(${expr}) / ${d}`;
+          }
+        }
+        if (comp < minComplexity) {
+          minComplexity = comp;
+          bestExpr = expr;
+        }
+        if (d === 1n && minComplexity <= 5) {
+          break;
+        }
+      }
+    }
+    if (bestExpr && minComplexity < 100) {
+      return bestExpr;
+    }
+    return this.rationalize(options);
+  }
+  /**
+   * 厳密な分数表現を取得する (内部用)
+   * @returns 分子と分母のオブジェクト
+   */
+  _toExactFraction() {
+    const construct = this.constructor;
+    if (this.mantissa === 0n) return { n: 0n, d: 1n };
+    const exp2 = this._exp2;
+    const exp5 = this._exp5;
+    const d2 = exp2 < 0n ? -exp2 : 0n;
+    const d5 = exp5 < 0n ? -exp5 : 0n;
+    let num = this.mantissa;
+    let den = 1n;
+    if (exp2 > 0n) num <<= exp2;
+    else if (exp2 < 0n) den <<= d2;
+    if (exp5 > 0n) num *= construct._getPow5(exp5);
+    else if (exp5 < 0n) den *= construct._getPow5(d5);
+    const common = _BigFloat._gcd(num, den);
+    return { n: num / common, d: den / common };
+  }
+  /**
+   * 指定した範囲 [L, R] に含まれる、最も分母の小さい分数を求める (内部用)
+   * @param n1 - 下限の分子
+   * @param d1 - 下限の分母
+   * @param n2 - 上限の分子
+   * @param d2 - 上限の分母
+   * @returns 分子と分母
+   */
+  static _simplestFractionInInterval(n1, d1, n2, d2) {
+    const k = (n1 + d1 - 1n) / d1;
+    if (k * d2 <= n2) {
+      return { n: k, d: 1n };
+    }
+    const a = n1 / d1;
+    const nextN1 = d2;
+    const nextD1 = n2 - a * d2;
+    const nextN2 = d1;
+    const nextD2 = n1 - a * d1;
+    if (nextD1 === 0n || nextD2 === 0n) return { n: a, d: 1n };
+    const res = this._simplestFractionInInterval(nextN1, nextD1, nextN2, nextD2);
+    return { n: a * res.n + res.d, d: res.n };
+  }
+  /**
+   * 認識対象の定数リストを取得する (内部用)
+   * @returns 定数リスト
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+   */
+  static _getRecognizableConstants() {
+    return [
+      { name: "PI", getValue: (p) => this.pi(p) },
+      { name: "E", getValue: (p) => this.e(p) },
+      { name: "TAU", getValue: (p) => this.tau(p) },
+      { name: "G", getValue: (p) => this.eulerGamma(p) },
+      { name: "LN2", getValue: (p) => new this(2, p).ln() },
+      { name: "LN10", getValue: (p) => new this(10, p).ln() }
+    ];
+  }
+  /**
+   * 分数化を試みる (内部用)
+   * @param precision - 要求精度
+   * @returns 分数情報、または失敗時は null
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   */
+  _tryRationalize(precision) {
+    const scale = this.constructor._getPow10(precision);
+    const twoScale = scale << 1n;
+    const isNeg = this.isNegative();
+    const { n: absN, d: denom } = this.abs()._toExactFraction();
+    if (denom === 0n) return null;
+    let ln = absN * twoScale - denom;
+    let ld = denom * twoScale;
+    let rn = absN * twoScale + denom;
+    let rd = denom * twoScale;
+    if (ln < 0n) ln = 0n;
+    const s = this.constructor._simplestFractionInInterval(ln, ld, rn, rd);
+    const comp = s.n.toString().length + s.d.toString().length;
+    const signStr = isNeg && s.n !== 0n ? "-" : "";
+    const nSigned = isNeg ? -s.n : s.n;
+    return { n: nSigned, d: s.d, str: s.d === 1n ? `${signStr}${s.n}` : `${signStr}${s.n}/${s.d}`, complexity: comp };
+  }
+  /**
+   * 定数の認識のための探索 (内部用)
+   * @param val - 対象の値
+   * @param constants - 定数リスト
+   * @param depth - 探索深さ
+   * @param precision - 要求精度
+   * @returns 認識結果 (式、複雑さ、実際の評価値、単一項かどうかのフラグ)
+   * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {TypeError} 複素数モードが無効な場合
+   * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+   * @throws {NumericalComputationError} 数値的に不安定な点の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throwsSuppressed {DivisionByZeroError}
+   */
+  _searchRecognize(val, constants, depth, precision) {
+    const construct = this.constructor;
+    const workPrec = precision + construct.config.extraPrecision;
+    const valWork = val.changePrecision(workPrec);
+    const valAbs = valWork.abs();
+    const isNeg = valWork.isNegative();
+    if (valAbs.isZero()) {
+      return { expression: "0", complexity: 1, value: construct.zero(workPrec), isTerm: true };
+    }
+    let best = null;
+    const updateBest = (expr, comp, evalVal, isTerm) => {
+      if (!best || comp < best.complexity) {
+        best = { expression: expr, complexity: comp, value: evalVal, isTerm };
+      }
+    };
+    const addCandidate = (expr, comp, evalValAbs, isTerm) => {
+      const intStr = valAbs.trunc().toString();
+      const penalty = intStr === "0" ? 0n : BigInt(intStr.replace("-", "").length);
+      const threshold = precision > penalty + 2n ? precision - penalty : precision / 2n;
+      if (valAbs.matchingPrecision(evalValAbs) >= threshold) {
+        let finalExpr = expr;
+        let finalIsTerm = isTerm;
+        const finalVal = isNeg ? evalValAbs.neg() : evalValAbs;
+        if (isNeg) {
+          if (isTerm) {
+            finalExpr = `-${expr}`;
+            finalIsTerm = true;
+          } else {
+            finalExpr = `-(${expr})`;
+            finalIsTerm = true;
+          }
+        }
+        updateBest(finalExpr, comp, finalVal, finalIsTerm);
+      }
+    };
+    const rat = valAbs._tryRationalize(precision);
+    if (rat && rat.complexity < 10) {
+      const ratVal = new construct(rat.n, workPrec).div(new construct(rat.d, workPrec));
+      addCandidate(rat.str, rat.complexity, ratVal.abs(), true);
+    }
+    if (depth <= 0) {
+      return best;
+    }
+    const intPart = valAbs.trunc();
+    if (!intPart.isZero()) {
+      const remainder = valAbs.sub(intPart);
+      if (!remainder.isZero()) {
+        const remRat = remainder._tryRationalize(precision);
+        if (remRat && remRat.complexity < 10) {
+          const ratVal = new construct(remRat.n, workPrec).div(new construct(remRat.d, workPrec));
+          const expr = `${intPart.toString()} + ${remRat.str}`;
+          addCandidate(expr, intPart.toString().length + remRat.complexity + 2, intPart.add(ratVal).abs(), false);
+        }
+        const resRem = this._searchRecognize(remainder, constants, depth - 1, precision);
+        if (resRem) {
+          const checkVal = intPart.add(resRem.value);
+          let expr;
+          if (resRem.expression.startsWith("-")) {
+            expr = `${intPart.toString()} - ${resRem.expression.slice(1)}`;
+          } else {
+            expr = `${resRem.expression} + ${intPart.toString()}`;
+          }
+          addCandidate(expr, intPart.toString().length + resRem.complexity + 2, checkVal.abs(), false);
+        }
+      }
+    }
+    for (let p = 2n; p <= 10n; p++) {
+      const rootVal = valAbs.nthRoot(p);
+      const resRoot = this._searchRecognize(rootVal, constants, depth - 1, precision);
+      if (resRoot && resRoot.expression !== "0") {
+        const checkVal = resRoot.value.pow(p);
+        const expr = resRoot.isTerm ? `${resRoot.expression}^${p}` : `(${resRoot.expression})^${p}`;
+        addCandidate(expr, resRoot.complexity + 5 + Number(p), checkVal.abs(), true);
+      }
+    }
+    for (const C_info of constants) {
+      const C = C_info.getValue(workPrec);
+      const name = C_info.name;
+      const threshold = precision > 5n ? precision - 3n : precision;
+      if (valAbs.matchingPrecision(C) >= threshold) {
+        addCandidate(name, 5, C, true);
+        return best;
+      }
+      const vDivC = valAbs.div(C);
+      const ratM = vDivC._tryRationalize(precision);
+      if (ratM && ratM.complexity < 10) {
+        const ratVal = new construct(ratM.n, workPrec).div(new construct(ratM.d, workPrec));
+        const checkVal = C.mul(ratVal);
+        let expr;
+        if (ratM.str === "1") {
+          expr = name;
+        } else if (ratM.str === "-1") {
+          expr = `-${name}`;
+        } else if (ratM.n === 1n && ratM.d !== 1n) {
+          expr = `${name} / ${ratM.d}`;
+        } else if (ratM.n === -1n && ratM.d !== 1n) {
+          expr = `-${name} / ${ratM.d}`;
+        } else {
+          expr = `${ratM.str} * ${name}`;
+        }
+        addCandidate(expr, ratM.complexity + 5, checkVal.abs(), true);
+      }
+      const vSubC = valAbs.sub(C);
+      const ratSub = vSubC._tryRationalize(precision);
+      if (ratSub && ratSub.complexity < 10 && ratSub.n !== 0n) {
+        const ratVal = new construct(ratSub.n, workPrec).div(new construct(ratSub.d, workPrec));
+        const checkVal = C.add(ratVal);
+        let expr;
+        if (ratSub.str.startsWith("-")) {
+          expr = `${name} - ${ratSub.str.slice(1)}`;
+        } else {
+          expr = `${name} + ${ratSub.str}`;
+        }
+        addCandidate(expr, ratSub.complexity + 5, checkVal.abs(), false);
+      }
+      const vAddC = valAbs.add(C);
+      const ratAdd = vAddC._tryRationalize(precision);
+      if (ratAdd && ratAdd.complexity < 10 && ratAdd.n !== 0n) {
+        const ratVal = new construct(ratAdd.n, workPrec).div(new construct(ratAdd.d, workPrec));
+        const checkVal = ratVal.sub(C);
+        let expr = `${ratAdd.str} - ${name}`;
+        addCandidate(expr, ratAdd.complexity + 5, checkVal.abs(), false);
+      }
+      const vDivC_depth = valAbs.div(C);
+      const resDiv = this._searchRecognize(vDivC_depth, constants, depth - 1, precision);
+      if (resDiv && resDiv.expression !== "0") {
+        const checkVal = resDiv.value.mul(C);
+        let expr;
+        if (resDiv.isTerm) {
+          if (resDiv.expression === "1") {
+            expr = name;
+          } else if (resDiv.expression === "-1") {
+            expr = `-${name}`;
+          } else if (resDiv.expression === name) {
+            expr = `${name}^2`;
+          } else if (/^1\/([0-9]+)$/.test(resDiv.expression)) {
+            expr = `${name} / ${resDiv.expression.slice(2)}`;
+          } else if (/^-1\/([0-9]+)$/.test(resDiv.expression)) {
+            expr = `-${name} / ${resDiv.expression.slice(3)}`;
+          } else {
+            expr = `${resDiv.expression} * ${name}`;
+          }
+        } else {
+          expr = `(${resDiv.expression}) * ${name}`;
+        }
+        addCandidate(expr, resDiv.complexity + 10, checkVal.abs(), true);
+      }
+      const cDivV = C.div(valAbs);
+      const resCDivV = this._searchRecognize(cDivV, constants, depth - 1, precision);
+      if (resCDivV && resCDivV.expression !== "0") {
+        const checkVal = C.div(resCDivV.value);
+        let expr = resCDivV.isTerm ? `${name} / ${resCDivV.expression}` : `${name} / (${resCDivV.expression})`;
+        addCandidate(expr, resCDivV.complexity + 10, checkVal.abs(), true);
+      }
+      const vSubC_depth = valAbs.sub(C);
+      const resSub = this._searchRecognize(vSubC_depth, constants, depth - 1, precision);
+      if (resSub) {
+        const checkVal = C.add(resSub.value);
+        let expr = resSub.expression.startsWith("-") ? `${name} - ${resSub.expression.slice(1)}` : `${name} + ${resSub.expression}`;
+        addCandidate(expr, resSub.complexity + 10, checkVal.abs(), false);
+      }
+      const cSubV_depth = C.sub(valAbs);
+      const resSub2 = this._searchRecognize(cSubV_depth, constants, depth - 1, precision);
+      if (resSub2) {
+        const checkVal = C.sub(resSub2.value);
+        let expr = resSub2.isTerm ? `${name} - ${resSub2.expression}` : `${name} - (${resSub2.expression})`;
+        addCandidate(expr, resSub2.complexity + 10, checkVal.abs(), false);
+      }
+    }
+    return best;
   }
   /**
    * 算術幾何平均 (Arithmetic-Geometric Mean) を計算する

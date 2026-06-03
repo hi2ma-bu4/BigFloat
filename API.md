@@ -38,6 +38,9 @@
 - [`BigFloatComplexMatrixLike`](#bigfloatcomplexmatrixlike)
 - [`BigFloatAnyMatrix`](#bigfloatanymatrix)
 - [`BigFloatAnyMatrixLike`](#bigfloatanymatrixlike)
+- [`FractionResult`](#fractionresult)
+- [`RationalizeOptions`](#rationalizeoptions)
+- [`RecognizeOptions`](#recognizeoptions)
 
 <a id="bigfloat"></a>
 
@@ -2815,6 +2818,50 @@ factorial(): BigFloat
 
 **Throws**: ゼロ除算が発生した場合
 
+#### `rationalize`
+
+```ts
+rationalize(options?: { asObject?: boolean; improper?: boolean; precision?: number | bigint }): string | { sign: number; integer: bigint; numerator: bigint; denominator: bigint }
+```
+
+小数点表示を分数で表示する
+
+**Parameters**
+- `options`: オプション
+
+**Returns**: 分数表示 (文字列またはオブジェクト)
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+#### `recognize`
+
+```ts
+recognize(options?: { useConstants?: boolean; asObject?: boolean; improper?: boolean; precision?: number | bigint }): string | { sign: number; integer: bigint; numerator: bigint; denominator: bigint }
+```
+
+値を定数やその組み合わせとして認識を試める
+
+**Parameters**
+- `options`: オプション
+
+**Returns**: 認識結果の文字列、または分数の表示
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 複素数モードが無効な場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+**Throws**: 数値的に不安定な点の場合
+
 #### `agm`
 
 ```ts
@@ -3992,6 +4039,50 @@ toExponential(digits?: number): string
 **Throws**: 特殊値が無効で対象に特殊値が含まれる場合
 
 **Throws**: 基数が2から36の範囲外の場合
+
+#### `rationalize`
+
+```ts
+rationalize(options?: { asObject?: boolean; improper?: boolean; precision?: number | bigint }): string | { re: string | FractionResult; im: string | FractionResult }
+```
+
+小数点表示を分数で表示する
+
+**Parameters**
+- `options`: オプション
+
+**Returns**: 分数表示 (文字列またはオブジェクト)
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+#### `recognize`
+
+```ts
+recognize(options?: { useConstants?: boolean; asObject?: boolean; improper?: boolean; precision?: number | bigint }): string | { re: string | FractionResult; im: string | FractionResult }
+```
+
+値を定数やその組み合わせとして認識を試める
+
+**Parameters**
+- `options`: オプション
+
+**Returns**: 認識結果の文字列、または分数の表示
+
+**Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: 数値的に不安定な点の場合
+
+**Throws**: 文字列が複素数表現として無効な場合
+
+**Throws**: キャッシュが存在しない場合
+
+**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+
+**Throws**: 精度の不一致が許容されていない場合
+
+**Throws**: 複素数モードが無効な場合
 
 #### `[Symbol.iterator]`
 
@@ -15935,4 +16026,34 @@ BigFloatAnyMatrix に変換可能な型
 
 ```ts
 type BigFloatAnyMatrixLike = BigFloatComplexMatrix | BigFloatMatrix | Iterable<BigFloatVectorLike> | Iterable<BigFloatComplexVectorLike>
+```
+
+<a id="fractionresult"></a>
+
+## `FractionResult`
+
+分数の結果を表すオブジェクト
+
+```ts
+interface FractionResult { sign: number; integer: bigint; numerator: bigint; denominator: bigint }
+```
+
+<a id="rationalizeoptions"></a>
+
+## `RationalizeOptions`
+
+rationalize 関数のオプション
+
+```ts
+interface RationalizeOptions { asObject?: boolean; improper?: boolean; precision?: number | bigint }
+```
+
+<a id="recognizeoptions"></a>
+
+## `RecognizeOptions`
+
+recognize 関数のオプション
+
+```ts
+interface RecognizeOptions { useConstants?: boolean; asObject?: boolean; improper?: boolean; precision?: number | bigint }
 ```

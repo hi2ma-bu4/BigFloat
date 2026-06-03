@@ -2522,6 +2522,31 @@ export type BigFloatComplexMatrixLike = BigFloatComplexMatrix | Iterable<BigFloa
 export type BigFloatAnyMatrix = BigFloatMatrix | BigFloatComplexMatrix;
 /** BigFloatAnyMatrix に変換可能な型 */
 export type BigFloatAnyMatrixLike = BigFloatMatrixLike | BigFloatComplexMatrixLike;
+/** 分数の結果を表すオブジェクト */
+export interface FractionResult {
+	/** 符号 (1 または -1) */
+	sign: number;
+	/** 整数部分 (帯分数の場合) */
+	integer: bigint;
+	/** 分子 */
+	numerator: bigint;
+	/** 分母 */
+	denominator: bigint;
+}
+/** rationalize 関数のオプション */
+export interface RationalizeOptions {
+	/** オブジェクト形式で返すかどうか */
+	asObject?: boolean;
+	/** 仮分数として返すかどうか (デフォルトは帯分数) */
+	improper?: boolean;
+	/** 計算精度 (負数の場合は現在の設定値を使用) */
+	precision?: PrecisionValue;
+}
+/** recognize 関数のオプション */
+export interface RecognizeOptions extends RationalizeOptions {
+	/** 定数の認識を試みるかどうか */
+	useConstants?: boolean;
+}
 export type BigFloatIterator = Iterator<BigFloatLike, void, undefined>;
 export type BigFloatStreamFactory = () => BigFloatIterator;
 export type BigFloatStreamStageSignal = BigFloatLike | typeof BIGFLOAT_STREAM_SKIP;
@@ -6326,6 +6351,33 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 */
 	toExponential(digits?: number): string;
 	/**
+	 * 小数点表示を分数で表示する
+	 * @param options - オプション
+	 * @returns 分数表示 (文字列またはオブジェクト)
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 */
+	rationalize(options?: RationalizeOptions): string | {
+		re: string | FractionResult;
+		im: string | FractionResult;
+	};
+	/**
+	 * 値を定数やその組み合わせとして認識を試める
+	 * @param options - オプション
+	 * @returns 認識結果の文字列、または分数の表示
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 */
+	recognize(options?: RecognizeOptions): string | {
+		re: string | FractionResult;
+		im: string | FractionResult;
+	};
+	/**
 	 * 実部と虚部を順に反復するイテレータを取得する
 	 * @returns BigFloat のイテレータ
 	 */
@@ -7911,6 +7963,14 @@ export declare class BigFloat {
 	 */
 	clz32(): BigFloat;
 	/**
+	 * 冪乗を計算する (整数専用、内部用)
+	 * @param base - 底
+	 * @param exp - 指数 (整数 / スケーリングなし)
+	 * @returns 冪乗の結果
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 */
+	protected static _powScaled(base: bigint, exponent: bigint, scale: bigint): bigint;
+	/**
 	 * 冪乗を計算する (内部用)
 	 * @param base - 底
 	 * @param exponent - 指数
@@ -7974,6 +8034,7 @@ export declare class BigFloat {
 	 * @param precision - 精度
 	 * @returns n乗根
 	 * @throws {RangeError} nが正の整数でない場合、または負の数の偶数乗根を計算しようとした場合
+	 * @throwsSuppressed {DivisionByZeroError}
 	 */
 	protected static _nthRoot(v: bigint, n: bigint, precision: bigint): bigint;
 	/**
@@ -9165,6 +9226,99 @@ export declare class BigFloat {
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 */
 	factorial(): BigFloat;
+	/**
+	 * 小数点表示を分数で表示する
+	 * @param options - オプション
+	 * @returns 分数表示 (文字列またはオブジェクト)
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 */
+	rationalize(options?: RationalizeOptions): string | FractionResult;
+	/**
+	 * 値を定数やその組み合わせとして認識を試める
+	 * @param options - オプション
+	 * @returns 認識結果の文字列、または分数の表示
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @remarks 非常に計算コストが重たいです。
+	 */
+	recognize(options?: RecognizeOptions): string | FractionResult;
+	/**
+	 * 厳密な分数表現を取得する (内部用)
+	 * @returns 分子と分母のオブジェクト
+	 */
+	protected _toExactFraction(): {
+		n: bigint;
+		d: bigint;
+	};
+	/**
+	 * 指定した範囲 [L, R] に含まれる、最も分母の小さい分数を求める (内部用)
+	 * @param n1 - 下限の分子
+	 * @param d1 - 下限の分母
+	 * @param n2 - 上限の分子
+	 * @param d2 - 上限の分母
+	 * @returns 分子と分母
+	 */
+	protected static _simplestFractionInInterval(n1: bigint, d1: bigint, n2: bigint, d2: bigint): {
+		n: bigint;
+		d: bigint;
+	};
+	/**
+	 * 認識対象の定数リストを取得する (内部用)
+	 * @returns 定数リスト
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {RangeError} 特殊値が無効な設定で値が 0 以下の場合
+	 */
+	protected static _getRecognizableConstants(): {
+		name: string;
+		getValue: (p: bigint) => BigFloat;
+	}[];
+	/**
+	 * 分数化を試みる (内部用)
+	 * @param precision - 要求精度
+	 * @returns 分数情報、または失敗時は null
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 */
+	protected _tryRationalize(precision: bigint): {
+		n: bigint;
+		d: bigint;
+		str: string;
+		complexity: number;
+	} | null;
+	/**
+	 * 定数の認識のための探索 (内部用)
+	 * @param val - 対象の値
+	 * @param constants - 定数リスト
+	 * @param depth - 探索深さ
+	 * @param precision - 要求精度
+	 * @returns 認識結果 (式、複雑さ、実際の評価値、単一項かどうかのフラグ)
+	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {TypeError} 複素数モードが無効な場合
+	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
+	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throwsSuppressed {DivisionByZeroError}
+	 */
+	protected _searchRecognize(val: BigFloat, constants: {
+		name: string;
+		getValue: (p: bigint) => BigFloat;
+	}[], depth: number, precision: bigint): {
+		expression: string;
+		complexity: number;
+		value: BigFloat;
+		isTerm: boolean;
+	} | null;
 	/**
 	 * 算術幾何平均 (Arithmetic-Geometric Mean) を計算する
 	 * @param other - 対象の数値

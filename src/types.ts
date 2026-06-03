@@ -93,3 +93,31 @@ export type BigFloatAnyMatrix = BigFloatMatrix | BigFloatComplexMatrix;
 
 /** BigFloatAnyMatrix に変換可能な型 */
 export type BigFloatAnyMatrixLike = BigFloatMatrixLike | BigFloatComplexMatrixLike;
+
+/** 分数の結果を表すオブジェクト */
+export interface FractionResult {
+	/** 符号 (1 または -1) */
+	sign: number;
+	/** 整数部分 (帯分数の場合) */
+	integer: bigint;
+	/** 分子 */
+	numerator: bigint;
+	/** 分母 */
+	denominator: bigint;
+}
+
+/** rationalize 関数のオプション */
+export interface RationalizeOptions {
+	/** オブジェクト形式で返すかどうか */
+	asObject?: boolean;
+	/** 仮分数として返すかどうか (デフォルトは帯分数) */
+	improper?: boolean;
+	/** 計算精度 (負数の場合は現在の設定値を使用) */
+	precision?: PrecisionValue;
+}
+
+/** recognize 関数のオプション */
+export interface RecognizeOptions extends RationalizeOptions {
+	/** 定数の認識を試みるかどうか */
+	useConstants?: boolean;
+}
