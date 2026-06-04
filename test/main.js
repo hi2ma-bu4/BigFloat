@@ -603,12 +603,14 @@ class EvaluationManager {
 		this.onStatusChange = onStatusChange;
 		this.latestRequestId = 0;
 		this.activeWorkers = new Map();
+		this.requestStartTimes = new Map();
 		this.updateStatus();
 	}
 
 	evaluate(expression, settings, lastAnswer, displayMode, commit = false) {
 		const requestId = ++this.latestRequestId;
-		this.onStatusChange("initializing");
+		this.requestStartTimes.set(requestId, performance.now());
+		this.onStatusChange("initializing", requestId);
 		const worker = new Worker(new URL("./evaluator.worker.js", import.meta.url), { type: "module" });
 		this.activeWorkers.set(requestId, worker);
 		this.trimWorkers();
@@ -617,11 +619,15 @@ class EvaluationManager {
 			const payload = event.data;
 			if (payload.type === "status") {
 				if (payload.requestId === this.latestRequestId) {
-					this.onStatusChange(payload.status);
+					this.onStatusChange(payload.status, payload.requestId);
 				}
 				return;
 			}
 			worker.terminate();
+			const endTime = performance.now();
+			payload.duration = endTime - (this.requestStartTimes.get(payload.requestId) ?? endTime);
+			this.requestStartTimes.delete(payload.requestId);
+
 			this.activeWorkers.delete(payload.requestId);
 			this.onResult(payload, expression, payload.requestId === this.latestRequestId, commit);
 			this.updateStatus();
@@ -727,6 +733,8 @@ class CalculatorApp {
 		this.lastAnswer = null;
 		this.previewTimer = null;
 		this.workerStatus = document.getElementById("worker-status");
+		this.executionTimeDisplay = document.getElementById("execution-time");
+		this.timerInterval = null;
 		this.settingsModal = document.getElementById("settings-modal");
 		this.settingsManager = new SettingsManager({
 			precisionInput: document.getElementById("precision-input"),
@@ -742,9 +750,15 @@ class CalculatorApp {
 		});
 		this.evaluator = new EvaluationManager(
 			(payload, expression, isLatest, commit) => this.handleWorkerResult(payload, expression, isLatest, commit),
-			(status) => {
+			(status, requestId) => {
 				this.workerStatus.dataset.state = status;
 				this.workerStatus.title = status.charAt(0).toUpperCase() + status.slice(1);
+				if (status === "idle") {
+					return;
+				}
+				if (requestId === this.evaluator?.latestRequestId) {
+					this.handleStatusChange(status, requestId);
+				}
 			},
 		);
 		this.bind();
@@ -904,6 +918,11 @@ class CalculatorApp {
 			this.previewExpression();
 			this.evaluator.cancelAll();
 			this.resetKeypad();
+			if (this.timerInterval) {
+				clearInterval(this.timerInterval);
+				this.timerInterval = null;
+			}
+			this.executionTimeDisplay.textContent = "";
 		});
 		document.getElementById("btn-backspace").addEventListener("click", () => {
 			this.editor.backspace(false);
@@ -1169,6 +1188,11 @@ class CalculatorApp {
 		if (!isLatest) {
 			return;
 		}
+		if (this.timerInterval) {
+			clearInterval(this.timerInterval);
+			this.timerInterval = null;
+		}
+		this.executionTimeDisplay.textContent = this.formatDuration(payload.duration, true);
 		if (!payload.ok) {
 			this.resultOutput.textContent = `${payload.errorName}: ${payload.errorMessage}`;
 			return;
@@ -1179,6 +1203,41 @@ class CalculatorApp {
 		}
 		this.resultOutput.textContent = payload.text;
 		this.formatter.render(payload.tex, this.expressionMath, false);
+	}
+
+	handleStatusChange(status, requestId) {
+		if (status === "initializing") {
+			if (this.timerInterval) {
+				clearInterval(this.timerInterval);
+				this.timerInterval = null;
+			}
+			this.executionTimeDisplay.textContent = "0s";
+			const startTime = this.evaluator.requestStartTimes.get(requestId);
+			this.timerInterval = setInterval(() => {
+				const elapsed = performance.now() - startTime;
+				if (elapsed >= 1000) {
+					this.executionTimeDisplay.textContent = this.formatDuration(elapsed, false);
+				}
+			}, 1000);
+		}
+	}
+
+	formatDuration(ms, isFinal) {
+		if (ms < 1000 && isFinal) {
+			return `${Math.floor(ms)}ms`;
+		}
+		const totalSeconds = ms / 1000;
+		if (totalSeconds < 60) {
+			return isFinal ? `${totalSeconds.toFixed(3)}s` : `${Math.floor(totalSeconds)}s`;
+		}
+		const totalMinutes = Math.floor(totalSeconds / 60);
+		const seconds = Math.floor(totalSeconds % 60);
+		if (totalMinutes < 60) {
+			return `${totalMinutes.toString()}m${seconds.toString()}s`;
+		}
+		const totalHours = Math.floor(totalMinutes / 60);
+		const minutes = totalMinutes % 60;
+		return `${totalHours.toString()}h${minutes.toString()}m${seconds.toString()}s`;
 	}
 }
 
