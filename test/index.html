@@ -23,28 +23,22 @@
 					<span>Precision</span>
 					<input id="precision-input" type="number" min="1" step="1" value="28">
 				</label>
-				<label class="compact-field wide">
-					<div class="compact-roundmode-labels">
-						<span>Rounding Mode</span>
-						<div id="worker-status" class="status-indicator" title="Idle"></div>
-					</div>
+				<label class="compact-field">
+					<span>Rounding Mode</span>
 					<select id="rounding-mode"></select>
 				</label>
+				<div class="compact-field">
+					<div class="compact-roundmode-labels">
+						<span>History</span>
+						<div id="worker-status" class="status-indicator" title="Idle"></div>
+					</div>
+					<button id="btn-history-toggle" class="history-toggle" type="button" aria-expanded="false" aria-controls="history-lane">Hist</button>
+				</div>
 			</section>
 		</header>
 
 		<div class="workspace">
 			<section class="display-card">
-				<div class="display-head">
-					<div class="display-actions">
-						<button id="btn-history-toggle" class="history-toggle" type="button" aria-expanded="false" aria-controls="history-lane">Hist</button>
-						<button id="btn-settings-toggle" class="action-button" type="button" aria-label="Settings">⚙</button>
-						<button id="btn-left" class="action-button" type="button">←</button>
-						<button id="btn-right" class="action-button" type="button">→</button>
-						<button id="btn-backspace" class="action-button" type="button">⌫</button>
-						<button id="btn-clear" class="action-button accent" type="button">AC</button>
-					</div>
-				</div>
 				<div class="editor-box">
 					<textarea id="expression-input" class="expression-input" rows="2" spellcheck="false" aria-label="expression"></textarea>
 					<div id="expression-ghost" class="expression-ghost" aria-hidden="true"></div>
@@ -59,6 +53,13 @@
 
 			<section class="keypad-panel">
 				<div id="keypad-grid" class="keypad-grid">
+					<button id="btn-settings-toggle" class="key tool" type="button"><span class="fit-wrapper"><span class="fit">⚙</span></span></button>
+					<button id="btn-mode-toggle" class="key mode-toggle" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="S\Leftrightarrow D"></span></span></button>
+					<button id="btn-left" class="key nav" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\leftarrow"></span></span></button>
+					<button id="btn-right" class="key nav" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\rightarrow"></span></span></button>
+					<button id="btn-backspace" class="key function tool" type="button"><span class="fit-wrapper"><span class="fit">⌫</span></span></button>
+					<button id="btn-clear" class="key function accent" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\text{AC}"></span></span></button>
+
 					<button class="key function ex" data-group-id="trig" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\sin"></span></span><span class="ex-icon"></span></button>
 					<button class="key function ex" data-group-id="power" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\sqrt{x}"></span></span><span class="ex-icon"></span></button>
 					<button class="key function ex" data-group-id="logs" type="button"><span class="fit-wrapper"><span class="fit" data-tex-label="\log"></span></span><span class="ex-icon"></span></button>

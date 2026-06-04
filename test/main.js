@@ -1,5 +1,5 @@
 import { BigFloat, bigFloat, BigFloatComplex, bigFloatComplex, BigFloatComplexMatrix, BigFloatComplexVector, BigFloatMatrix, BigFloatStream, BigFloatVector, RoundingMode, SpecialValueState } from "../dist/BigFloat.js";
-import { AstTeXPrinter, escapeLatex, formatSerializedValue, parseExpression, ROUNDING_MODE_OPTIONS } from "./calculator-core.js";
+import { AstTeXPrinter, escapeLatex, parseExpression, ROUNDING_MODE_OPTIONS } from "./calculator-core.js";
 
 const DEFAULT_HINT = "sin(x)";
 
@@ -159,6 +159,14 @@ const FUNCTION_GROUPS = [
 
 const VARIADIC_FUNCTIONS = new Set(["sum", "product", "average", "max", "min", "median", "variance", "stddev", "hypot", "geometricMean", "harmonicMean", "rms"]);
 const FUNCTION_SIGNATURES = new Map(FUNCTION_GROUPS.flatMap((group) => group.items.filter((item) => item.insert.endsWith("(") && item.hint.includes("(")).map((item) => [item.insert.slice(0, -1), extractHintArguments(item.hint)])));
+
+const DISPLAY_MODES = [
+	{ id: "decimal", label: "S\\Leftrightarrow D" },
+	{ id: "rationalize-improper", label: "a/b" },
+	{ id: "rationalize-mixed", label: "d\\ a/b" },
+	{ id: "recognize-improper", label: "\\text{expr}" },
+	{ id: "recognize-mixed", label: "\\text{m\\ expr}" },
+];
 
 function extractHintArguments(hint) {
 	const start = hint.indexOf("(");
@@ -598,7 +606,7 @@ class EvaluationManager {
 		this.updateStatus();
 	}
 
-	evaluate(expression, settings, lastAnswer, commit = false) {
+	evaluate(expression, settings, lastAnswer, displayMode, commit = false) {
 		const requestId = ++this.latestRequestId;
 		this.onStatusChange("initializing");
 		const worker = new Worker(new URL("./evaluator.worker.js", import.meta.url), { type: "module" });
@@ -625,6 +633,7 @@ class EvaluationManager {
 			precision: settings.precision,
 			settings,
 			lastAnswer,
+			displayMode,
 		});
 	}
 
@@ -712,6 +721,8 @@ class CalculatorApp {
 		this.defaultKeypadHTML = this.keypadGrid.innerHTML;
 		this.activeFunctionGroup = null;
 		this.activeFunctionPage = 0;
+		this.displayModeIndex = 0;
+		this.btnModeToggle = document.getElementById("btn-mode-toggle");
 		this.currentHint = DEFAULT_HINT;
 		this.lastAnswer = null;
 		this.previewTimer = null;
@@ -763,6 +774,17 @@ class CalculatorApp {
 			this.settingsModal.hidden = false;
 			history.pushState({ modal: "settings" }, "");
 		});
+		if (this.btnModeToggle) {
+			this.btnModeToggle.addEventListener("click", () => {
+				this.displayModeIndex = (this.displayModeIndex + 1) % DISPLAY_MODES.length;
+				const mode = DISPLAY_MODES[this.displayModeIndex];
+				const label = this.btnModeToggle.querySelector(".fit");
+				label.dataset.texLabel = mode.label;
+				this.formatter.render(mode.label, label, false);
+				this.updateFitty();
+				this.handleInput(false);
+			});
+		}
 		document.getElementById("btn-settings-close").addEventListener("click", () => {
 			this.settingsModal.hidden = true;
 			if (history.state?.modal === "settings") {
@@ -857,7 +879,14 @@ class CalculatorApp {
 			}
 			if (event.key === "Escape") {
 				event.preventDefault();
-				this.resetKeypad();
+				if (!this.settingsModal.hidden) {
+					this.settingsModal.hidden = true;
+					if (history.state?.modal === "settings") {
+						history.back();
+					}
+				} else {
+					this.resetKeypad();
+				}
 				return;
 			}
 			if (event.key.length === 1) {
@@ -1113,7 +1142,7 @@ class CalculatorApp {
 			return;
 		}
 		const run = () => {
-			this.evaluator.evaluate(expression, this.settingsManager.getSettings(), this.lastAnswer, commit);
+			this.evaluator.evaluate(expression, this.settingsManager.getSettings(), this.lastAnswer, DISPLAY_MODES[this.displayModeIndex].id, commit);
 		};
 		if (commit) {
 			run();
@@ -1148,7 +1177,7 @@ class CalculatorApp {
 			this.lastAnswer = payload.serialized;
 			this.history.push(expression, payload.text);
 		}
-		this.resultOutput.textContent = formatSerializedValue(payload.serialized, this.settingsManager.getSettings().precision);
+		this.resultOutput.textContent = payload.text;
 		this.formatter.render(payload.tex, this.expressionMath, false);
 	}
 }

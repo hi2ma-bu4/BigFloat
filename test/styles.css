@@ -135,7 +135,7 @@ button {
 
 .control-row {
 	display: grid;
-	grid-template-columns: 58px minmax(0, 1fr);
+	grid-template-columns: 58px 1fr auto;
 	gap: 8px;
 	align-items: end;
 }
@@ -174,39 +174,20 @@ button {
 .display-card {
 	padding: 8px;
 	display: grid;
-	grid-template-rows: auto auto minmax(52px, auto) minmax(0, 1fr);
+	grid-template-rows: auto minmax(52px, auto) minmax(0, 1fr);
 	gap: 6px;
 	min-height: 0;
-}
-
-.display-head {
-	display: flex;
-	justify-content: flex-end;
-}
-
-.display-actions {
-	display: flex;
-	gap: 6px;
-	flex-wrap: nowrap;
-}
-
-.action-button {
-	min-width: 34px;
-	padding: 0 10px;
-	border-radius: 999px;
-	background: rgba(255, 255, 255, 0.08);
-	color: var(--text);
-	cursor: pointer;
 }
 
 .history-toggle {
 	justify-self: end;
 	height: 32px;
 	padding: 0 12px;
-	border-radius: 999px;
+	border-radius: 10px;
 	background: rgba(255, 255, 255, 0.08);
 	color: var(--text);
 	cursor: pointer;
+	border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .history-toggle[aria-expanded="true"] {
@@ -398,7 +379,7 @@ button {
 	min-height: 0;
 	display: grid;
 	grid-template-columns: repeat(6, minmax(0, 1fr));
-	grid-template-rows: repeat(6, 1fr);
+	grid-template-rows: repeat(7, 1fr);
 	gap: 6px;
 }
 
@@ -433,6 +414,22 @@ button {
 .key.function {
 	background: rgba(255, 255, 255, 0.1);
 	color: #ffe6a9;
+}
+
+.key.tool {
+	background: rgba(255, 255, 255, 0.15);
+	color: var(--text);
+}
+
+.key.mode-toggle {
+	background: rgba(120, 229, 212, 0.12);
+	color: var(--cyan);
+	border: 1px solid rgba(120, 229, 212, 0.2);
+}
+
+.key.nav {
+	background: rgba(255, 255, 255, 0.08);
+	color: var(--text);
 }
 
 .key.pager-button {
@@ -571,7 +568,7 @@ button {
 	}
 
 	.control-row {
-		grid-template-columns: 52px minmax(0, 1fr);
+		grid-template-columns: 52px 1fr auto;
 	}
 
 	.display-card,
@@ -584,7 +581,7 @@ button {
 	}
 
 	.display-card {
-		grid-template-rows: auto auto minmax(44px, auto) auto;
+		grid-template-rows: auto minmax(44px, auto) auto;
 		overflow: visible;
 	}
 
