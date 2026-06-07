@@ -1160,7 +1160,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {TypeError} 複素数モードが無効な場合、または非実数複素数に対して atan2 を適用しようとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	public atan2(x: BigFloatInputValue | BigFloatAnyVectorLike): this | BigFloatAnyVector {
 		return this._mapWithOperand(x, (left, right) => {
@@ -1525,7 +1525,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {RangeError} ゼロ複素数で除算しようとした場合
+	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 */
 	public average(): BigFloat {
 		if (this.isEmpty()) return new BigFloat(0);
