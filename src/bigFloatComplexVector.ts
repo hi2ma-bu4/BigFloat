@@ -1530,7 +1530,13 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	 */
 	public normalize(): this {
 		const length = this.norm();
-		if (length.isZero()) throw new DivisionByZeroError("Cannot normalize zero vector");
+		if (length.isZero()) {
+			if (BigFloat.config.allowSpecialValues) {
+				const p = this._values[0]?.precision ?? BigFloat.DEFAULT_PRECISION;
+				return this.map(() => BigFloat.nan(p)) as this;
+			}
+			throw new DivisionByZeroError("Cannot normalize zero vector");
+		}
 		return this.div(length);
 	}
 
@@ -1579,7 +1585,13 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	public projectOnto(other: BigFloatAnyVectorLike): this {
 		const vector = BigFloatComplexVector._coerceVector(other, this._values);
 		const denominator = vector.squaredNorm();
-		if (denominator.isZero()) throw new DivisionByZeroError("Cannot project onto zero vector");
+		if (denominator.isZero()) {
+			if (BigFloat.config.allowSpecialValues) {
+				const p = vector._values[0]?.precision ?? BigFloat.DEFAULT_PRECISION;
+				return vector.map(() => BigFloat.nan(p)) as this;
+			}
+			throw new DivisionByZeroError("Cannot project onto zero vector");
+		}
 		const scale = this.dot(vector).div(denominator);
 		return vector.mul(scale) as this;
 	}

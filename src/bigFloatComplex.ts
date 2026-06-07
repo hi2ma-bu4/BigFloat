@@ -956,7 +956,7 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * 複素数で除算する
 	 * @param other - 除算する値
 	 * @returns 除算結果
-	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+	 * @throws {DivisionByZeroError} 特殊値が無効な設定でゼロ複素数で除算しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
@@ -966,7 +966,12 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	public div(other: BigFloatComplexValue): BigFloatComplex {
 		const rhs = BigFloatComplex._toComplex(other, this._precision);
 		const denominator = rhs.absSquared();
-		if (denominator.isZero()) throw new DivisionByZeroError("Division by zero complex");
+		if (denominator.isZero()) {
+			if (BigFloat.config.allowSpecialValues) {
+				return this.isZero() ? BigFloatComplex.from(BigFloat.nan(this._precision)) : BigFloatComplex.from(BigFloat.infinity(this._precision));
+			}
+			throw new DivisionByZeroError("Division by zero complex");
+		}
 		return this.mul(rhs.conjugate()).divByReal(denominator);
 	}
 
@@ -1094,7 +1099,7 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	/**
 	 * ベクトルとして正規化する (絶対値を 1 にする)
 	 * @returns 正規化された複素数
-	 * @throws {DivisionByZeroError} ゼロ複素数を正規化しようとした場合
+	 * @throws {DivisionByZeroError} 特殊値が無効な設定でゼロ複素数を正規化しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
@@ -1102,7 +1107,10 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 */
 	public normalize(): BigFloatComplex {
-		if (this.isZero()) throw new DivisionByZeroError("Cannot normalize zero complex");
+		if (this.isZero()) {
+			if (BigFloat.config.allowSpecialValues) return BigFloatComplex.from(BigFloat.nan(this._precision));
+			throw new DivisionByZeroError("Cannot normalize zero complex");
+		}
 		return this.div(this.abs());
 	}
 
@@ -1201,7 +1209,7 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * 複素数の冪乗 z^exponent を計算する
 	 * @param exponent - 指数
 	 * @returns 冪乗結果
-	 * @throws {DivisionByZeroError} ゼロ複素数を非正の実数以外の指数で冪乗しようとした場合
+	 * @throws {DivisionByZeroError} 特殊値が無効な設定でゼロ複素数を非正の実数以外の指数で冪乗しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
@@ -1215,6 +1223,11 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 		if (rhs.isZero()) return BigFloatComplex.one(this._precision);
 		if (this.isZero()) {
 			if (rhs.isReal() && rhs._real.gt(0)) return BigFloatComplex.zero(this._precision);
+			if (rhs.isReal() && rhs._real.lt(0)) {
+				if (BigFloat.config.allowSpecialValues) return BigFloatComplex.from(BigFloat.infinity(this._precision));
+				throw new DivisionByZeroError("0 cannot be raised to a negative power");
+			}
+			if (BigFloat.config.allowSpecialValues) return BigFloatComplex.from(BigFloat.nan(this._precision));
 			throw new DivisionByZeroError("0 cannot be raised to this exponent");
 		}
 		return this.ln().mul(rhs).exp();
@@ -1591,10 +1604,13 @@ export class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {NumericalComputationError} 数値的に不安定な点の場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throws {RangeError} 特殊値が無効な設定で ln(0) を計算しようとした場合
 	 */
 	public ln(): BigFloatComplex {
-		if (this.isZero()) throw new RangeError("ln(0) is undefined");
+		if (this.isZero()) {
+			if (BigFloat.config.allowSpecialValues) return BigFloatComplex.from(BigFloat.negativeInfinity(this._precision));
+			throw new RangeError("ln(0) is undefined");
+		}
 		return BigFloatComplex._fromBigFloats(this.abs().ln(), this.arg());
 	}
 

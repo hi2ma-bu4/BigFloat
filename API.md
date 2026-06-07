@@ -2776,7 +2776,7 @@ gamma(): BigFloat
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
-**Throws**: 負の整数の場合
+**Throws**: 負の整数の場合、または特殊値が無効な設定で極（負の整数またはゼロ）を指定した場合
 
 **Throws**: キャッシュが存在しない場合
 
@@ -2812,7 +2812,7 @@ factorial(): BigFloat
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
-**Throws**: 負の整数の場合
+**Throws**: 負の整数の場合、または特殊値が無効な設定で極（負の整数）を指定した場合
 
 **Throws**: キャッシュが存在しない場合
 
@@ -2911,7 +2911,7 @@ li(): BigFloat
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
-**Throws**: x <= 0 の場合
+**Throws**: 特殊値が無効な設定で x <= 0 の場合
 
 **Throws**: キャッシュが存在しない場合
 
@@ -4176,7 +4176,7 @@ div(other: string | number | bigint | BigFloat | BigFloatComplex | [BigFloatValu
 
 **Returns**: 除算結果
 
-**Throws**: ゼロ複素数で除算しようとした場合
+**Throws**: 特殊値が無効な設定でゼロ複素数で除算しようとした場合
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
@@ -4357,7 +4357,7 @@ normalize(): BigFloatComplex
 
 **Returns**: 正規化された複素数
 
-**Throws**: ゼロ複素数を正規化しようとした場合
+**Throws**: 特殊値が無効な設定でゼロ複素数を正規化しようとした場合
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
@@ -4515,7 +4515,7 @@ pow(exponent: string | number | bigint | BigFloat | BigFloatComplex | [BigFloatV
 
 **Returns**: 冪乗結果
 
-**Throws**: ゼロ複素数を非正の実数以外の指数で冪乗しようとした場合
+**Throws**: 特殊値が無効な設定でゼロ複素数を非正の実数以外の指数で冪乗しようとした場合
 
 **Throws**: 特殊値が無効な設定で特殊値を比較しようとした場合
 
@@ -5044,7 +5044,7 @@ ln(): BigFloatComplex
 
 **Throws**: 文字列が複素数表現として無効な場合
 
-**Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
+**Throws**: 特殊値が無効な設定で ln(0) を計算しようとした場合
 
 #### `log`
 
@@ -15684,7 +15684,7 @@ projectOnto(other: BigFloatComplexVector | Iterable<BigFloatComplex>): BigFloatC
 
 **Returns**: 射影された新しいベクトル
 
-**Throws**: 射影先のベクトルの長さが 0 の場合
+**Throws**: ベクトルの次元が一致しない場合
 
 **Throws**: ゼロ除算が発生した場合
 
@@ -15711,7 +15711,7 @@ angleTo(other: BigFloatVector | Iterable<BigFloatValue>): BigFloat
 
 **Returns**: 角度 (ラジアン)
 
-**Throws**: いずれかのベクトルの長さが 0 の場合
+**Throws**: ベクトルの次元が一致しない場合
 
 **Throws**: ゼロ除算が発生した場合
 

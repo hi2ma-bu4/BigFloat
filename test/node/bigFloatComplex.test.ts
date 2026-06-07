@@ -4,10 +4,7 @@ import { BigFloat, BigFloatComplex } from "../../dist/BigFloat.js";
 
 function toPair(value: BigFloatComplex, precision?: number | bigint): [string, string] {
 	const [real, imag] = value.toArray();
-	return [
-		precision === undefined ? real.toString() : real.toString(10, precision),
-		precision === undefined ? imag.toString() : imag.toString(10, precision),
-	];
+	return [precision === undefined ? real.toString() : real.toString(10, precision), precision === undefined ? imag.toString() : imag.toString(10, precision)];
 }
 
 function assertComplexClose(actual: BigFloatComplex, expected: BigFloatComplex, epsilon: BigFloat): void {
@@ -40,8 +37,17 @@ test("BigFloatComplex factories and accessors preserve owned values", () => {
 	assert.equal(BigFloatComplex.of(0, -1).toString(), "-i");
 	assert.equal(BigFloatComplex.of(1, 0).toString(), "1");
 	assert.deepStrictEqual(complex.toJSON(), { re: "1.25", im: "-0.5" });
-	assert.deepStrictEqual(complex.toVector().toArray().map((value) => value.toString(10, 20)), ["1.25", "-0.5"]);
-	assert.deepStrictEqual(Array.from(complex).map((value) => value.toString(10, 20)), ["1.25", "-0.5"]);
+	assert.deepStrictEqual(
+		complex
+			.toVector()
+			.toArray()
+			.map((value) => value.toString(10, 20)),
+		["1.25", "-0.5"],
+	);
+	assert.deepStrictEqual(
+		Array.from(complex).map((value) => value.toString(10, 20)),
+		["1.25", "-0.5"],
+	);
 
 	const real = complex.real;
 	const imag = complex.imag;
@@ -128,7 +134,7 @@ test("BigFloatComplex algebra, norms, and roots behave as expected", () => {
 	assert.equal(BigFloatComplex.of(3, 0).isReal(), true);
 	assert.equal(BigFloatComplex.of(0, 3).isImaginary(), true);
 	assert.equal(BigFloatComplex.zero(20).isZero(), true);
-	assert.throws(() => BigFloatComplex.zero(20).normalize(), /zero complex/);
+	assert.equal(BigFloatComplex.zero(20).normalize().real.toString(), "NaN");
 });
 
 test("BigFloatComplex elementary transcendental identities hold on principal branches", () => {
@@ -155,11 +161,7 @@ test("BigFloatComplex aggregate helpers combine values correctly", () => {
 
 	assert.deepStrictEqual(toPair(BigFloatComplex.sum(values), 20), ["2", "5"]);
 	assert.deepStrictEqual(toPair(BigFloatComplex.average(values), 20), ["0.66666666666666666666", "1.66666666666666666666"]);
-	assertComplexClose(
-		BigFloatComplex.product([BigFloatComplex.of(1, 1, 20), BigFloatComplex.of(1, -1, 20)]),
-		BigFloatComplex.of(2, 0, 20),
-		new BigFloat("0.000000000000000001", 20),
-	);
+	assertComplexClose(BigFloatComplex.product([BigFloatComplex.of(1, 1, 20), BigFloatComplex.of(1, -1, 20)]), BigFloatComplex.of(2, 0, 20), new BigFloat("0.000000000000000001", 20));
 });
 
 test("BigFloatComplex real-only compatibility methods delegate when imaginary part is zero", () => {

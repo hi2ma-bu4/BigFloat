@@ -1714,7 +1714,13 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 */
 	public normalize(): this {
 		const length = this.norm();
-		if (length.isZero()) throw new DivisionByZeroError("Cannot normalize zero vector");
+		if (length.isZero()) {
+			if (BigFloat.config.allowSpecialValues) {
+				const p = this._values[0]?._precision ?? BigFloat.DEFAULT_PRECISION;
+				return this.map(() => BigFloat.nan(p)) as this;
+			}
+			throw new DivisionByZeroError("Cannot normalize zero vector");
+		}
 		return this.div(length);
 	}
 
@@ -1761,7 +1767,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 */
 	public projectOnto(other: BigFloatComplexVectorLike): BigFloatComplexVector;
 	/**
-	 * @throws {DimensionMismatchError} 射影先のベクトルの長さが 0 の場合
+	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
@@ -1772,7 +1778,18 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	public projectOnto(other: BigFloatAnyVectorLike): this | BigFloatAnyVector {
 		const vector = BigFloatVector._coerceVector(other, this._values);
 		const denominator = vector.squaredNorm();
-		if (denominator.isZero()) throw new DivisionByZeroError("Cannot project onto zero vector");
+		if (denominator.isZero()) {
+			if (BigFloat.config.allowSpecialValues) {
+				if (vector instanceof BigFloatVector) {
+					const p = vector._values[0]?._precision ?? BigFloat.DEFAULT_PRECISION;
+					return vector.map(() => BigFloat.nan(p));
+				} else {
+					const p = vector._values[0]?.precision ?? BigFloat.DEFAULT_PRECISION;
+					return vector.map(() => BigFloat.nan(p));
+				}
+			}
+			throw new DivisionByZeroError("Cannot project onto zero vector");
+		}
 		const scale = this.dot(vector).div(denominator);
 		return vector.mul(scale);
 	}
@@ -1781,7 +1798,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * 別のベクトルとのなす角を計算する
 	 * @param other - 対象ベクトル
 	 * @returns 角度 (ラジアン)
-	 * @throws {DimensionMismatchError} いずれかのベクトルの長さが 0 の場合
+	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
@@ -1794,7 +1811,10 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	public angleTo(other: BigFloatVectorLike): BigFloat {
 		const vector = BigFloatVector._coerceVector(other, this._values);
 		const denominator = this.norm().mul(vector.norm());
-		if (denominator.isZero()) throw new DivisionByZeroError("Cannot compute angle with zero vector");
+		if (denominator.isZero()) {
+			if (BigFloat.config.allowSpecialValues) return BigFloat.nan(this._values[0]?._precision ?? BigFloat.DEFAULT_PRECISION);
+			throw new DivisionByZeroError("Cannot compute angle with zero vector");
+		}
 		let cosine = this.dot(vector).div(denominator);
 		if (cosine.gt(1)) cosine = new BigFloat(1, cosine._precision);
 		if (cosine.lt(-1)) cosine = new BigFloat(-1, cosine._precision);

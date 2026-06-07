@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.4.7
+ * BigFloat 1.4.8
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -3214,7 +3214,13 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
    */
   normalize() {
     const length = this.norm();
-    if (length.isZero()) throw new DivisionByZeroError("Cannot normalize zero vector");
+    if (length.isZero()) {
+      if (BigFloat.config.allowSpecialValues) {
+        const p = this._values[0]?.precision ?? BigFloat.DEFAULT_PRECISION;
+        return this.map(() => BigFloat.nan(p));
+      }
+      throw new DivisionByZeroError("Cannot normalize zero vector");
+    }
     return this.div(length);
   }
   /**
@@ -3260,7 +3266,13 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
   projectOnto(other) {
     const vector = _BigFloatComplexVector._coerceVector(other, this._values);
     const denominator = vector.squaredNorm();
-    if (denominator.isZero()) throw new DivisionByZeroError("Cannot project onto zero vector");
+    if (denominator.isZero()) {
+      if (BigFloat.config.allowSpecialValues) {
+        const p = vector._values[0]?.precision ?? BigFloat.DEFAULT_PRECISION;
+        return vector.map(() => BigFloat.nan(p));
+      }
+      throw new DivisionByZeroError("Cannot project onto zero vector");
+    }
     const scale = this.dot(vector).div(denominator);
     return vector.mul(scale);
   }
@@ -4620,7 +4632,13 @@ var BigFloatVector = class _BigFloatVector {
    */
   normalize() {
     const length = this.norm();
-    if (length.isZero()) throw new DivisionByZeroError("Cannot normalize zero vector");
+    if (length.isZero()) {
+      if (BigFloat.config.allowSpecialValues) {
+        const p = this._values[0]?._precision ?? BigFloat.DEFAULT_PRECISION;
+        return this.map(() => BigFloat.nan(p));
+      }
+      throw new DivisionByZeroError("Cannot normalize zero vector");
+    }
     return this.div(length);
   }
   /**
@@ -4652,7 +4670,7 @@ var BigFloatVector = class _BigFloatVector {
     return this.squaredDistanceTo(other).sqrt();
   }
   /**
-   * @throws {DimensionMismatchError} 射影先のベクトルの長さが 0 の場合
+   * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    * @throws {TypeError} 複素数モードが無効な場合
@@ -4663,7 +4681,18 @@ var BigFloatVector = class _BigFloatVector {
   projectOnto(other) {
     const vector = _BigFloatVector._coerceVector(other, this._values);
     const denominator = vector.squaredNorm();
-    if (denominator.isZero()) throw new DivisionByZeroError("Cannot project onto zero vector");
+    if (denominator.isZero()) {
+      if (BigFloat.config.allowSpecialValues) {
+        if (vector instanceof _BigFloatVector) {
+          const p = vector._values[0]?._precision ?? BigFloat.DEFAULT_PRECISION;
+          return vector.map(() => BigFloat.nan(p));
+        } else {
+          const p = vector._values[0]?.precision ?? BigFloat.DEFAULT_PRECISION;
+          return vector.map(() => BigFloat.nan(p));
+        }
+      }
+      throw new DivisionByZeroError("Cannot project onto zero vector");
+    }
     const scale = this.dot(vector).div(denominator);
     return vector.mul(scale);
   }
@@ -4671,7 +4700,7 @@ var BigFloatVector = class _BigFloatVector {
    * 別のベクトルとのなす角を計算する
    * @param other - 対象ベクトル
    * @returns 角度 (ラジアン)
-   * @throws {DimensionMismatchError} いずれかのベクトルの長さが 0 の場合
+   * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
@@ -4684,7 +4713,10 @@ var BigFloatVector = class _BigFloatVector {
   angleTo(other) {
     const vector = _BigFloatVector._coerceVector(other, this._values);
     const denominator = this.norm().mul(vector.norm());
-    if (denominator.isZero()) throw new DivisionByZeroError("Cannot compute angle with zero vector");
+    if (denominator.isZero()) {
+      if (BigFloat.config.allowSpecialValues) return BigFloat.nan(this._values[0]?._precision ?? BigFloat.DEFAULT_PRECISION);
+      throw new DivisionByZeroError("Cannot compute angle with zero vector");
+    }
     let cosine = this.dot(vector).div(denominator);
     if (cosine.gt(1)) cosine = new BigFloat(1, cosine._precision);
     if (cosine.lt(-1)) cosine = new BigFloat(-1, cosine._precision);
@@ -5551,7 +5583,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * 複素数で除算する
    * @param other - 除算する値
    * @returns 除算結果
-   * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
+   * @throws {DivisionByZeroError} 特殊値が無効な設定でゼロ複素数で除算しようとした場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    * @throws {TypeError} 複素数モードが無効な場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
@@ -5561,7 +5593,12 @@ var BigFloatComplex = class _BigFloatComplex {
   div(other) {
     const rhs = _BigFloatComplex._toComplex(other, this._precision);
     const denominator = rhs.absSquared();
-    if (denominator.isZero()) throw new DivisionByZeroError("Division by zero complex");
+    if (denominator.isZero()) {
+      if (BigFloat.config.allowSpecialValues) {
+        return this.isZero() ? _BigFloatComplex.from(BigFloat.nan(this._precision)) : _BigFloatComplex.from(BigFloat.infinity(this._precision));
+      }
+      throw new DivisionByZeroError("Division by zero complex");
+    }
     return this.mul(rhs.conjugate()).divByReal(denominator);
   }
   /**
@@ -5679,7 +5716,7 @@ var BigFloatComplex = class _BigFloatComplex {
   /**
    * ベクトルとして正規化する (絶対値を 1 にする)
    * @returns 正規化された複素数
-   * @throws {DivisionByZeroError} ゼロ複素数を正規化しようとした場合
+   * @throws {DivisionByZeroError} 特殊値が無効な設定でゼロ複素数を正規化しようとした場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    * @throws {TypeError} 複素数モードが無効な場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
@@ -5687,7 +5724,10 @@ var BigFloatComplex = class _BigFloatComplex {
    * @throws {RangeError} 負の数の平方根を計算しようとした場合
    */
   normalize() {
-    if (this.isZero()) throw new DivisionByZeroError("Cannot normalize zero complex");
+    if (this.isZero()) {
+      if (BigFloat.config.allowSpecialValues) return _BigFloatComplex.from(BigFloat.nan(this._precision));
+      throw new DivisionByZeroError("Cannot normalize zero complex");
+    }
     return this.div(this.abs());
   }
   /**
@@ -5777,7 +5817,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * 複素数の冪乗 z^exponent を計算する
    * @param exponent - 指数
    * @returns 冪乗結果
-   * @throws {DivisionByZeroError} ゼロ複素数を非正の実数以外の指数で冪乗しようとした場合
+   * @throws {DivisionByZeroError} 特殊値が無効な設定でゼロ複素数を非正の実数以外の指数で冪乗しようとした場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を比較しようとした場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {TypeError} 複素数モードが無効な場合
@@ -5791,6 +5831,11 @@ var BigFloatComplex = class _BigFloatComplex {
     if (rhs.isZero()) return _BigFloatComplex.one(this._precision);
     if (this.isZero()) {
       if (rhs.isReal() && rhs._real.gt(0)) return _BigFloatComplex.zero(this._precision);
+      if (rhs.isReal() && rhs._real.lt(0)) {
+        if (BigFloat.config.allowSpecialValues) return _BigFloatComplex.from(BigFloat.infinity(this._precision));
+        throw new DivisionByZeroError("0 cannot be raised to a negative power");
+      }
+      if (BigFloat.config.allowSpecialValues) return _BigFloatComplex.from(BigFloat.nan(this._precision));
       throw new DivisionByZeroError("0 cannot be raised to this exponent");
     }
     return this.ln().mul(rhs).exp();
@@ -6134,10 +6179,13 @@ var BigFloatComplex = class _BigFloatComplex {
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {NumericalComputationError} 数値的に不安定な点の場合
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-   * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+   * @throws {RangeError} 特殊値が無効な設定で ln(0) を計算しようとした場合
    */
   ln() {
-    if (this.isZero()) throw new RangeError("ln(0) is undefined");
+    if (this.isZero()) {
+      if (BigFloat.config.allowSpecialValues) return _BigFloatComplex.from(BigFloat.negativeInfinity(this._precision));
+      throw new RangeError("ln(0) is undefined");
+    }
     return _BigFloatComplex._fromBigFloats(this.abs().ln(), this.arg());
   }
   /**
@@ -11273,7 +11321,7 @@ var BigFloat = class _BigFloat {
    * ガンマ関数を計算する
    * @returns ガンマ関数
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-   * @throws {RangeError} 負の整数の場合
+   * @throws {RangeError} 負の整数の場合、または特殊値が無効な設定で極（負の整数またはゼロ）を指定した場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
    */
@@ -11286,6 +11334,11 @@ var BigFloat = class _BigFloat {
     }
     const totalPr = this._precision + construct.config.extraPrecision;
     const val = this._getInternalValue(totalPr);
+    const scale = construct._getPow10(totalPr);
+    if (val <= 0n && val % scale === 0n) {
+      if (construct.config.allowSpecialValues) return this._specialResult(3 /* NAN */);
+      throw new RangeError("z must not be a non-positive integer (pole)");
+    }
     const raw = construct._gammaLanczos(val, totalPr);
     return this._makeResult(raw, this._precision, totalPr);
   }
@@ -11366,7 +11419,7 @@ var BigFloat = class _BigFloat {
    * 階乗を計算する
    * @returns 階乗
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-   * @throws {RangeError} 負の整数の場合
+   * @throws {RangeError} 負の整数の場合、または特殊値が無効な設定で極（負の整数）を指定した場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
    */
@@ -11380,6 +11433,10 @@ var BigFloat = class _BigFloat {
     const totalPr = this._precision + construct.config.extraPrecision;
     const val = this._getInternalValue(totalPr);
     const scale = construct._getPow10(totalPr);
+    if (val < 0n && val % scale === 0n) {
+      if (construct.config.allowSpecialValues) return this._specialResult(3 /* NAN */);
+      throw new RangeError("n must not be a negative integer (pole)");
+    }
     let raw;
     if (val % scale === 0n && val >= 0n) {
       raw = construct._factorial(val / scale) * scale;
@@ -11819,7 +11876,7 @@ var BigFloat = class _BigFloat {
    * 対数積分 li(x) を計算する
    * @returns 対数積分 li(x)
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-   * @throws {RangeError} x <= 0 の場合
+   * @throws {RangeError} 特殊値が無効な設定で x <= 0 の場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
    * @throws {TypeError} 複素数モードが無効な場合
@@ -11827,6 +11884,7 @@ var BigFloat = class _BigFloat {
    */
   li() {
     if (this.isNegative() || this.isZero()) {
+      if (this.constructor.config.allowSpecialValues) return this._specialResult(3 /* NAN */);
       throw new RangeError("li(x) is only defined for x > 0");
     }
     return this.ln().Ei();

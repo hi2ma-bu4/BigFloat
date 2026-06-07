@@ -5479,7 +5479,7 @@ export class BigFloat {
 	 * ガンマ関数を計算する
 	 * @returns ガンマ関数
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} 負の整数の場合
+	 * @throws {RangeError} 負の整数の場合、または特殊値が無効な設定で極（負の整数またはゼロ）を指定した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 */
@@ -5493,6 +5493,13 @@ export class BigFloat {
 
 		const totalPr = this._precision + construct.config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
+		const scale = construct._getPow10(totalPr);
+
+		if (val <= 0n && val % scale === 0n) {
+			if (construct.config.allowSpecialValues) return this._specialResult(SpecialValueState.NAN);
+			throw new RangeError("z must not be a non-positive integer (pole)");
+		}
+
 		const raw = construct._gammaLanczos(val, totalPr);
 		return this._makeResult(raw, this._precision, totalPr);
 	}
@@ -5581,7 +5588,7 @@ export class BigFloat {
 	 * 階乗を計算する
 	 * @returns 階乗
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} 負の整数の場合
+	 * @throws {RangeError} 負の整数の場合、または特殊値が無効な設定で極（負の整数）を指定した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 */
@@ -5595,6 +5602,12 @@ export class BigFloat {
 		const totalPr = this._precision + construct.config.extraPrecision;
 		const val = this._getInternalValue(totalPr);
 		const scale = construct._getPow10(totalPr);
+
+		if (val < 0n && val % scale === 0n) {
+			if (construct.config.allowSpecialValues) return this._specialResult(SpecialValueState.NAN);
+			throw new RangeError("n must not be a negative integer (pole)");
+		}
+
 		let raw;
 		if (val % scale === 0n && val >= 0n) {
 			raw = construct._factorial(val / scale) * scale;
@@ -6124,7 +6137,7 @@ export class BigFloat {
 	 * 対数積分 li(x) を計算する
 	 * @returns 対数積分 li(x)
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {RangeError} x <= 0 の場合
+	 * @throws {RangeError} 特殊値が無効な設定で x <= 0 の場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {TypeError} 複素数モードが無効な場合
@@ -6132,6 +6145,7 @@ export class BigFloat {
 	 */
 	public li(): BigFloat {
 		if (this.isNegative() || this.isZero()) {
+			if ((this.constructor as BigFloatConstructor).config.allowSpecialValues) return this._specialResult(SpecialValueState.NAN);
 			throw new RangeError("li(x) is only defined for x > 0");
 		}
 		return this.ln().Ei();

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BigFloat, BigFloatStream, BigFloatVector } from "../../dist/BigFloat.js";
+import { BigFloat, BigFloatAnyVector, BigFloatStream, BigFloatVector } from "../../dist/BigFloat.js";
 
-function toStrings(vector: BigFloatVector, precision?: number | bigint): string[] {
+function toStrings(vector: BigFloatAnyVector, precision?: number | bigint): string[] {
 	return vector.toArray().map((value) => (precision === undefined ? value.toString() : value.toString(10, precision)));
 }
 
@@ -54,11 +54,15 @@ test("BigFloatVector accessors and collection helpers preserve vector ownership"
 	assert.deepStrictEqual(iterated, ["1.2345", "2.5"]);
 
 	const mapped = vector.map((value) => value.add(1));
-	const zipped = vector.zipMap([10, 20], (left, right) => left.add(right));
+	const zipped = vector.zipMap([10, 20], (left, right) => left.add(right) as BigFloat);
 	const concatenated = vector.concat([3, 4]);
 	const sliced = concatenated.slice(1, 3);
 	const reversed = concatenated.reverse();
-	const streamed = vector.toStream().add(1).toArray().map((value) => value.toString(10, 4));
+	const streamed = vector
+		.toStream()
+		.add(1)
+		.toArray()
+		.map((value) => value.toString(10, 4));
 
 	assert.deepStrictEqual(toStrings(mapped, 4), ["2.2345", "3.5"]);
 	assert.deepStrictEqual(toStrings(zipped, 4), ["11.2345", "22.5"]);
@@ -68,8 +72,14 @@ test("BigFloatVector accessors and collection helpers preserve vector ownership"
 	assert.deepStrictEqual(streamed, ["2.2345", "3.5"]);
 
 	assert.ok(Math.abs(vector.reduce((acc, value) => acc + value.toNumber(), 0) - 3.7345) < 1e-12);
-	assert.equal(vector.some((value) => value.gt(2)), true);
-	assert.equal(vector.every((value) => value.gt(0)), true);
+	assert.equal(
+		vector.some((value) => value.gt(2)),
+		true,
+	);
+	assert.equal(
+		vector.every((value) => value.gt(0)),
+		true,
+	);
 	assert.equal(vector.dimension(), 2);
 	assert.equal(vector.isEmpty(), false);
 });
@@ -102,7 +112,7 @@ test("BigFloatVector vector algebra methods work with scalars and vectors", () =
 	assert.equal(BigFloatVector.of(1, 2, 3).equals([1, 2, 3]), true);
 	assert.equal(BigFloatVector.of(1, 2, 3).equals([1, 2, 4]), false);
 	assert.throws(() => BigFloatVector.of(1, 2).add([1, 2, 3]), /dimensions/);
-	assert.throws(() => BigFloatVector.of(0, 0).normalize(), /zero vector/);
+	assert.equal(BigFloatVector.of(0, 0).normalize().at(0)?.toString(), "NaN");
 	assert.throws(() => BigFloatVector.of(1, 2).cross([3, 4]), /3-dimensional/);
 });
 
@@ -125,12 +135,6 @@ test("BigFloatVector element-wise BigFloat wrappers mirror direct BigFloat calls
 	assertMapped(gammaValues, BigFloatVector.from(gammaValues).gamma(), (value) => value.gamma(), precision);
 	assertMapped([new BigFloat(0, precision), new BigFloat(5, precision)], BigFloatVector.from([new BigFloat(0, precision), new BigFloat(5, precision)]).factorial(), (value) => value.factorial(), precision);
 
-	assert.deepStrictEqual(
-		toStrings(BigFloatVector.from([new BigFloat(5, precision), new BigFloat(10, precision)]).relativeDiff(10), precision),
-		[new BigFloat(5, precision).relativeDiff(10).toString(10, precision), new BigFloat(10, precision).relativeDiff(10).toString(10, precision)],
-	);
-	assert.deepStrictEqual(
-		toStrings(BigFloatVector.from([new BigFloat(5, precision), new BigFloat(10, precision)]).absoluteDiff([10, 12]), precision),
-		[new BigFloat(5, precision).absoluteDiff(10).toString(10, precision), new BigFloat(10, precision).absoluteDiff(12).toString(10, precision)],
-	);
+	assert.deepStrictEqual(toStrings(BigFloatVector.from([new BigFloat(5, precision), new BigFloat(10, precision)]).relativeDiff(10), precision), [new BigFloat(5, precision).relativeDiff(10).toString(10, precision), new BigFloat(10, precision).relativeDiff(10).toString(10, precision)]);
+	assert.deepStrictEqual(toStrings(BigFloatVector.from([new BigFloat(5, precision), new BigFloat(10, precision)]).absoluteDiff([10, 12]), precision), [new BigFloat(5, precision).absoluteDiff(10).toString(10, precision), new BigFloat(10, precision).absoluteDiff(12).toString(10, precision)]);
 });
