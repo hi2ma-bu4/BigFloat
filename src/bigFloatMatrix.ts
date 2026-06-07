@@ -177,12 +177,12 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * 指定された精度の微小値 (10^-precision) を返す (内部用)
 	 * @param precision - 精度
 	 * @returns 微小値
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throwsSuppressed {DivisionByZeroError}
 	 */
 	protected static _epsilon(precision: bigint): BigFloat {
 		if (precision <= 0n) return new BigFloat(1, 0);
@@ -1633,12 +1633,12 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	/**
 	 * 全要素の平均を計算する
 	 * @returns 平均
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throwsSuppressed {DivisionByZeroError}
 	 */
 	public average(): BigFloat {
 		if (this.isEmpty()) return new BigFloat(0);
@@ -1723,7 +1723,6 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
-	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
 	 */
 	public rms(): BigFloat {
 		if (this.isEmpty()) throw new TypeError("No elements");

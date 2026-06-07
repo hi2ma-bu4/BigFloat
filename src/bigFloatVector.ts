@@ -324,9 +324,9 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throwsSuppressed {DivisionByZeroError}
 	 */
 	public static linspace(start: BigFloatValue, end: BigFloatValue, count: number, precision?: PrecisionValue): BigFloatVector {
 		const normalizedCount = this._normalizeLength(count);
@@ -985,7 +985,6 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
@@ -1035,7 +1034,6 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {DimensionMismatchError} ベクトルの次元が一致しない場合
 	 */
@@ -1520,12 +1518,12 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	/**
 	 * 全要素の平均値を計算する
 	 * @returns 平均
-	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
 	 * @throws {RangeError} 精度が 0 未満または MAX_PRECISION を超える場合
+	 * @throwsSuppressed {DivisionByZeroError}
 	 */
 	public average(): BigFloat {
 		if (this.isEmpty()) return new BigFloat(0);
@@ -1624,11 +1622,11 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * 二乗平均平方根 (RMS) を計算する
 	 * @returns RMS
 	 * @throws {TypeError} ベクトルが空の場合
-	 * @throws {DivisionByZeroError} ゼロ複素数で除算しようとした場合
 	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throwsSuppressed {DivisionByZeroError}
 	 */
 	public rms(): BigFloat {
 		if (this.isEmpty()) throw new TypeError("No elements");

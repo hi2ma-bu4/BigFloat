@@ -3278,8 +3278,6 @@ average(values: Iterable<BigFloatComplexValue>, precision?: number | bigint): Bi
 
 **Returns**: 平均
 
-**Throws**: ゼロ複素数で除算しようとした場合
-
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
 **Throws**: 複素数モードが無効な場合
@@ -3317,8 +3315,6 @@ geometricMean(values: Iterable<BigFloatComplexValue>, precision?: number | bigin
 **Throws**: 数値的に不安定な点の場合
 
 **Throws**: キャッシュが存在しない場合
-
-**Throws**: ゼロ除算が発生した場合
 
 #### `harmonicMean`
 
@@ -3359,8 +3355,6 @@ rms(values: Iterable<BigFloatComplexValue>, precision?: number | bigint): BigFlo
 - `precision`: 結果の精度
 
 **Returns**: RMS
-
-**Throws**: ゼロ複素数で除算しようとした場合
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
@@ -3797,8 +3791,6 @@ relativeDiff(other: string | number | bigint | BigFloat | BigFloatComplex | [Big
 
 **Returns**: 相対差
 
-**Throws**: ゼロ除算が発生した場合
-
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
 **Throws**: 精度の不一致が許容されていない場合
@@ -3850,8 +3842,6 @@ percentDiff(other: string | number | bigint | BigFloat | BigFloatComplex | [BigF
 **Throws**: 複素数モードが無効な場合
 
 **Throws**: 負の数の平方根を計算しようとした場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: 精度の不一致が許容されていない場合
 
@@ -4309,8 +4299,6 @@ sign(): BigFloatComplex
 
 **Returns**: 単位円上の複素数、または 0
 
-**Throws**: ゼロ複素数で除算しようとした場合
-
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
 **Throws**: 複素数モードが無効な場合
@@ -4543,8 +4531,6 @@ sqrt(): BigFloatComplex
 
 **Throws**: 複素数モードが無効な場合
 
-**Throws**: ゼロ除算が発生した場合
-
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: 文字列が複素数表現として無効な場合
@@ -4564,8 +4550,6 @@ cbrt(): BigFloatComplex
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
 **Throws**: 複素数モードが無効な場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: 精度の不一致が許容されていない場合
 
@@ -4594,8 +4578,6 @@ nthRoot(n: number | bigint): BigFloatComplex
 
 **Throws**: 複素数モードが無効な場合
 
-**Throws**: ゼロ除算が発生した場合
-
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: キャッシュが存在しない場合
@@ -4622,8 +4604,6 @@ nthRoots(n: number | bigint): BigFloatComplex[]
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
 **Throws**: 複素数モードが無効な場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: 精度の不一致が許容されていない場合
 
@@ -4710,8 +4690,6 @@ asin(): BigFloatComplex
 複素数の逆正弦 (asin) を計算する
 
 **Returns**: asin(z)
-
-**Throws**: ゼロ複素数の対数を計算しようとした場合
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
@@ -4884,8 +4862,6 @@ asinh(): BigFloatComplex
 
 **Returns**: asinh(z)
 
-**Throws**: ゼロ複素数の対数を計算しようとした場合
-
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
 **Throws**: 複素数モードが無効な場合
@@ -4910,8 +4886,6 @@ acosh(): BigFloatComplex
 
 **Returns**: acosh(z)
 
-**Throws**: ゼロ複素数の対数を計算しようとした場合
-
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
 **Throws**: 複素数モードが無効な場合
@@ -4935,8 +4909,6 @@ atanh(): BigFloatComplex
 複素数の逆双曲線正接 (atanh) を計算する
 
 **Returns**: atanh(z)
-
-**Throws**: ゼロ複素数の対数を計算しようとした場合
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
@@ -5081,8 +5053,6 @@ log2(): BigFloatComplex
 
 **Returns**: log2(z)
 
-**Throws**: ゼロ複素数で除算しようとした場合
-
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
 **Throws**: 文字列が複素数表現として無効な場合
@@ -5120,8 +5090,6 @@ log10(): BigFloatComplex
 **Throws**: 文字列が複素数表現として無効な場合
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
-
-**Throws**: ゼロ複素数で除算しようとした場合
 
 #### `log1p`
 
@@ -6066,8 +6034,6 @@ sign(): BigFloatComplexMatrix
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
-**Throws**: ゼロ除算が発生した場合
-
 #### `reciprocal`
 
 ```ts
@@ -6141,8 +6107,6 @@ sqrt(): BigFloatComplexMatrix
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
-**Throws**: ゼロ除算が発生した場合
-
 #### `cbrt`
 
 ```ts
@@ -6166,8 +6130,6 @@ cbrt(): BigFloatComplexMatrix
 **Throws**: 数値的に不安定な点の場合
 
 **Throws**: キャッシュが存在しない場合
-
-**Throws**: ゼロ除算が発生した場合
 
 #### `nthRoot`
 
@@ -6195,8 +6157,6 @@ nthRoot(n: number | bigint): BigFloatComplexMatrix
 **Throws**: 数値的に不安定な点の場合
 
 **Throws**: キャッシュが存在しない場合
-
-**Throws**: ゼロ除算が発生した場合
 
 #### `floor`
 
@@ -6321,8 +6281,6 @@ relativeDiff(other: string | number | bigint | BigFloat | BigFloatComplex | BigF
 
 **Throws**: 文字列が複素数表現として無効な場合
 
-**Throws**: ゼロ除算が発生した場合
-
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
@@ -6372,8 +6330,6 @@ percentDiff(other: string | number | bigint | BigFloat | BigFloatComplex | BigFl
 **Returns**: 百分率差分の行列 (%)
 
 **Throws**: 文字列が複素数表現として無効な場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: 精度の不一致が許容されていない場合
 
@@ -6464,8 +6420,6 @@ asin(): BigFloatComplexMatrix
 **Returns**: asin 適用後の行列
 
 **Throws**: 文字列が複素数表現として無効な場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: キャッシュが存在しない場合
 
@@ -6646,8 +6600,6 @@ asinh(): BigFloatComplexMatrix
 
 **Throws**: 精度の不一致が許容されていない場合
 
-**Throws**: ゼロ除算が発生した場合
-
 **Throws**: 複素数モードが無効な場合
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
@@ -6670,8 +6622,6 @@ acosh(): BigFloatComplexMatrix
 
 **Throws**: キャッシュが存在しない場合
 
-**Throws**: ゼロ除算が発生した場合
-
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: 複素数モードが無効な場合
@@ -6691,8 +6641,6 @@ atanh(): BigFloatComplexMatrix
 **Returns**: atanh 適用後の行列
 
 **Throws**: 数値的に不安定な点の場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: 文字列が複素数表現として無効な場合
 
@@ -6737,10 +6685,6 @@ exp2(): BigFloatComplexMatrix
 各要素の 2 のべき乗を計算する
 
 **Returns**: exp2 適用後の行列
-
-**Throws**: 数値的に不安定な点の場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: キャッシュが存在しない場合
 
@@ -6845,8 +6789,6 @@ log2(): BigFloatComplexMatrix
 
 **Throws**: キャッシュが存在しない場合
 
-**Throws**: ゼロ除算が発生した場合
-
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: 複素数モードが無効な場合
@@ -6870,8 +6812,6 @@ log10(): BigFloatComplexMatrix
 **Throws**: 数値的に不安定な点の場合
 
 **Throws**: キャッシュが存在しない場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: 精度の不一致が許容されていない場合
 
@@ -7105,8 +7045,6 @@ average(): BigFloatComplex
 
 **Throws**: 文字列が複素数表現として無効な場合
 
-**Throws**: ゼロ除算が発生した場合
-
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
 #### `median`
@@ -7169,8 +7107,6 @@ stddev(): BigFloatComplex
 
 **Throws**: 文字列が複素数表現として無効な場合
 
-**Throws**: ゼロ除算が発生した場合
-
 #### `geometricMean`
 
 ```ts
@@ -7190,8 +7126,6 @@ geometricMean(): BigFloatComplex
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
 **Throws**: 文字列が複素数表現として無効な場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: キャッシュが存在しない場合
 
@@ -7238,8 +7172,6 @@ rms(): BigFloatComplex
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
 **Throws**: 文字列が複素数表現として無効な場合
-
-**Throws**: ゼロ複素数で除算しようとした場合
 
 #### `rowSums`
 
@@ -7693,8 +7625,6 @@ linspace(start: string | number | bigint | BigFloat | BigFloatComplex, end: stri
 **Throws**: 複素数モードが無効な場合
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
-
-**Throws**: ゼロ除算が発生した場合
 
 #### `random`
 
@@ -8192,8 +8122,6 @@ sign(): BigFloatComplexVector
 
 **Throws**: 文字列が複素数表現として無効な場合
 
-**Throws**: ゼロ除算が発生した場合
-
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: 複素数モードが無効な場合
@@ -8269,8 +8197,6 @@ sqrt(): BigFloatComplexVector
 
 **Throws**: 精度の不一致が許容されていない場合
 
-**Throws**: ゼロ除算が発生した場合
-
 **Throws**: 複素数モードが無効な場合
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
@@ -8294,8 +8220,6 @@ cbrt(): BigFloatComplexVector
 **Throws**: キャッシュが存在しない場合
 
 **Throws**: 精度の不一致が許容されていない場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: 複素数モードが無効な場合
 
@@ -8323,8 +8247,6 @@ nthRoot(n: number | bigint): BigFloatComplexVector
 **Throws**: キャッシュが存在しない場合
 
 **Throws**: 精度の不一致が許容されていない場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: 複素数モードが無効な場合
 
@@ -8457,8 +8379,6 @@ relativeDiff(other: string | number | bigint | BigFloat | BigFloatComplex | BigF
 
 **Throws**: 精度の不一致が許容されていない場合
 
-**Throws**: ゼロ除算が発生した場合
-
 **Throws**: 負の数の平方根を計算しようとした場合
 
 **Throws**: 複素数モードが無効な場合
@@ -8508,8 +8428,6 @@ percentDiff(other: string | number | bigint | BigFloat | BigFloatComplex | BigFl
 **Throws**: 文字列が複素数表現として無効な場合
 
 **Throws**: 精度の不一致が許容されていない場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: 負の数の平方根を計算しようとした場合
 
@@ -8606,8 +8524,6 @@ asin(): BigFloatComplexVector
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: キャッシュが存在しない場合
 
@@ -8784,8 +8700,6 @@ asinh(): BigFloatComplexVector
 
 **Throws**: 数値的に不安定な点の場合
 
-**Throws**: ゼロ除算が発生した場合
-
 **Throws**: キャッシュが存在しない場合
 
 #### `acosh`
@@ -8810,8 +8724,6 @@ acosh(): BigFloatComplexVector
 
 **Throws**: 数値的に不安定な点の場合
 
-**Throws**: ゼロ除算が発生した場合
-
 **Throws**: キャッシュが存在しない場合
 
 #### `atanh`
@@ -8835,8 +8747,6 @@ atanh(): BigFloatComplexVector
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
 **Throws**: 数値的に不安定な点の場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: キャッシュが存在しない場合
 
@@ -8985,8 +8895,6 @@ log2(): BigFloatComplexVector
 
 **Throws**: キャッシュが存在しない場合
 
-**Throws**: ゼロ除算が発生した場合
-
 #### `log10`
 
 ```ts
@@ -9010,8 +8918,6 @@ log10(): BigFloatComplexVector
 **Throws**: 数値的に不安定な点の場合
 
 **Throws**: キャッシュが存在しない場合
-
-**Throws**: ゼロ除算が発生した場合
 
 #### `log1p`
 
@@ -9299,8 +9205,6 @@ stddev(): BigFloatComplex
 
 **Throws**: 文字列が複素数表現として無効な場合
 
-**Throws**: ゼロ除算が発生した場合
-
 #### `geometricMean`
 
 ```ts
@@ -9324,8 +9228,6 @@ geometricMean(): BigFloatComplex
 **Throws**: 数値的に不安定な点の場合
 
 **Throws**: キャッシュが存在しない場合
-
-**Throws**: ゼロ除算が発生した場合
 
 #### `harmonicMean`
 
@@ -9360,8 +9262,6 @@ rms(): BigFloatComplex
 **Returns**: RMS
 
 **Throws**: ベクトルが空の場合
-
-**Throws**: ゼロ複素数で除算しようとした場合
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
@@ -11346,8 +11246,6 @@ average(): BigFloat
 
 **Returns**: 平均
 
-**Throws**: ゼロ除算が発生した場合
-
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
 **Throws**: 複素数モードが無効な場合
@@ -11479,8 +11377,6 @@ rms(): BigFloat
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: 文字列が複素数表現として無効な場合
-
-**Throws**: ゼロ複素数で除算しようとした場合
 
 #### `rowSums`
 
@@ -12465,8 +12361,6 @@ relativeDiff(other: string | number | bigint | BigFloat | BigFloatComplex): BigF
 
 **Throws**: 精度の不一致が許容されていない場合
 
-**Throws**: ゼロ除算が発生した場合
-
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
@@ -12514,8 +12408,6 @@ percentDiff(other: string | number | bigint | BigFloat | BigFloatComplex): BigFl
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: 精度が 0 未満または MAX_PRECISION を超える場合
 
@@ -12686,8 +12578,6 @@ sign(): BigFloatStream
 
 **Throws**: 文字列が複素数表現として無効な場合
 
-**Throws**: ゼロ除算が発生した場合
-
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: 複素数モードが無効な場合
@@ -12765,8 +12655,6 @@ sqrt(): BigFloatStream
 
 **Throws**: 文字列が複素数表現として無効な場合
 
-**Throws**: ゼロ除算が発生した場合
-
 #### `cbrt`
 
 ```ts
@@ -12788,8 +12676,6 @@ cbrt(): BigFloatStream
 **Throws**: キャッシュが存在しない場合
 
 **Throws**: 精度の不一致が許容されていない場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: 複素数モードが無効な場合
 
@@ -12817,8 +12703,6 @@ nthRoot(n: number | bigint): BigFloatStream
 **Throws**: キャッシュが存在しない場合
 
 **Throws**: 精度の不一致が許容されていない場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: 複素数モードが無効な場合
 
@@ -13024,8 +12908,6 @@ asin(): BigFloatStream
 
 **Throws**: 文字列が複素数表現として無効な場合
 
-**Throws**: ゼロ除算が発生した場合
-
 #### `acos`
 
 ```ts
@@ -13197,8 +13079,6 @@ asinh(): BigFloatStream
 
 **Throws**: 数値的に不安定な点の場合
 
-**Throws**: ゼロ除算が発生した場合
-
 #### `acosh`
 
 ```ts
@@ -13223,8 +13103,6 @@ acosh(): BigFloatStream
 
 **Throws**: 数値的に不安定な点の場合
 
-**Throws**: ゼロ除算が発生した場合
-
 #### `atanh`
 
 ```ts
@@ -13242,8 +13120,6 @@ atanh(): BigFloatStream
 **Throws**: 複素数モードが無効な場合
 
 **Throws**: 精度の不一致が許容されていない場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: キャッシュが存在しない場合
 
@@ -13755,8 +13631,6 @@ geometricMean(): BigFloat | BigFloatComplex
 
 **Throws**: キャッシュが存在しない場合
 
-**Throws**: ゼロ除算が発生した場合
-
 #### `harmonicMean`
 
 ```ts
@@ -13965,8 +13839,6 @@ linspace(start: string | number | bigint | BigFloat, end: string | number | bigi
 **Throws**: 複素数モードが無効な場合
 
 **Throws**: 精度の不一致が許容されていない場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: 文字列が複素数表現として無効な場合
 
@@ -14688,8 +14560,6 @@ relativeDiff(other: BigFloatComplex | BigFloatComplexVector | Iterable<BigFloatC
 
 **Throws**: 精度の不一致が許容されていない場合
 
-**Throws**: ゼロ除算が発生した場合
-
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
 **Throws**: 文字列が複素数表現として無効な場合
@@ -14743,8 +14613,6 @@ percentDiff(other: BigFloatComplex | BigFloatComplexVector | Iterable<BigFloatCo
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
-
-**Throws**: ゼロ除算が発生した場合
 
 **Throws**: 文字列が複素数表現として無効な場合
 
@@ -15386,8 +15254,6 @@ average(): BigFloat
 
 **Returns**: 平均
 
-**Throws**: ゼロ除算が発生した場合
-
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
 **Throws**: 複素数モードが無効な場合
@@ -15511,8 +15377,6 @@ rms(): BigFloat
 **Returns**: RMS
 
 **Throws**: ベクトルが空の場合
-
-**Throws**: ゼロ複素数で除算しようとした場合
 
 **Throws**: 負の数の平方根を計算しようとした場合
 
