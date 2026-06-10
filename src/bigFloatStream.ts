@@ -1624,13 +1624,10 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {TypeError} 複素数の場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	public gamma(): this {
-		return this.map((x) => {
-			if (x instanceof BigFloat) return x.gamma();
-			if (!x.isReal()) throw new TypeError("gamma is not supported for non-real complex numbers");
-			return new BigFloatComplex(x.real.gamma(), 0, x.precision);
-		});
+		return this.map((x) => x.gamma());
 	}
 
 	/**
@@ -1641,13 +1638,10 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {TypeError} 複素数の場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	public zeta(): this {
-		return this.map((x) => {
-			if (x instanceof BigFloat) return x.zeta();
-			if (!x.isReal()) throw new TypeError("zeta is not supported for non-real complex numbers");
-			return new BigFloatComplex(x.real.zeta(), 0, x.precision);
-		});
+		return this.map((x) => x.zeta());
 	}
 
 	/**
@@ -1658,13 +1652,10 @@ export class BigFloatStream implements Iterable<BigFloatLike> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {TypeError} 複素数の場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	public factorial(): this {
-		return this.map((x) => {
-			if (x instanceof BigFloat) return x.factorial();
-			if (!x.isReal()) throw new TypeError("factorial is not supported for non-real complex numbers");
-			return new BigFloatComplex(x.real.factorial(), 0, x.precision);
-		});
+		return this.map((x) => x.factorial());
 	}
 
 	/**

@@ -1207,6 +1207,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	public gamma(): this {
 		return this._mapValues((v) => v.gamma());
@@ -1220,6 +1221,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	public zeta(): this {
 		return this._mapValues((v) => v.zeta());
@@ -1233,6 +1235,7 @@ export class BigFloatComplexVector implements Iterable<BigFloatComplex> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	public factorial(): this {
 		return this._mapValues((v) => v.factorial());

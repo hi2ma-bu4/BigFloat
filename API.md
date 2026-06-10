@@ -531,6 +531,8 @@ Math.cos() 相当
 
 **Throws**: 文字列が複素数表現として無効な場合
 
+**Throws**: キャッシュが存在しない場合
+
 #### `cosh`
 
 ```ts
@@ -2358,6 +2360,8 @@ cos(): BigFloat
 
 **Throws**: 基数が2から36の範囲外の場合
 
+**Throws**: キャッシュが存在しない場合
+
 **Throws**: 精度の不一致が許容されていない場合
 
 **Throws**: 複素数モードが無効な場合
@@ -2778,6 +2782,8 @@ gamma(): BigFloat
 
 **Throws**: ゼロ除算が発生した場合
 
+**Throws**: Lanczos級数が数値的に不安定な場合
+
 #### `zeta`
 
 ```ts
@@ -2796,6 +2802,8 @@ Riemann zeta 関数を計算する
 
 **Throws**: キャッシュが存在しない場合
 
+**Throws**: Lanczos級数が数値的に不安定な場合
+
 #### `factorial`
 
 ```ts
@@ -2813,6 +2821,8 @@ factorial(): BigFloat
 **Throws**: キャッシュが存在しない場合
 
 **Throws**: ゼロ除算が発生した場合
+
+**Throws**: Lanczos級数が数値的に不安定な場合
 
 #### `rationalize`
 
@@ -5135,6 +5145,8 @@ gamma(): BigFloatComplex
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
+**Throws**: Lanczos級数が数値的に不安定な場合
+
 #### `zeta`
 
 ```ts
@@ -5155,6 +5167,8 @@ zeta(): BigFloatComplex
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
+**Throws**: Lanczos級数が数値的に不安定な場合
+
 #### `factorial`
 
 ```ts
@@ -5174,6 +5188,8 @@ factorial(): BigFloatComplex
 **Throws**: 負の整数の場合
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: Lanczos級数が数値的に不安定な場合
 
 #### `agm`
 
@@ -6867,6 +6883,8 @@ gamma(): BigFloatComplexMatrix
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
 
+**Throws**: Lanczos級数が数値的に不安定な場合
+
 #### `zeta`
 
 ```ts
@@ -6887,6 +6905,8 @@ zeta(): BigFloatComplexMatrix
 
 **Throws**: 特殊値が無効な設定で this = 1 の場合
 
+**Throws**: Lanczos級数が数値的に不安定な場合
+
 #### `factorial`
 
 ```ts
@@ -6906,6 +6926,8 @@ factorial(): BigFloatComplexMatrix
 **Throws**: 負の整数の場合
 
 **Throws**: 特殊値が無効な設定で特殊値を扱おうとした場合
+
+**Throws**: Lanczos級数が数値的に不安定な場合
 
 #### `Ei`
 
@@ -8963,6 +8985,8 @@ gamma(): BigFloatComplexVector
 
 **Throws**: 非実数複素数の場合
 
+**Throws**: Lanczos級数が数値的に不安定な場合
+
 #### `zeta`
 
 ```ts
@@ -8983,6 +9007,8 @@ zeta(): BigFloatComplexVector
 
 **Throws**: 非実数複素数の場合
 
+**Throws**: Lanczos級数が数値的に不安定な場合
+
 #### `factorial`
 
 ```ts
@@ -9002,6 +9028,8 @@ factorial(): BigFloatComplexVector
 **Throws**: ゼロ除算が発生した場合
 
 **Throws**: 非実数複素数の場合
+
+**Throws**: Lanczos級数が数値的に不安定な場合
 
 #### `Ei`
 
@@ -10644,6 +10672,8 @@ cos(): BigFloatMatrix | BigFloatMatrix
 
 **Throws**: 文字列が複素数表現として無効な場合
 
+**Throws**: キャッシュが存在しない場合
+
 #### `tan`
 
 ```ts
@@ -11076,6 +11106,8 @@ gamma(): BigFloatMatrix | BigFloatMatrix
 
 **Throws**: 文字列が複素数表現として無効な場合
 
+**Throws**: Lanczos級数が数値的に不安定な場合
+
 #### `zeta`
 
 ```ts
@@ -11096,6 +11128,8 @@ zeta(): BigFloatMatrix | BigFloatMatrix
 
 **Throws**: 文字列が複素数表現として無効な場合
 
+**Throws**: Lanczos級数が数値的に不安定な場合
+
 #### `factorial`
 
 ```ts
@@ -11115,6 +11149,8 @@ factorial(): BigFloatMatrix | BigFloatMatrix
 **Throws**: ゼロ除算が発生した場合
 
 **Throws**: 文字列が複素数表現として無効な場合
+
+**Throws**: Lanczos級数が数値的に不安定な場合
 
 #### `Ei`
 
@@ -13336,6 +13372,8 @@ gamma(): BigFloatStream
 
 **Throws**: 複素数の場合
 
+**Throws**: Lanczos級数が数値的に不安定な場合
+
 #### `zeta`
 
 ```ts
@@ -13356,6 +13394,8 @@ zeta(): BigFloatStream
 
 **Throws**: 複素数の場合
 
+**Throws**: Lanczos級数が数値的に不安定な場合
+
 #### `factorial`
 
 ```ts
@@ -13375,6 +13415,8 @@ factorial(): BigFloatStream
 **Throws**: ゼロ除算が発生した場合
 
 **Throws**: 複素数の場合
+
+**Throws**: Lanczos級数が数値的に不安定な場合
 
 #### `agm`
 
@@ -14660,6 +14702,8 @@ cos(): BigFloatVector
 
 **Throws**: 文字列が複素数表現として無効な場合
 
+**Throws**: キャッシュが存在しない場合
+
 #### `tan`
 
 ```ts
@@ -15090,6 +15134,8 @@ gamma(): BigFloatVector
 
 **Throws**: ゼロ除算が発生した場合
 
+**Throws**: Lanczos級数が数値的に不安定な場合
+
 #### `zeta`
 
 ```ts
@@ -15108,6 +15154,8 @@ zeta(): BigFloatVector
 
 **Throws**: キャッシュが存在しない場合
 
+**Throws**: Lanczos級数が数値的に不安定な場合
+
 #### `factorial`
 
 ```ts
@@ -15125,6 +15173,8 @@ factorial(): BigFloatVector
 **Throws**: キャッシュが存在しない場合
 
 **Throws**: ゼロ除算が発生した場合
+
+**Throws**: Lanczos級数が数値的に不安定な場合
 
 #### `Ei`
 

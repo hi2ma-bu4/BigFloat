@@ -1067,6 +1067,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
 	public cos(): this {
 		return this._mapValues((value) => value.cos());
@@ -1385,6 +1386,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {RangeError} 負の整数の場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	public gamma(): this {
 		return this._mapValues((value) => value.gamma());
@@ -1397,6 +1399,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	public zeta(): this {
 		return this._mapValues((value) => value.zeta());
@@ -1409,6 +1412,7 @@ export class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {RangeError} 負の整数の場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	public factorial(): this {
 		return this._mapValues((value) => value.factorial());

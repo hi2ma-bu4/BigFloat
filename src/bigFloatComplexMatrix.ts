@@ -1379,13 +1379,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {RangeError} 負の整数の場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	public gamma(): this {
-		// Not implemented in BigFloatComplex
-		return this._mapValues((v) => {
-			if (!v.isReal()) throw new TypeError("gamma is not supported for non-real complex numbers");
-			return new BigFloatComplex(v.real.gamma(), 0, v.precision);
-		});
+		return this._mapValues((v) => v.gamma());
 	}
 
 	/**
@@ -1396,12 +1393,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {RangeError} 特殊値が無効な設定で this = 1 の場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	public zeta(): this {
-		return this._mapValues((v) => {
-			if (!v.isReal()) throw new TypeError("zeta is not supported for non-real complex numbers");
-			return new BigFloatComplex(v.real.zeta(), 0, v.precision);
-		});
+		return this._mapValues((v) => v.zeta());
 	}
 
 	/**
@@ -1412,12 +1407,10 @@ export class BigFloatComplexMatrix implements Iterable<BigFloatComplexVector> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {RangeError} 負の整数の場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	public factorial(): this {
-		return this._mapValues((v) => {
-			if (!v.isReal()) throw new TypeError("factorial is not supported for non-real complex numbers");
-			return new BigFloatComplex(v.real.factorial(), 0, v.precision);
-		});
+		return this._mapValues((v) => v.factorial());
 	}
 
 	/**

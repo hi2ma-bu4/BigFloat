@@ -723,6 +723,7 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
 	cos(): this | BigFloatMatrix;
 	/**
@@ -938,6 +939,7 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	gamma(): this | BigFloatMatrix;
 	/**
@@ -948,6 +950,7 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	zeta(): this | BigFloatMatrix;
 	/**
@@ -958,6 +961,7 @@ export declare class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	factorial(): this | BigFloatMatrix;
 	/**
@@ -2124,6 +2128,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {RangeError} 負の整数の場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	gamma(): this;
 	/**
@@ -2134,6 +2139,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {RangeError} 特殊値が無効な設定で this = 1 の場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	zeta(): this;
 	/**
@@ -2144,6 +2150,7 @@ export declare class BigFloatComplexMatrix implements Iterable<BigFloatComplexVe
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {RangeError} 負の整数の場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	factorial(): this;
 	/**
@@ -3447,6 +3454,7 @@ export declare class BigFloatStream implements Iterable<BigFloatLike> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {TypeError} 複素数の場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	gamma(): this;
 	/**
@@ -3457,6 +3465,7 @@ export declare class BigFloatStream implements Iterable<BigFloatLike> {
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {TypeError} 複素数の場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	zeta(): this;
 	/**
@@ -3467,6 +3476,7 @@ export declare class BigFloatStream implements Iterable<BigFloatLike> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {TypeError} 複素数の場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	factorial(): this;
 	/**
@@ -4426,6 +4436,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	gamma(): this;
 	/**
@@ -4436,6 +4447,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	zeta(): this;
 	/**
@@ -4446,6 +4458,7 @@ export declare class BigFloatComplexVector implements Iterable<BigFloatComplex> 
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {TypeError} 非実数複素数の場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	factorial(): this;
 	/**
@@ -5288,6 +5301,7 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
 	cos(): this;
 	/**
@@ -5507,6 +5521,7 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {RangeError} 負の整数の場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	gamma(): this;
 	/**
@@ -5516,6 +5531,7 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	zeta(): this;
 	/**
@@ -5525,6 +5541,7 @@ export declare class BigFloatVector implements Iterable<BigFloat> {
 	 * @throws {RangeError} 負の整数の場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	factorial(): this;
 	/**
@@ -6901,6 +6918,7 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {RangeError} 負の整数の場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	gamma(): BigFloatComplex;
 	/**
@@ -6911,6 +6929,7 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {RangeError} 負の整数の場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	zeta(): BigFloatComplex;
 	/**
@@ -6921,6 +6940,7 @@ export declare class BigFloatComplex implements Iterable<BigFloat> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {RangeError} 負の整数の場合
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	factorial(): BigFloatComplex;
 	/**
@@ -7075,6 +7095,17 @@ export type BigFloatCacheEntry = {
 	exactValue: bigint;
 	precision: bigint;
 };
+export type BigFloatLanczosCacheEntry = {
+	precision: bigint;
+	terms: number;
+	g: bigint;
+	coefficients: bigint[];
+};
+export type BigFloatTrigReduction = {
+	angle: bigint;
+	sinSign: bigint;
+	cosSign: bigint;
+};
 /**
  * BigFloat の設定を管理するクラス
  */
@@ -7153,6 +7184,8 @@ export declare class BigFloat {
 	private static _pow2Cache;
 	/** ベルヌーイ数のキャッシュ */
 	private static _bernoulliCache;
+	/** Lanczos係数のキャッシュ */
+	private static _lanczosCache;
 	/** 内部的な値 (mantissa × 2^exp2 × 5^exp5) */
 	mantissa: bigint;
 	/** 2の指数 */
@@ -8005,6 +8038,16 @@ export declare class BigFloat {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 */
+	protected static _reduceTrigArgument(x: bigint, precision: bigint): BigFloatTrigReduction;
+	/**
+	 * 正弦(sin)を計算する (内部用)
+	 * @param x - 角度(ラジアン)
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns 正弦
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
+	 */
 	protected static _sin(x: bigint, precision: bigint, maxSteps: bigint): bigint;
 	/**
 	 * 範囲縮約なしで正弦(sin)を計算する (内部用)
@@ -8032,12 +8075,23 @@ export declare class BigFloat {
 	 * @param maxSteps - 最大ステップ数
 	 * @returns 余弦
 	 */
+	protected static _cosSeries(x: bigint, precision: bigint, maxSteps: bigint): bigint;
+	/**
+	 * 余弦(cos)を計算する (内部用)
+	 * @param x - 角度(ラジアン)
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns 余弦
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
+	 */
 	protected static _cos(x: bigint, precision: bigint, maxSteps: bigint): bigint;
 	/**
 	 * 余弦(cos)を計算する
 	 * @returns 余弦
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {RangeError} 基数が2から36の範囲外の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
@@ -8633,6 +8687,7 @@ export declare class BigFloat {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
 	static cos(value: BigFloatValue, precision?: PrecisionValue): BigFloat;
 	/**
@@ -9113,16 +9168,51 @@ export declare class BigFloat {
 	 * @throws {RangeError} s = 1 の場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	protected static _zeta(s: bigint, precision: bigint): bigint;
 	/**
-	 * ガンマ関数をStirlingの近似で計算する (内部用)
+	 * Lanczos係数の項数を決定する (内部用)
+	 * @param precision - 精度
+	 * @returns 項数
+	 */
+	protected static _lanczosTermCount(precision: bigint): number;
+	/**
+	 * Lanczos係数計算用の二項係数を計算する (内部用)
+	 * @param n - 全体数
+	 * @param k - 選択数
+	 * @returns 二項係数
+	 */
+	protected static _lanczosBinomial(n: bigint, k: bigint): bigint;
+	/**
+	 * Godfrey形式のLanczos係数を取得する (内部用)
+	 * @param precision - 精度
+	 * @returns Lanczos係数
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {RangeError} 値が0以下の場合
+	 */
+	protected static _getLanczosCoefficients(precision: bigint): BigFloatLanczosCacheEntry;
+	/**
+	 * ガンマ関数をLanczos近似で計算する (内部用、指定精度で直接計算)
 	 * @param z - 値
 	 * @param precision - 精度
 	 * @returns ガンマ関数
 	 * @throws {RangeError} 負の整数の場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
+	 */
+	protected static _gammaLanczosRaw(z: bigint, precision: bigint): bigint;
+	/**
+	 * ガンマ関数をLanczos近似で計算する (内部用)
+	 * @param z - 値
+	 * @param precision - 精度
+	 * @returns ガンマ関数
+	 * @throws {RangeError} 負の整数の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	protected static _gammaLanczos(z: bigint, precision: bigint): bigint;
 	/**
@@ -9132,6 +9222,7 @@ export declare class BigFloat {
 	 * @throws {RangeError} 負の整数の場合、または特殊値が無効な設定で極（負の整数またはゼロ）を指定した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	gamma(): BigFloat;
 	/**
@@ -9141,6 +9232,7 @@ export declare class BigFloat {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	zeta(): BigFloat;
 	/**
@@ -9166,6 +9258,7 @@ export declare class BigFloat {
 	 * @throws {RangeError} 負の整数の場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	protected static _factorialGamma(n: bigint, precision: bigint): bigint;
 	/**
@@ -9175,6 +9268,7 @@ export declare class BigFloat {
 	 * @throws {RangeError} 負の整数の場合、または特殊値が無効な設定で極（負の整数）を指定した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	factorial(): BigFloat;
 	/**

@@ -1214,6 +1214,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
 	public cos(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.cos());
@@ -1501,6 +1502,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	public gamma(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.gamma());
@@ -1514,6 +1516,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	public zeta(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.zeta());
@@ -1527,6 +1530,7 @@ export class BigFloatMatrix implements Iterable<BigFloatVector> {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	public factorial(): this | BigFloatMatrix {
 		return this._mapValues((value) => value.factorial());

@@ -8,6 +8,17 @@ type BigFloatCacheEntry = {
 	exactValue: bigint;
 	precision: bigint;
 };
+type BigFloatLanczosCacheEntry = {
+	precision: bigint;
+	terms: number;
+	g: bigint;
+	coefficients: bigint[];
+};
+type BigFloatTrigReduction = {
+	angle: bigint;
+	sinSign: bigint;
+	cosSign: bigint;
+};
 
 /**
  * BigFloat の設定を管理するクラス
@@ -123,6 +134,8 @@ export class BigFloat {
 	private static _pow2Cache: bigint[] = [1n];
 	/** ベルヌーイ数のキャッシュ */
 	private static _bernoulliCache: Record<string, bigint[]> = Object.create(null);
+	/** Lanczos係数のキャッシュ */
+	private static _lanczosCache: Record<string, BigFloatLanczosCacheEntry> = Object.create(null);
 
 	/** 内部的な値 (mantissa × 2^exp2 × 5^exp5) */
 	public mantissa: bigint = 0n;
@@ -146,6 +159,7 @@ export class BigFloat {
 		this._pow5Cache = [1n];
 		this._pow2Cache = [1n];
 		this._bernoulliCache = Object.create(null);
+		this._lanczosCache = Object.create(null);
 	}
 
 	/**
@@ -2662,38 +2676,39 @@ export class BigFloat {
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 */
-	protected static _sin(x: bigint, precision: bigint, maxSteps: bigint): bigint {
-		const scale = this._getPow10(precision);
-
+	protected static _reduceTrigArgument(x: bigint, precision: bigint): BigFloatTrigReduction {
 		const pi = this._pi(precision);
 		const twoPi = 2n * pi;
 		const halfPi = pi / 2n;
 
 		x = this._mod(x, twoPi);
 		if (x > pi) x -= twoPi;
-		let sign = 1n;
+		let sinSign = 1n;
+		let cosSign = 1n;
 		if (x > halfPi) {
 			x = pi - x;
-			sign = 1n;
+			cosSign = -1n;
 		} else if (x < -halfPi) {
 			x = -pi - x;
-			sign = -1n;
+			sinSign = -1n;
+			cosSign = -1n;
 		}
 
-		let term = x;
-		let result = term;
-		const x2 = (x * x) / scale;
-		let sgn = -1n;
+		return { angle: x, sinSign, cosSign };
+	}
 
-		for (let n = 1n; n <= maxSteps; n++) {
-			const denom = 2n * n;
-			term = (term * x2) / scale;
-			term = term / (denom * (denom + 1n));
-			if (term === 0n) break;
-			result += sgn * term;
-			sgn *= -1n;
-		}
-		return result * sign;
+	/**
+	 * 正弦(sin)を計算する (内部用)
+	 * @param x - 角度(ラジアン)
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns 正弦
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
+	 */
+	protected static _sin(x: bigint, precision: bigint, maxSteps: bigint): bigint {
+		const reduced = this._reduceTrigArgument(x, precision);
+		return this._sinSeries(reduced.angle, precision, maxSteps) * reduced.sinSign;
 	}
 
 	/**
@@ -2708,15 +2723,15 @@ export class BigFloat {
 		let term = x;
 		let result = term;
 		const x2 = (x * x) / scale;
-		let sign = -1n;
+		let sgn = -1n;
 
 		for (let n = 1n; n <= maxSteps; n++) {
 			const denom = 2n * n;
 			term = (term * x2) / scale;
 			term = term / (denom * (denom + 1n));
 			if (term === 0n) break;
-			result += sign * term;
-			sign *= -1n;
+			result += sgn * term;
+			sgn *= -1n;
 		}
 		return result;
 	}
@@ -2776,7 +2791,7 @@ export class BigFloat {
 	 * @param maxSteps - 最大ステップ数
 	 * @returns 余弦
 	 */
-	protected static _cos(x: bigint, precision: bigint, maxSteps: bigint): bigint {
+	protected static _cosSeries(x: bigint, precision: bigint, maxSteps: bigint): bigint {
 		const scale = this._getPow10(precision);
 
 		let term = scale;
@@ -2795,10 +2810,25 @@ export class BigFloat {
 	}
 
 	/**
+	 * 余弦(cos)を計算する (内部用)
+	 * @param x - 角度(ラジアン)
+	 * @param precision - 精度
+	 * @param maxSteps - 最大ステップ数
+	 * @returns 余弦
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
+	 */
+	protected static _cos(x: bigint, precision: bigint, maxSteps: bigint): bigint {
+		const reduced = this._reduceTrigArgument(x, precision);
+		return this._cosSeries(reduced.angle, precision, maxSteps) * reduced.cosSign;
+	}
+
+	/**
 	 * 余弦(cos)を計算する
 	 * @returns 余弦
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {RangeError} 基数が2から36の範囲外の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
@@ -2852,10 +2882,11 @@ export class BigFloat {
 	 * @throws {RangeError} 負の数の平方根を計算しようとした場合
 	 */
 	protected static _tan(x: bigint, precision: bigint, maxSteps: bigint): bigint {
-		const cosX = this._cos(x, precision, maxSteps);
+		const reduced = this._reduceTrigArgument(x, precision);
+		const cosX = this._cosSeries(reduced.angle, precision, maxSteps) * reduced.cosSign;
 		const EPSILON = this._getPow10(precision - 4n);
 		if (cosX === 0n || (cosX > -EPSILON && cosX < EPSILON)) throw new NumericalComputationError("tan(x) is undefined or numerically unstable at this point");
-		const sinX = this._sin(x, precision, maxSteps);
+		const sinX = this._sinSeries(reduced.angle, precision, maxSteps) * reduced.sinSign;
 		const scale = this._getPow10(precision);
 		return (sinX * scale) / cosX;
 	}
@@ -4417,6 +4448,7 @@ export class BigFloat {
 	 * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
 	 * @throws {TypeError} 複素数モードが無効な場合
 	 * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 */
 	public static cos(value: BigFloatValue, precision?: PrecisionValue): BigFloat {
 		const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -5372,6 +5404,7 @@ export class BigFloat {
 	 * @throws {RangeError} s = 1 の場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	protected static _zeta(s: bigint, precision: bigint): bigint {
 		const scale = this._getPow10(precision);
@@ -5403,15 +5436,111 @@ export class BigFloat {
 	}
 
 	/**
-	 * ガンマ関数をStirlingの近似で計算する (内部用)
+	 * Lanczos係数の項数を決定する (内部用)
+	 * @param precision - 精度
+	 * @returns 項数
+	 */
+	protected static _lanczosTermCount(precision: bigint): number {
+		return Math.max(12, Math.ceil(Number(precision) * 0.5));
+	}
+
+	/**
+	 * Lanczos係数計算用の二項係数を計算する (内部用)
+	 * @param n - 全体数
+	 * @param k - 選択数
+	 * @returns 二項係数
+	 */
+	protected static _lanczosBinomial(n: bigint, k: bigint): bigint {
+		if (k < 0n || k > n) return 0n;
+		return this._binomial(n, k);
+	}
+
+	/**
+	 * Godfrey形式のLanczos係数を取得する (内部用)
+	 * @param precision - 精度
+	 * @returns Lanczos係数
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {RangeError} 値が0以下の場合
+	 */
+	protected static _getLanczosCoefficients(precision: bigint): BigFloatLanczosCacheEntry {
+		const terms = this._lanczosTermCount(precision);
+		const g = BigInt(Math.max(7, terms - 5));
+		const key = `${precision}:${terms}:${g}`;
+		const cached = this._lanczosCache[key];
+		if (cached) return cached;
+
+		const scale = this._getPow10(precision);
+		const halfScale = scale / 2n;
+		const fValues: bigint[] = [];
+
+		for (let i = 0; i < terms; i++) {
+			const ib = BigInt(i);
+			const shifted = (ib + g) * scale + halfScale;
+			const expTerm = this._exp(shifted, precision);
+			const powTerm = this._pow(shifted, ib * scale + halfScale, precision);
+			if (i === 0) {
+				fValues.push((2n * expTerm * scale) / powTerm);
+				continue;
+			}
+			const numerator = this._factorial(2n * ib) * expTerm * scale;
+			const denominator = this._factorial(ib) * (1n << BigInt(2 * i - 1)) * powTerm;
+			fValues.push(numerator / denominator);
+		}
+
+		const cTimesF: bigint[] = [];
+		for (let i = 0; i < terms; i++) {
+			let rowSum = 0n;
+			for (let j = 0; j <= i; j++) {
+				let cValue: bigint;
+				if (i === 0 && j === 0) {
+					cValue = scale / 2n;
+				} else {
+					let cSum = 0n;
+					for (let k = 0; k <= i; k++) {
+						cSum += this._lanczosBinomial(BigInt(2 * i), BigInt(2 * k)) * this._lanczosBinomial(BigInt(k), BigInt(k + j - i));
+					}
+					cValue = ((i - j) % 2 === 0 ? cSum : -cSum) * scale;
+				}
+				rowSum += (cValue * fValues[j]) / scale;
+			}
+			cTimesF.push(rowSum);
+		}
+
+		const bcTimesF: bigint[] = [];
+		for (let i = 0; i < terms; i++) {
+			let rowSum = 0n;
+			for (let j = i; j < terms; j++) {
+				const bValue = i === 0 ? 1n : ((j - i) % 2 === 0 ? 1n : -1n) * this._binomial(BigInt(i + j - 1), BigInt(j - i));
+				rowSum += bValue * cTimesF[j];
+			}
+			bcTimesF.push(rowSum);
+		}
+
+		const dValues: bigint[] = [1n];
+		if (terms > 1) dValues.push(-1n);
+		for (let i = 2; i < terms; i++) {
+			const ib = BigInt(i);
+			dValues.push((dValues[i - 1] * 2n * (2n * ib - 1n)) / (ib - 1n));
+		}
+
+		const coefficients = bcTimesF.map((value, index) => value * dValues[index]);
+		const entry = { precision, terms, g, coefficients };
+		this._lanczosCache[key] = entry;
+		return entry;
+	}
+
+	/**
+	 * ガンマ関数をLanczos近似で計算する (内部用、指定精度で直接計算)
 	 * @param z - 値
 	 * @param precision - 精度
 	 * @returns ガンマ関数
 	 * @throws {RangeError} 負の整数の場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
-	protected static _gammaLanczos(z: bigint, precision: bigint): bigint {
+	protected static _gammaLanczosRaw(z: bigint, precision: bigint): bigint {
 		const scale = this._getPow10(precision);
 		const half_scale = scale / 2n;
 
@@ -5426,7 +5555,7 @@ export class BigFloat {
 			const maxSteps = config.trigFuncsMaxSteps;
 			const pi = this._pi(precision);
 			const oneMinusZ = scale - z;
-			const gammaOneMinusZ = this._gammaLanczos(oneMinusZ, precision);
+			const gammaOneMinusZ = this._gammaLanczosRaw(oneMinusZ, precision);
 			const pi_z = (pi * z) / scale;
 			const sin_pi_z = this._sin(pi_z, precision, maxSteps);
 			const denominator = (sin_pi_z * gammaOneMinusZ) / scale;
@@ -5434,45 +5563,36 @@ export class BigFloat {
 			return (pi * scale) / denominator;
 		}
 
-		// 引数シフト: gamma(z) = gamma(z+m) / (z * (z+1) * ... * (z+m-1))
-		let product = scale;
-		let currentZ = z;
-		// 精度に応じて閾値を決定
-		const threshold = (precision << 1n) + 50n;
-		while (currentZ < threshold * scale) {
-			product = (product * currentZ) / scale;
-			currentZ += scale;
+		const { coefficients, g } = this._getLanczosCoefficients(precision);
+		const zMinusOne = z - scale;
+		let series = coefficients[0];
+		for (let i = 1; i < coefficients.length; i++) {
+			series += (coefficients[i] * scale) / (zMinusOne + BigInt(i) * scale);
 		}
+		if (series <= 0n) throw new NumericalComputationError("Lanczos series became non-positive");
 
-		// Stirlingの近似 (ln(gamma(z)))
-		// ln(gamma(z)) ≈ (z-0.5)ln(z) - z + 0.5ln(2pi) + sum(B_2n / (2n(2n-1)z^(2n-1)))
-		const lnZ = this._ln(currentZ, precision, this.config.lnMaxSteps);
-		const term1 = ((currentZ - half_scale) * lnZ) / scale;
-		const term2 = currentZ;
-		const term3 = this._ln2pi(precision) / 2n;
+		const shifted = zMinusOne + g * scale + half_scale;
+		const lnShifted = this._ln(shifted, precision, this.config.lnMaxSteps);
+		const lnSeries = this._ln(series, precision, this.config.lnMaxSteps);
+		const lnGamma = lnSeries + ((zMinusOne + half_scale) * lnShifted) / scale - shifted;
+		return this._exp(lnGamma, precision);
+	}
 
-		let sum = 0n;
-		const zInv = (scale * scale) / currentZ;
-		const zInv2 = (zInv * zInv) / scale;
-		let zInvPow = zInv;
-
-		// 精度に応じて項数を決定
-		const numTerms = Math.floor(Number(precision) / 6) + 10;
-		const bNumbers = this._getBernoulliNumbers(2 * numTerms, precision);
-
-		for (let n = 1; n <= numTerms; n++) {
-			const b2n = bNumbers[2 * n];
-			const denom = BigInt(2 * n * (2 * n - 1));
-			const term = (b2n * zInvPow) / (denom * scale);
-			if (term === 0n && n > 1) break;
-			sum += term;
-			zInvPow = (zInvPow * zInv2) / scale;
-		}
-
-		const lnGamma = term1 - term2 + term3 + sum;
-		const gammaLarge = this._exp(lnGamma, precision);
-
-		return (gammaLarge * scale) / product;
+	/**
+	 * ガンマ関数をLanczos近似で計算する (内部用)
+	 * @param z - 値
+	 * @param precision - 精度
+	 * @returns ガンマ関数
+	 * @throws {RangeError} 負の整数の場合
+	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
+	 */
+	protected static _gammaLanczos(z: bigint, precision: bigint): bigint {
+		const workPrecision = precision + this.config.extraPrecision + 8n;
+		const workZ = this._rescaleInternalValue(z, precision, workPrecision);
+		const raw = this._gammaLanczosRaw(workZ, workPrecision);
+		return this._rescaleInternalValue(raw, workPrecision, precision);
 	}
 
 	/**
@@ -5482,6 +5602,7 @@ export class BigFloat {
 	 * @throws {RangeError} 負の整数の場合、または特殊値が無効な設定で極（負の整数またはゼロ）を指定した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	public gamma(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -5511,6 +5632,7 @@ export class BigFloat {
 	 * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	public zeta(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -5578,6 +5700,7 @@ export class BigFloat {
 	 * @throws {RangeError} 負の整数の場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	protected static _factorialGamma(n: bigint, precision: bigint): bigint {
 		const scale = this._getPow10(precision);
@@ -5591,6 +5714,7 @@ export class BigFloat {
 	 * @throws {RangeError} 負の整数の場合、または特殊値が無効な設定で極（負の整数）を指定した場合
 	 * @throws {CacheNotInitializedError} キャッシュが存在しない場合
 	 * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+	 * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
 	 */
 	public factorial(): BigFloat {
 		const construct = this.constructor as BigFloatConstructor;
@@ -6384,7 +6508,7 @@ export class BigFloat {
 			for (let i = 0; i < 2; i++) {
 				const sinValue = this._sinSeries(estimate, workPrecision, this.config.trigFuncsMaxSteps);
 				if (sinValue === 0n) break;
-				const cosValue = this._cos(estimate, workPrecision, this.config.trigFuncsMaxSteps);
+				const cosValue = this._cosSeries(estimate, workPrecision, this.config.trigFuncsMaxSteps);
 				const refined = estimate - (sinValue * scale) / cosValue;
 				if (refined === estimate) break;
 				estimate = refined;

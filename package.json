@@ -1,6 +1,6 @@
 {
   "name": "bigfloat",
-  "version": "1.4.9",
+  "version": "1.4.10",
   "description": "高精度BigFloatライブラリ。複素数や行列もサポート",
   "license": "Apache-2.0",
   "author": "hi2ma-bu4",

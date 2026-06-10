@@ -1,5 +1,5 @@
 /*!
- * BigFloat 1.4.9
+ * BigFloat 1.4.10
  * Copyright 2026 hi2ma-bu4
  * Licensed under the Apache License, Version 2.0
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -1471,13 +1471,10 @@ var BigFloatStream = class _BigFloatStream {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
    * @throws {TypeError} 複素数の場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   gamma() {
-    return this.map((x) => {
-      if (x instanceof BigFloat) return x.gamma();
-      if (!x.isReal()) throw new TypeError("gamma is not supported for non-real complex numbers");
-      return new BigFloatComplex(x.real.gamma(), 0, x.precision);
-    });
+    return this.map((x) => x.gamma());
   }
   /**
    * 各要素に対してリーマンゼータ関数を計算する
@@ -1487,13 +1484,10 @@ var BigFloatStream = class _BigFloatStream {
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {TypeError} 複素数の場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   zeta() {
-    return this.map((x) => {
-      if (x instanceof BigFloat) return x.zeta();
-      if (!x.isReal()) throw new TypeError("zeta is not supported for non-real complex numbers");
-      return new BigFloatComplex(x.real.zeta(), 0, x.precision);
-    });
+    return this.map((x) => x.zeta());
   }
   /**
    * 各要素に対して階乗を計算する
@@ -1503,13 +1497,10 @@ var BigFloatStream = class _BigFloatStream {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
    * @throws {TypeError} 複素数の場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   factorial() {
-    return this.map((x) => {
-      if (x instanceof BigFloat) return x.factorial();
-      if (!x.isReal()) throw new TypeError("factorial is not supported for non-real complex numbers");
-      return new BigFloatComplex(x.real.factorial(), 0, x.precision);
-    });
+    return this.map((x) => x.factorial());
   }
   /**
    * 各要素に対して算術幾何平均 (agm) を計算する
@@ -2902,6 +2893,7 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
    * @throws {TypeError} 非実数複素数の場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   gamma() {
     return this._mapValues((v) => v.gamma());
@@ -2914,6 +2906,7 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
    * @throws {TypeError} 非実数複素数の場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   zeta() {
     return this._mapValues((v) => v.zeta());
@@ -2926,6 +2919,7 @@ var BigFloatComplexVector = class _BigFloatComplexVector {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
    * @throws {TypeError} 非実数複素数の場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   factorial() {
     return this._mapValues((v) => v.factorial());
@@ -4055,6 +4049,7 @@ var BigFloatVector = class _BigFloatVector {
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {TypeError} 複素数モードが無効な場合
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   cos() {
     return this._mapValues((value) => value.cos());
@@ -4314,6 +4309,7 @@ var BigFloatVector = class _BigFloatVector {
    * @throws {RangeError} 負の整数の場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   gamma() {
     return this._mapValues((value) => value.gamma());
@@ -4325,6 +4321,7 @@ var BigFloatVector = class _BigFloatVector {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   zeta() {
     return this._mapValues((value) => value.zeta());
@@ -4336,6 +4333,7 @@ var BigFloatVector = class _BigFloatVector {
    * @throws {RangeError} 負の整数の場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   factorial() {
     return this._mapValues((value) => value.factorial());
@@ -6250,6 +6248,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {RangeError} 負の整数の場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   gamma() {
     return this._applyRealUnaryComplex("gamma", (value) => value.gamma());
@@ -6262,6 +6261,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {RangeError} 負の整数の場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   zeta() {
     return this._applyRealUnaryComplex("zeta", (value) => value.zeta());
@@ -6274,6 +6274,7 @@ var BigFloatComplex = class _BigFloatComplex {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {RangeError} 負の整数の場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   factorial() {
     return this._applyRealUnaryComplex("factorial", (value) => value.factorial());
@@ -6587,6 +6588,8 @@ var BigFloat = class _BigFloat {
   static _pow2Cache = [1n];
   /** ベルヌーイ数のキャッシュ */
   static _bernoulliCache = /* @__PURE__ */ Object.create(null);
+  /** Lanczos係数のキャッシュ */
+  static _lanczosCache = /* @__PURE__ */ Object.create(null);
   /** 内部的な値 (mantissa × 2^exp2 × 5^exp5) */
   mantissa = 0n;
   /** 2の指数 */
@@ -6608,6 +6611,7 @@ var BigFloat = class _BigFloat {
     this._pow5Cache = [1n];
     this._pow2Cache = [1n];
     this._bernoulliCache = /* @__PURE__ */ Object.create(null);
+    this._lanczosCache = /* @__PURE__ */ Object.create(null);
   }
   /**
    * 2の指数を取得する
@@ -8721,34 +8725,36 @@ var BigFloat = class _BigFloat {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {RangeError} 負の数の平方根を計算しようとした場合
    */
-  static _sin(x, precision, maxSteps) {
-    const scale = this._getPow10(precision);
+  static _reduceTrigArgument(x, precision) {
     const pi = this._pi(precision);
     const twoPi = 2n * pi;
     const halfPi = pi / 2n;
     x = this._mod(x, twoPi);
     if (x > pi) x -= twoPi;
-    let sign = 1n;
+    let sinSign = 1n;
+    let cosSign = 1n;
     if (x > halfPi) {
       x = pi - x;
-      sign = 1n;
+      cosSign = -1n;
     } else if (x < -halfPi) {
       x = -pi - x;
-      sign = -1n;
+      sinSign = -1n;
+      cosSign = -1n;
     }
-    let term = x;
-    let result = term;
-    const x2 = x * x / scale;
-    let sgn = -1n;
-    for (let n = 1n; n <= maxSteps; n++) {
-      const denom = 2n * n;
-      term = term * x2 / scale;
-      term = term / (denom * (denom + 1n));
-      if (term === 0n) break;
-      result += sgn * term;
-      sgn *= -1n;
-    }
-    return result * sign;
+    return { angle: x, sinSign, cosSign };
+  }
+  /**
+   * 正弦(sin)を計算する (内部用)
+   * @param x - 角度(ラジアン)
+   * @param precision - 精度
+   * @param maxSteps - 最大ステップ数
+   * @returns 正弦
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   */
+  static _sin(x, precision, maxSteps) {
+    const reduced = this._reduceTrigArgument(x, precision);
+    return this._sinSeries(reduced.angle, precision, maxSteps) * reduced.sinSign;
   }
   /**
    * 範囲縮約なしで正弦(sin)を計算する (内部用)
@@ -8762,14 +8768,14 @@ var BigFloat = class _BigFloat {
     let term = x;
     let result = term;
     const x2 = x * x / scale;
-    let sign = -1n;
+    let sgn = -1n;
     for (let n = 1n; n <= maxSteps; n++) {
       const denom = 2n * n;
       term = term * x2 / scale;
       term = term / (denom * (denom + 1n));
       if (term === 0n) break;
-      result += sign * term;
-      sign *= -1n;
+      result += sgn * term;
+      sgn *= -1n;
     }
     return result;
   }
@@ -8823,7 +8829,7 @@ var BigFloat = class _BigFloat {
    * @param maxSteps - 最大ステップ数
    * @returns 余弦
    */
-  static _cos(x, precision, maxSteps) {
+  static _cosSeries(x, precision, maxSteps) {
     const scale = this._getPow10(precision);
     let term = scale;
     let result = term;
@@ -8839,10 +8845,24 @@ var BigFloat = class _BigFloat {
     return result;
   }
   /**
+   * 余弦(cos)を計算する (内部用)
+   * @param x - 角度(ラジアン)
+   * @param precision - 精度
+   * @param maxSteps - 最大ステップ数
+   * @returns 余弦
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {RangeError} 負の数の平方根を計算しようとした場合
+   */
+  static _cos(x, precision, maxSteps) {
+    const reduced = this._reduceTrigArgument(x, precision);
+    return this._cosSeries(reduced.angle, precision, maxSteps) * reduced.cosSign;
+  }
+  /**
    * 余弦(cos)を計算する
    * @returns 余弦
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    * @throws {RangeError} 基数が2から36の範囲外の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {TypeError} 複素数モードが無効な場合
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
@@ -8891,10 +8911,11 @@ var BigFloat = class _BigFloat {
    * @throws {RangeError} 負の数の平方根を計算しようとした場合
    */
   static _tan(x, precision, maxSteps) {
-    const cosX = this._cos(x, precision, maxSteps);
+    const reduced = this._reduceTrigArgument(x, precision);
+    const cosX = this._cosSeries(reduced.angle, precision, maxSteps) * reduced.cosSign;
     const EPSILON = this._getPow10(precision - 4n);
     if (cosX === 0n || cosX > -EPSILON && cosX < EPSILON) throw new NumericalComputationError("tan(x) is undefined or numerically unstable at this point");
-    const sinX = this._sin(x, precision, maxSteps);
+    const sinX = this._sinSeries(reduced.angle, precision, maxSteps) * reduced.sinSign;
     const scale = this._getPow10(precision);
     return sinX * scale / cosX;
   }
@@ -10316,6 +10337,7 @@ var BigFloat = class _BigFloat {
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {TypeError} 複素数モードが無効な場合
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   static cos(value, precision) {
     const precisionBig = this._resolvePrecisionFromValues([value], precision ?? this.DEFAULT_PRECISION);
@@ -11202,6 +11224,7 @@ var BigFloat = class _BigFloat {
    * @throws {RangeError} s = 1 の場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   static _zeta(s, precision) {
     const scale = this._getPow10(precision);
@@ -11229,15 +11252,102 @@ var BigFloat = class _BigFloat {
     return result;
   }
   /**
-   * ガンマ関数をStirlingの近似で計算する (内部用)
+   * Lanczos係数の項数を決定する (内部用)
+   * @param precision - 精度
+   * @returns 項数
+   */
+  static _lanczosTermCount(precision) {
+    return Math.max(12, Math.ceil(Number(precision) * 0.5));
+  }
+  /**
+   * Lanczos係数計算用の二項係数を計算する (内部用)
+   * @param n - 全体数
+   * @param k - 選択数
+   * @returns 二項係数
+   */
+  static _lanczosBinomial(n, k) {
+    if (k < 0n || k > n) return 0n;
+    return this._binomial(n, k);
+  }
+  /**
+   * Godfrey形式のLanczos係数を取得する (内部用)
+   * @param precision - 精度
+   * @returns Lanczos係数
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {RangeError} 値が0以下の場合
+   */
+  static _getLanczosCoefficients(precision) {
+    const terms = this._lanczosTermCount(precision);
+    const g = BigInt(Math.max(7, terms - 5));
+    const key = `${precision}:${terms}:${g}`;
+    const cached = this._lanczosCache[key];
+    if (cached) return cached;
+    const scale = this._getPow10(precision);
+    const halfScale = scale / 2n;
+    const fValues = [];
+    for (let i = 0; i < terms; i++) {
+      const ib = BigInt(i);
+      const shifted = (ib + g) * scale + halfScale;
+      const expTerm = this._exp(shifted, precision);
+      const powTerm = this._pow(shifted, ib * scale + halfScale, precision);
+      if (i === 0) {
+        fValues.push(2n * expTerm * scale / powTerm);
+        continue;
+      }
+      const numerator = this._factorial(2n * ib) * expTerm * scale;
+      const denominator = this._factorial(ib) * (1n << BigInt(2 * i - 1)) * powTerm;
+      fValues.push(numerator / denominator);
+    }
+    const cTimesF = [];
+    for (let i = 0; i < terms; i++) {
+      let rowSum = 0n;
+      for (let j = 0; j <= i; j++) {
+        let cValue;
+        if (i === 0 && j === 0) {
+          cValue = scale / 2n;
+        } else {
+          let cSum = 0n;
+          for (let k = 0; k <= i; k++) {
+            cSum += this._lanczosBinomial(BigInt(2 * i), BigInt(2 * k)) * this._lanczosBinomial(BigInt(k), BigInt(k + j - i));
+          }
+          cValue = ((i - j) % 2 === 0 ? cSum : -cSum) * scale;
+        }
+        rowSum += cValue * fValues[j] / scale;
+      }
+      cTimesF.push(rowSum);
+    }
+    const bcTimesF = [];
+    for (let i = 0; i < terms; i++) {
+      let rowSum = 0n;
+      for (let j = i; j < terms; j++) {
+        const bValue = i === 0 ? 1n : ((j - i) % 2 === 0 ? 1n : -1n) * this._binomial(BigInt(i + j - 1), BigInt(j - i));
+        rowSum += bValue * cTimesF[j];
+      }
+      bcTimesF.push(rowSum);
+    }
+    const dValues = [1n];
+    if (terms > 1) dValues.push(-1n);
+    for (let i = 2; i < terms; i++) {
+      const ib = BigInt(i);
+      dValues.push(dValues[i - 1] * 2n * (2n * ib - 1n) / (ib - 1n));
+    }
+    const coefficients = bcTimesF.map((value, index) => value * dValues[index]);
+    const entry = { precision, terms, g, coefficients };
+    this._lanczosCache[key] = entry;
+    return entry;
+  }
+  /**
+   * ガンマ関数をLanczos近似で計算する (内部用、指定精度で直接計算)
    * @param z - 値
    * @param precision - 精度
    * @returns ガンマ関数
    * @throws {RangeError} 負の整数の場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
-  static _gammaLanczos(z, precision) {
+  static _gammaLanczosRaw(z, precision) {
     const scale = this._getPow10(precision);
     const half_scale = scale / 2n;
     if (z <= 0n && z % scale === 0n) {
@@ -11248,41 +11358,41 @@ var BigFloat = class _BigFloat {
       const maxSteps = config.trigFuncsMaxSteps;
       const pi = this._pi(precision);
       const oneMinusZ = scale - z;
-      const gammaOneMinusZ = this._gammaLanczos(oneMinusZ, precision);
+      const gammaOneMinusZ = this._gammaLanczosRaw(oneMinusZ, precision);
       const pi_z = pi * z / scale;
       const sin_pi_z = this._sin(pi_z, precision, maxSteps);
       const denominator = sin_pi_z * gammaOneMinusZ / scale;
       if (denominator === 0n) throw new DivisionByZeroError("division by zero");
       return pi * scale / denominator;
     }
-    let product = scale;
-    let currentZ = z;
-    const threshold = (precision << 1n) + 50n;
-    while (currentZ < threshold * scale) {
-      product = product * currentZ / scale;
-      currentZ += scale;
+    const { coefficients, g } = this._getLanczosCoefficients(precision);
+    const zMinusOne = z - scale;
+    let series = coefficients[0];
+    for (let i = 1; i < coefficients.length; i++) {
+      series += coefficients[i] * scale / (zMinusOne + BigInt(i) * scale);
     }
-    const lnZ = this._ln(currentZ, precision, this.config.lnMaxSteps);
-    const term1 = (currentZ - half_scale) * lnZ / scale;
-    const term2 = currentZ;
-    const term3 = this._ln2pi(precision) / 2n;
-    let sum = 0n;
-    const zInv = scale * scale / currentZ;
-    const zInv2 = zInv * zInv / scale;
-    let zInvPow = zInv;
-    const numTerms = Math.floor(Number(precision) / 6) + 10;
-    const bNumbers = this._getBernoulliNumbers(2 * numTerms, precision);
-    for (let n = 1; n <= numTerms; n++) {
-      const b2n = bNumbers[2 * n];
-      const denom = BigInt(2 * n * (2 * n - 1));
-      const term = b2n * zInvPow / (denom * scale);
-      if (term === 0n && n > 1) break;
-      sum += term;
-      zInvPow = zInvPow * zInv2 / scale;
-    }
-    const lnGamma = term1 - term2 + term3 + sum;
-    const gammaLarge = this._exp(lnGamma, precision);
-    return gammaLarge * scale / product;
+    if (series <= 0n) throw new NumericalComputationError("Lanczos series became non-positive");
+    const shifted = zMinusOne + g * scale + half_scale;
+    const lnShifted = this._ln(shifted, precision, this.config.lnMaxSteps);
+    const lnSeries = this._ln(series, precision, this.config.lnMaxSteps);
+    const lnGamma = lnSeries + (zMinusOne + half_scale) * lnShifted / scale - shifted;
+    return this._exp(lnGamma, precision);
+  }
+  /**
+   * ガンマ関数をLanczos近似で計算する (内部用)
+   * @param z - 値
+   * @param precision - 精度
+   * @returns ガンマ関数
+   * @throws {RangeError} 負の整数の場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
+   */
+  static _gammaLanczos(z, precision) {
+    const workPrecision = precision + this.config.extraPrecision + 8n;
+    const workZ = this._rescaleInternalValue(z, precision, workPrecision);
+    const raw = this._gammaLanczosRaw(workZ, workPrecision);
+    return this._rescaleInternalValue(raw, workPrecision, precision);
   }
   /**
    * ガンマ関数を計算する
@@ -11291,6 +11401,7 @@ var BigFloat = class _BigFloat {
    * @throws {RangeError} 負の整数の場合、または特殊値が無効な設定で極（負の整数またはゼロ）を指定した場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   gamma() {
     const construct = this.constructor;
@@ -11316,6 +11427,7 @@ var BigFloat = class _BigFloat {
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   zeta() {
     const construct = this.constructor;
@@ -11377,6 +11489,7 @@ var BigFloat = class _BigFloat {
    * @throws {RangeError} 負の整数の場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   static _factorialGamma(n, precision) {
     const scale = this._getPow10(precision);
@@ -11389,6 +11502,7 @@ var BigFloat = class _BigFloat {
    * @throws {RangeError} 負の整数の場合、または特殊値が無効な設定で極（負の整数）を指定した場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   factorial() {
     const construct = this.constructor;
@@ -12070,7 +12184,7 @@ var BigFloat = class _BigFloat {
       for (let i = 0; i < 2; i++) {
         const sinValue = this._sinSeries(estimate, workPrecision, this.config.trigFuncsMaxSteps);
         if (sinValue === 0n) break;
-        const cosValue = this._cos(estimate, workPrecision, this.config.trigFuncsMaxSteps);
+        const cosValue = this._cosSeries(estimate, workPrecision, this.config.trigFuncsMaxSteps);
         const refined = estimate - sinValue * scale / cosValue;
         if (refined === estimate) break;
         estimate = refined;
@@ -13281,6 +13395,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @throws {PrecisionMismatchError} 精度の不一致が許容されていない場合
    * @throws {TypeError} 複素数モードが無効な場合
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    */
   cos() {
     return this._mapValues((value) => value.cos());
@@ -13545,6 +13660,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   gamma() {
     return this._mapValues((value) => value.gamma());
@@ -13557,6 +13673,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   zeta() {
     return this._mapValues((value) => value.zeta());
@@ -13569,6 +13686,7 @@ var BigFloatMatrix = class _BigFloatMatrix {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
    * @throws {SyntaxError} 文字列が複素数表現として無効な場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   factorial() {
     return this._mapValues((value) => value.factorial());
@@ -15281,12 +15399,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {RangeError} 負の整数の場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   gamma() {
-    return this._mapValues((v) => {
-      if (!v.isReal()) throw new TypeError("gamma is not supported for non-real complex numbers");
-      return new BigFloatComplex(v.real.gamma(), 0, v.precision);
-    });
+    return this._mapValues((v) => v.gamma());
   }
   /**
    * 各要素のゼータ関数を計算する
@@ -15296,12 +15412,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
    * @throws {DivisionByZeroError} ゼロ除算が発生した場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
    * @throws {RangeError} 特殊値が無効な設定で this = 1 の場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   zeta() {
-    return this._mapValues((v) => {
-      if (!v.isReal()) throw new TypeError("zeta is not supported for non-real complex numbers");
-      return new BigFloatComplex(v.real.zeta(), 0, v.precision);
-    });
+    return this._mapValues((v) => v.zeta());
   }
   /**
    * 各要素の階乗を計算する
@@ -15311,12 +15425,10 @@ var BigFloatComplexMatrix = class _BigFloatComplexMatrix {
    * @throws {CacheNotInitializedError} キャッシュが存在しない場合
    * @throws {RangeError} 負の整数の場合
    * @throws {SpecialValuesDisabledError} 特殊値が無効な設定で特殊値を扱おうとした場合
+   * @throws {NumericalComputationError} Lanczos級数が数値的に不安定な場合
    */
   factorial() {
-    return this._mapValues((v) => {
-      if (!v.isReal()) throw new TypeError("factorial is not supported for non-real complex numbers");
-      return new BigFloatComplex(v.real.factorial(), 0, v.precision);
-    });
+    return this._mapValues((v) => v.factorial());
   }
   /**
    * 各要素に対して指数積分 Ei(z) を計算する
